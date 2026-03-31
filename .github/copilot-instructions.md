@@ -1,6 +1,50 @@
 # Copilot Instructions
 
-## Project Guidelines
-- Design code changes to be easily extensible for upcoming GPS tracking, geofencing, and auto audio trigger modules.
-- Ensure service architecture is interface-based, dependency injection (DI) friendly, event-driven, UI-independent, and testable.
-- Keep business logic out of ViewModels, particularly for location, geofencing, and audio pipeline functionalities.
+## Architecture Principles
+- Always follow Clean Architecture.
+- All business logic must be implemented in Services, not in ViewModels.
+- Services must be interface-based, testable, and registered via Dependency Injection.
+- Prefer event-driven communication between services and ViewModels.
+- When restructuring this repo, preserve all existing logic, only move/reorganize into proper monorepo positions, and add backend as new components without impacting MAUI frontend behavior.
+
+## ViewModel Rules
+- ViewModels must NOT contain business logic.
+- ViewModels should only:
+  - Bind data to UI
+  - Expose commands
+  - Subscribe to service events
+
+## Service Responsibilities
+- GPS logic → LocationPollingService
+- Geofencing logic → PoiGeofenceService
+- Audio handling → AudioService (with fallback strategy)
+- API communication → PoiApiService
+- Local storage → LocalDatabaseService
+
+## Offline-First Requirement
+- The app must work without internet connection.
+- Always load from local cache first (SQLite, file system).
+- Sync with API in background when online.
+- Audio files should be cached locally after first load.
+
+## Event-Driven Design
+- Services should emit events (e.g., OnLocationUpdated, OnPoiEntered).
+- ViewModels and other services subscribe to events instead of calling logic directly.
+
+## Anti-Patterns (MUST AVOID)
+- Do NOT call Geolocation API inside ViewModel.
+- Do NOT call HttpClient directly inside ViewModel.
+- Do NOT implement geofencing logic in ViewModel.
+- Do NOT play audio inside ViewModel.
+- Do NOT access SQLite directly from ViewModel.
+
+## Performance & Stability
+- Avoid unnecessary API calls (use debounce and distance threshold).
+- Prevent duplicate event subscriptions.
+- Ensure proper unsubscribe to avoid memory leaks.
+
+## Goal
+- Code must be clean, modular, testable, and easy to extend for:
+  - GPS tracking
+  - Geofencing
+  - Auto audio guide
