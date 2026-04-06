@@ -2,64 +2,56 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelApp.LoginPage"
-             BackgroundColor="#F4F4F5"
+             BackgroundColor="{AppThemeBinding Light=#F4F4F5, Dark=#111318}"
              Shell.NavBarIsVisible="False">
 
     <ScrollView>
-        <VerticalStackLayout Padding="28,56,28,28" Spacing="22">
-            <Button Text="✕"
-                    Command="{Binding BackCommand}"
-                    HorizontalOptions="Start"
-                    FontSize="28"
-                    BackgroundColor="Transparent"
-                    TextColor="#121212"
-                    Padding="0" />
+        <VerticalStackLayout Padding="26,56,26,28" Spacing="18">
+            <Border WidthRequest="42"
+                    HeightRequest="42"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 21"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M19,6 L18,5 L12,11 L6,5 L5,6 L11,12 L5,18 L6,19 L12,13 L18,19 L19,18 L13,12 Z"
+                      Fill="{AppThemeBinding Light=#333A4A, Dark=#F3F5FA}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
 
             <VerticalStackLayout Spacing="8" Margin="0,20,0,0">
                 <Label Text="Sign In"
-                       FontSize="44"
-                       FontAttributes="Bold"
-                       TextColor="#17171C" />
+                       Style="{StaticResource AuthTitleLabelStyle}" />
                 <Label Text="Enjoy the free audio guided tours with ease and redeem the credits for paid tours."
-                       FontSize="18"
-                       TextColor="#3A3A40" />
+                       Style="{StaticResource AuthSubtitleLabelStyle}" />
             </VerticalStackLayout>
 
-            <Border Stroke="#8A8A93"
-                    StrokeThickness="2"
-                    StrokeShape="RoundRectangle 26"
-                    BackgroundColor="Transparent"
-                    HeightRequest="64"
-                    Padding="18,0"
+            <Border Style="{StaticResource AuthInputBorderStyle}"
                     Margin="0,10,0,0">
                 <Entry Placeholder="Enter your e-mail address *"
                        Text="{Binding Email}"
-                       FontSize="18"
-                       TextColor="#1C1C22"
-                       PlaceholderColor="#6D6D75"
-                       VerticalOptions="Center" />
+                       AutomationProperties.Name="Email"
+                       Style="{StaticResource AuthEntryStyle}" />
             </Border>
 
-            <Border Stroke="#8A8A93"
-                    StrokeThickness="2"
-                    StrokeShape="RoundRectangle 26"
-                    BackgroundColor="Transparent"
-                    HeightRequest="64"
-                    Padding="18,0">
+            <Border Style="{StaticResource AuthInputBorderStyle}">
                 <Grid ColumnDefinitions="*,Auto">
                     <Entry Placeholder="Password *"
                            Text="{Binding Password}"
                            IsPassword="{Binding IsPasswordHidden}"
-                           FontSize="18"
-                           TextColor="#1C1C22"
-                           PlaceholderColor="#6D6D75"
-                           VerticalOptions="Center" />
+                           AutomationProperties.Name="Password"
+                           Style="{StaticResource AuthEntryStyle}" />
 
                     <Button Grid.Column="1"
                             Command="{Binding TogglePasswordVisibilityCommand}"
                             BackgroundColor="Transparent"
-                            TextColor="#8A8A93"
-                            FontSize="18"
+                            TextColor="{AppThemeBinding Light=#8A8A93, Dark=#A8B0C4}"
+                            FontSize="15"
                             Padding="0,0,4,0"
                             WidthRequest="56">
                         <Button.Triggers>
@@ -81,23 +73,19 @@
             <Button Text="Sign In"
                     Command="{Binding SignInCommand}"
                     IsEnabled="{Binding IsSignInEnabled}"
-                    BackgroundColor="#E31667"
-                    TextColor="White"
-                    FontAttributes="Bold"
-                    FontSize="20"
-                    HeightRequest="64"
-                    CornerRadius="32"
+                    AutomationProperties.Name="Sign In"
+                    Style="{StaticResource PrimaryPillButtonStyle}"
                     Margin="0,6,0,0" />
 
             <Label Text="Forgot password?"
                    HorizontalOptions="End"
-                   TextColor="#B73A6D"
+                   TextColor="{AppThemeBinding Light=#B73A6D, Dark=#FF84B2}"
                    FontSize="16" />
 
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="6" Margin="0,10,0,0">
                 <Label Text="Have no account?"
                        FontSize="18"
-                       TextColor="#1F1F24" />
+                       TextColor="{AppThemeBinding Light=#1F1F24, Dark=#D7DEEC}" />
                 <Label Text="Sign Up"
                        FontSize="18"
                        TextColor="#D51963"

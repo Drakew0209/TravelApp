@@ -10,6 +10,8 @@ public class ProfileViewModel : INotifyPropertyChanged
 {
     private readonly IProfileApiClient _profileApiClient;
     private readonly IAuthApiClient _authApiClient;
+    private readonly IAudioLibraryService _audioLibraryService;
+    private int _offlineDownloadsCount;
 
     public bool IsLoggedIn => AuthStateService.IsLoggedIn;
 
@@ -21,21 +23,28 @@ public class ProfileViewModel : INotifyPropertyChanged
     public bool ShowPurchases => IsLoggedIn;
     public bool ShowDownloads => IsLoggedIn;
     public bool ShowBookmarks => IsLoggedIn;
+    public string DownloadsTitle => _offlineDownloadsCount > 0 ? $"Downloads ({_offlineDownloadsCount})" : "Downloads";
 
     public ICommand BackCommand { get; }
     public ICommand PrimaryActionCommand { get; }
     public ICommand OpenEditProfileCommand { get; }
+    public ICommand OpenDownloadsCommand { get; }
+    public ICommand OpenBookmarksCommand { get; }
 
-    public ProfileViewModel(IProfileApiClient profileApiClient, IAuthApiClient authApiClient)
+    public ProfileViewModel(IProfileApiClient profileApiClient, IAuthApiClient authApiClient, IAudioLibraryService audioLibraryService)
     {
         _profileApiClient = profileApiClient;
         _authApiClient = authApiClient;
+        _audioLibraryService = audioLibraryService;
 
         AuthStateService.AuthStateChanged += OnAuthStateChanged;
         UserProfileService.ProfileChanged += OnProfileChanged;
+        _audioLibraryService.LibraryChanged += async (_, _) => await RefreshOfflineDownloadsCountAsync();
 
         BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
         OpenEditProfileCommand = new Command(async () => await Shell.Current.GoToAsync("EditProfilePage"));
+        OpenDownloadsCommand = new Command(async () => await Shell.Current.GoToAsync("MyAudioLibraryPage"));
+        OpenBookmarksCommand = new Command(async () => await Shell.Current.GoToAsync("BookmarksHistoryPage?tab=bookmarks"));
         PrimaryActionCommand = new Command(async () =>
         {
             if (IsLoggedIn)
@@ -53,6 +62,8 @@ public class ProfileViewModel : INotifyPropertyChanged
         {
             _ = LoadProfileAsync();
         }
+
+        _ = RefreshOfflineDownloadsCountAsync();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -83,6 +94,19 @@ public class ProfileViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ShowPurchases));
         OnPropertyChanged(nameof(ShowDownloads));
         OnPropertyChanged(nameof(ShowBookmarks));
+        OnPropertyChanged(nameof(DownloadsTitle));
+    }
+
+    private async Task RefreshOfflineDownloadsCountAsync()
+    {
+        var count = await _audioLibraryService.GetDownloadedCountAsync(UserProfileService.PreferredLanguage);
+        if (_offlineDownloadsCount == count)
+        {
+            return;
+        }
+
+        _offlineDownloadsCount = count;
+        MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(DownloadsTitle)));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

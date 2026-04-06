@@ -2,44 +2,67 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelApp.SearchPage"
-             BackgroundColor="White"
+             BackgroundColor="{AppThemeBinding Light={StaticResource TravelPageLight}, Dark={StaticResource TravelPageDark}}"
              Shell.NavBarIsVisible="False">
 
     <Grid RowDefinitions="Auto,*">
 
         <Grid Padding="16,48,16,12" ColumnDefinitions="40,*,40">
-            <Button Text="✕"
-                    Command="{Binding BackCommand}"
-                    FontSize="20"
-                    TextColor="Black"
-                    BackgroundColor="Transparent"
-                    Padding="0" />
+            <Border WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M19,6 L18,5 L12,11 L6,5 L5,6 L11,12 L5,18 L6,19 L12,13 L18,19 L19,18 L13,12 Z"
+                      Fill="{AppThemeBinding Light=#333A4A, Dark=#F3F5FA}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
 
             <Label Grid.Column="1"
                    Text="Search"
                    FontSize="22"
+                   TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
 
-            <Button Grid.Column="2"
-                    Text="☷"
-                    Command="{Binding OpenFilterCommand}"
-                    FontSize="22"
-                    TextColor="#C2185B"
-                    BackgroundColor="Transparent"
-                    Padding="0" />
+            <Border Grid.Column="2"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#E7D8E1, Dark=#4B2D3F}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=#FFF3F8, Dark=#2A1A24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding OpenFilterCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M4,6H20V8H4V6M7,11H17V13H7V11M10,16H14V18H10V16Z"
+                      Fill="{StaticResource TravelAccent}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
         </Grid>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="16,4,16,12" Spacing="14">
-                <Border Stroke="Black"
-                        StrokeThickness="2"
+                <Border Stroke="{AppThemeBinding Light=#C9D0DE, Dark=#3A4150}"
+                        StrokeThickness="1.6"
                         StrokeShape="RoundRectangle 24"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
                         HeightRequest="58"
                         Padding="14,0">
                     <Grid ColumnDefinitions="*,46">
                         <Entry Placeholder="Explore destinations"
-                               PlaceholderColor="#9A9AA0"
+                               PlaceholderColor="{AppThemeBinding Light=#9A9AA0, Dark=#8E97AA}"
+                               TextColor="{AppThemeBinding Light=#242833, Dark=#F3F5FA}"
                                FontSize="18"
                                BackgroundColor="Transparent"
                                VerticalOptions="Center" />
@@ -52,17 +75,19 @@
                                 HeightRequest="40"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center">
-                            <Label Text="⌕"
-                                   TextColor="White"
-                                   FontSize="20"
-                                   HorizontalTextAlignment="Center"
-                                   VerticalTextAlignment="Center" />
+                            <Path Data="M15.5,14H14.71L14.43,13.73C15.41,12.59 16,11.11 16,9.5C16,5.91 13.09,3 9.5,3C5.91,3 3,5.91 3,9.5C3,13.09 5.91,16 9.5,16C11.11,16 12.59,15.41 13.73,14.43L14,14.71V15.5L19,20.49L20.49,19L15.5,14M9.5,14C7.01,14 5,11.99 5,9.5C5,7.01 7.01,5 9.5,5C11.99,5 14,7.01 14,9.5C14,11.99 11.99,14 9.5,14Z"
+                                  Fill="White"
+                                  WidthRequest="18"
+                                  HeightRequest="18"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center" />
                         </Border>
                     </Grid>
                 </Border>
 
                 <Label Text="Popular Destinations"
                        FontSize="20"
+                       TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
                        FontAttributes="Bold" />
 
                 <CollectionView ItemsSource="{Binding PopularDestinations}" SelectionMode="None">
@@ -100,60 +125,61 @@
 
             <Border VerticalOptions="Start"
                     Margin="0,90,0,0"
-                    BackgroundColor="White"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 24,24,0,0"
                     Padding="0,14,0,20">
                 <ScrollView>
                     <VerticalStackLayout Padding="16,0" Spacing="12">
                         <Grid ColumnDefinitions="*,Auto" Padding="8,0,8,0">
-                            <Label Text="Filter" FontSize="22" FontAttributes="Bold" />
+                            <Label Text="Filter" FontSize="22" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}" />
                             <Button Grid.Column="1"
                                     Text="✕"
                                     Command="{Binding CloseFilterCommand}"
                                     FontSize="22"
+                                    TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
                                     BackgroundColor="Transparent"
                                     Padding="0" />
                         </Grid>
 
-                        <BoxView HeightRequest="1" Color="#ECECEF" />
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#ECECEF, Dark=#2A2F3A}" />
 
                         <Grid ColumnDefinitions="*,Auto" Padding="8,6">
                             <Label Text="★   Popular and most rated guides"
                                    FontSize="16"
-                                   TextColor="#6D6D76" />
+                                   TextColor="{AppThemeBinding Light=#6D6D76, Dark=#B4BDCF}" />
                             <Switch Grid.Column="1"
                                     IsToggled="{Binding PopularMostRated}"
                                     OnColor="#D81B60" />
                         </Grid>
 
-                        <BoxView HeightRequest="1" Color="#ECECEF" />
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#ECECEF, Dark=#2A2F3A}" />
 
                         <Grid ColumnDefinitions="*,Auto" Padding="8,6">
                             <Label Text="▲   Filter by category"
                                    FontSize="16"
-                                   TextColor="#6D6D76" />
+                                   TextColor="{AppThemeBinding Light=#6D6D76, Dark=#B4BDCF}" />
                             <Label Grid.Column="1" Text="⌃" TextColor="#D81B60" FontSize="20" />
                         </Grid>
 
                         <Grid ColumnDefinitions="*,Auto" Padding="18,2">
-                            <Label Text="Tour" FontSize="16" TextColor="#333" />
+                            <Label Text="Tour" FontSize="16" TextColor="{AppThemeBinding Light=#333333, Dark=#E6EBF7}" />
                             <Switch Grid.Column="1" IsToggled="{Binding TourEnabled}" OnColor="#D81B60" />
                         </Grid>
                         <Grid ColumnDefinitions="*,Auto" Padding="18,2">
-                            <Label Text="Museum" FontSize="16" TextColor="#333" />
+                            <Label Text="Museum" FontSize="16" TextColor="{AppThemeBinding Light=#333333, Dark=#E6EBF7}" />
                             <Switch Grid.Column="1" IsToggled="{Binding MuseumEnabled}" OnColor="#D81B60" />
                         </Grid>
                         <Grid ColumnDefinitions="*,Auto" Padding="18,2">
-                            <Label Text="Quest" FontSize="16" TextColor="#333" />
+                            <Label Text="Quest" FontSize="16" TextColor="{AppThemeBinding Light=#333333, Dark=#E6EBF7}" />
                             <Switch Grid.Column="1" IsToggled="{Binding QuestEnabled}" OnColor="#D81B60" />
                         </Grid>
 
-                        <BoxView HeightRequest="1" Color="#ECECEF" />
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#ECECEF, Dark=#2A2F3A}" />
 
                         <Label Text="🅰   Filter by tour type"
                                FontSize="16"
-                               TextColor="#6D6D76"
+                               TextColor="{AppThemeBinding Light=#6D6D76, Dark=#B4BDCF}"
                                Padding="8,4" />
 
                         <CollectionView ItemsSource="{Binding TourTypes}" SelectionMode="None" HeightRequest="250">
@@ -164,7 +190,7 @@
                                 <DataTemplate>
                                     <Border Stroke="#D81B60" StrokeThickness="1.5" StrokeShape="RoundRectangle 24" Padding="14,10">
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <Label Text="{Binding Name}" FontSize="14" TextColor="#2C2C33" />
+                                            <Label Text="{Binding Name}" FontSize="14" TextColor="{AppThemeBinding Light=#2C2C33, Dark=#E6EBF7}" />
                                             <Label Grid.Column="1" Text="✓" TextColor="#D81B60" FontSize="18">
                                                 <Label.Triggers>
                                                     <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="False">
@@ -194,7 +220,7 @@
                         <Button Text="Clear filters"
                                 Command="{Binding ClearFiltersCommand}"
                                 BackgroundColor="Transparent"
-                                TextColor="#202025"
+                                TextColor="{AppThemeBinding Light=#202025, Dark=#D7DEEC}"
                                 FontSize="16"
                                 Margin="0,-4,0,6" />
                     </VerticalStackLayout>

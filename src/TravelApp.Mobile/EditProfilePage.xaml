@@ -3,16 +3,25 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelApp.EditProfilePage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#F4F4F6">
+             BackgroundColor="{AppThemeBinding Light={StaticResource TravelPageLight}, Dark={StaticResource TravelPageDark}}">
 
     <Grid RowDefinitions="Auto,*">
         <Grid BackgroundColor="#E31667" Padding="16,48,16,16" ColumnDefinitions="40,*,40">
-            <Button Text="←"
-                    Command="{Binding BackCommand}"
-                    BackgroundColor="Transparent"
-                    TextColor="White"
-                    FontSize="26"
-                    Padding="0" />
+            <Border WidthRequest="40"
+                    HeightRequest="40"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="#33FFFFFF">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M15.4,4.6L14,3.2L5.2,12L14,20.8L15.4,19.4L8,12L15.4,4.6Z"
+                      Fill="White"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
 
             <Label Grid.Column="1"
                    Text="Edit Profile"
@@ -25,7 +34,7 @@
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="18,18,18,26" Spacing="16">
-                <Label FontSize="16" TextColor="#76767E">
+                <Label FontSize="16" TextColor="{AppThemeBinding Light=#76767E, Dark=#B4BDCF}">
                     <Label.FormattedText>
                         <FormattedString>
                             <Span Text="Email Address " />
@@ -34,20 +43,21 @@
                     </Label.FormattedText>
                 </Label>
 
-                <Border Stroke="#CFCFD7"
+                <Border Stroke="{AppThemeBinding Light=#CFCFD7, Dark=#2A2F3A}"
                         StrokeThickness="1"
                         StrokeShape="RoundRectangle 24"
-                        BackgroundColor="White"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
                         Padding="16,0"
                         HeightRequest="60">
                     <Entry Text="{Binding Email}"
                            Placeholder="your@email.com"
-                           PlaceholderColor="#7C7C84"
+                           PlaceholderColor="{AppThemeBinding Light=#7C7C84, Dark=#8E97AA}"
+                           TextColor="{AppThemeBinding Light=#1C1C22, Dark=#F3F5FA}"
                            FontSize="18"
                            VerticalOptions="Center" />
                 </Border>
 
-                <Label FontSize="16" TextColor="#76767E" Margin="0,8,0,0">
+                <Label FontSize="16" TextColor="{AppThemeBinding Light=#76767E, Dark=#B4BDCF}" Margin="0,8,0,0">
                     <Label.FormattedText>
                         <FormattedString>
                             <Span Text="Full name " />
@@ -56,28 +66,29 @@
                     </Label.FormattedText>
                 </Label>
 
-                <Border Stroke="#CFCFD7"
+                <Border Stroke="{AppThemeBinding Light=#CFCFD7, Dark=#2A2F3A}"
                         StrokeThickness="1"
                         StrokeShape="RoundRectangle 24"
-                        BackgroundColor="White"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
                         Padding="16,0"
                         HeightRequest="60">
                     <Entry Text="{Binding FullName}"
                            Placeholder="Your full name"
-                           PlaceholderColor="#7C7C84"
+                           PlaceholderColor="{AppThemeBinding Light=#7C7C84, Dark=#8E97AA}"
+                           TextColor="{AppThemeBinding Light=#1C1C22, Dark=#F3F5FA}"
                            FontSize="18"
                            VerticalOptions="Center" />
                 </Border>
 
                 <Label Text="Mobile number"
                        FontSize="16"
-                       TextColor="#76767E"
+                       TextColor="{AppThemeBinding Light=#76767E, Dark=#B4BDCF}"
                        Margin="0,8,0,0" />
 
-                <Border Stroke="#7F7F87"
+                <Border Stroke="{AppThemeBinding Light=#7F7F87, Dark=#3A4150}"
                         StrokeThickness="2"
                         StrokeShape="RoundRectangle 24"
-                        BackgroundColor="White"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
                         Padding="14,0"
                         HeightRequest="64">
                     <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8">
@@ -90,18 +101,20 @@
                                WidthRequest="60"
                                FontSize="16"
                                Keyboard="Telephone"
+                               TextColor="{AppThemeBinding Light=#1C1C22, Dark=#F3F5FA}"
                                VerticalOptions="Center" />
 
                         <Label Grid.Column="2"
                                Text="▾"
                                FontSize="18"
-                               TextColor="#666"
+                               TextColor="{AppThemeBinding Light=#666666, Dark=#A8B0C4}"
                                VerticalTextAlignment="Center" />
 
                         <Entry Grid.Column="3"
                                Text="{Binding PhoneNumber}"
                                Placeholder="Phone number"
-                               PlaceholderColor="#7C7C84"
+                               PlaceholderColor="{AppThemeBinding Light=#7C7C84, Dark=#8E97AA}"
+                               TextColor="{AppThemeBinding Light=#1C1C22, Dark=#F3F5FA}"
                                FontSize="18"
                                Keyboard="Telephone"
                                VerticalOptions="Center" />

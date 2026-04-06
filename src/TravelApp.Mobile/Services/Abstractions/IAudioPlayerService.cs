@@ -4,6 +4,8 @@ namespace TravelApp.Services.Abstractions;
 
 public interface IAudioPlayerService
 {
+    event EventHandler<AudioPlaybackStateChangedEventArgs>? PlaybackStateChanged;
+
     bool IsPlaying { get; }
     int? CurrentPoiId { get; }
     string? CurrentPoiTitle { get; }

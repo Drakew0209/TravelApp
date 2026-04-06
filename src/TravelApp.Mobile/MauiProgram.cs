@@ -12,18 +12,46 @@ namespace TravelApp
     {
         public static IServiceProvider Services { get; private set; } = default!;
 
+        private static bool CanUseMapsOnWindows()
+        {
+            var bingMapsKey = Environment.GetEnvironmentVariable("BING_MAPS_KEY");
+            return !string.IsNullOrWhiteSpace(bingMapsKey);
+        }
+
+        private static string ResolveApiBaseUrl()
+        {
+#if DEBUG
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                return "http://10.0.2.2:5293/";
+            }
+
+            return "http://localhost:5293/";
+#else
+            return "https://api.your-domain.com/";
+#endif
+        }
+
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
                 .AddAudio()
-                .UseMauiMaps()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+
+#if WINDOWS
+            if (CanUseMapsOnWindows())
+            {
+                builder.UseMauiMaps();
+            }
+#else
+            builder.UseMauiMaps();
+#endif
 
 #if DEBUG
     		builder.Logging.AddDebug();
@@ -31,7 +59,7 @@ namespace TravelApp
 
             builder.Services.AddSingleton(new ApiClientOptions
             {
-                BaseUrl = "https://api.your-domain.com/"
+                BaseUrl = ResolveApiBaseUrl()
             });
             builder.Services.AddSingleton(new CachePolicyOptions
             {
@@ -54,6 +82,9 @@ namespace TravelApp
             builder.Services.AddSingleton<IGeofenceService, GeofenceService>();
             builder.Services.AddSingleton<IPoiGeofenceService, PoiGeofenceService>();
             builder.Services.AddSingleton<IAudioPlayerService, AudioPlayerService>();
+            builder.Services.AddSingleton<IAudioLibraryService, AudioLibraryService>();
+            builder.Services.AddSingleton<IBookmarkHistoryService, BookmarkHistoryService>();
+            builder.Services.AddSingleton<ITourMapRouteService, TourMapRouteService>();
             builder.Services.AddSingleton<IAutoAudioTriggerService, AutoAudioTriggerService>();
             builder.Services.AddSingleton<IAudioService, AudioService>();
             builder.Services.AddSingleton<ITravelRuntimePipeline, TravelRuntimePipeline>();
@@ -66,6 +97,10 @@ namespace TravelApp
             builder.Services.AddTransient<ProfileViewModel>();
             builder.Services.AddTransient<EditProfileViewModel>();
             builder.Services.AddTransient<PoiListViewModel>();
+            builder.Services.AddTransient<NowPlayingViewModel>();
+            builder.Services.AddTransient<MyAudioLibraryViewModel>();
+            builder.Services.AddTransient<BookmarksHistoryViewModel>();
+            builder.Services.AddTransient<TourMapRouteViewModel>();
 
             builder.Services.AddSingleton<AppShell>();
 

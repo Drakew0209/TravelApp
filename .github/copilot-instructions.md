@@ -48,3 +48,10 @@
   - GPS tracking
   - Geofencing
   - Auto audio guide
+
+## MAUI UI Guidelines
+- Provide UI-focused responses in Vietnamese with a brief design concept first.
+- Use modern Material 3 + Fluent styling for UI components.
+- Ensure responsive and accessibility considerations in all designs.
+- Maintain a friendly tone with suitable emojis.
+- When requested, provide complete copy-pasteable XAML/C# code.

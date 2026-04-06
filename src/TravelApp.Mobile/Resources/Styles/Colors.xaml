@@ -27,6 +27,19 @@
     <Color x:Key="Gray900">#212121</Color>
     <Color x:Key="Gray950">#141414</Color>
 
+    <Color x:Key="TravelAccent">#E31667</Color>
+    <Color x:Key="TravelAccentDark">#FF4F95</Color>
+    <Color x:Key="TravelPageLight">#F6F7FB</Color>
+    <Color x:Key="TravelPageDark">#111318</Color>
+    <Color x:Key="TravelSurfaceLight">#FFFFFF</Color>
+    <Color x:Key="TravelSurfaceDark">#181C24</Color>
+    <Color x:Key="TravelSurfaceStrokeLight">#E8EBF2</Color>
+    <Color x:Key="TravelSurfaceStrokeDark">#2A2F3A</Color>
+    <Color x:Key="TravelTitleLight">#1B1F28</Color>
+    <Color x:Key="TravelTitleDark">#F3F5FA</Color>
+    <Color x:Key="TravelBodyLight">#5D667A</Color>
+    <Color x:Key="TravelBodyDark">#B4BDCF</Color>
+
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
@@ -41,4 +54,6 @@
     <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
     <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
     <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+    <SolidColorBrush x:Key="TravelAccentBrush" Color="{StaticResource TravelAccent}"/>
+    <SolidColorBrush x:Key="TravelSurfaceBrush" Color="{AppThemeBinding Light={StaticResource TravelSurfaceLight}, Dark={StaticResource TravelSurfaceDark}}"/>
 </ResourceDictionary>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.UI.Xaml;
+using Windows.Services.Maps;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -16,6 +17,12 @@ namespace TravelApp.WinUI
         /// </summary>
         public App()
         {
+            var bingMapsKey = Environment.GetEnvironmentVariable("BING_MAPS_KEY");
+            if (!string.IsNullOrWhiteSpace(bingMapsKey))
+            {
+                MapService.ServiceToken = bingMapsKey;
+            }
+
             this.InitializeComponent();
         }
 

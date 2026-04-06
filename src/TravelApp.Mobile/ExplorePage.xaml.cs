@@ -9,6 +9,7 @@ namespace TravelApp;
 
 public partial class ExplorePage : ContentPage
 {
+    private readonly ExploreViewModel _viewModel;
     private readonly ITravelBootstrapService _travelBootstrapService;
     private readonly IAudioPlayerService _audioPlayerService;
     private readonly ILogger<ExplorePage> _logger;
@@ -17,7 +18,8 @@ public partial class ExplorePage : ContentPage
     public ExplorePage()
     {
         InitializeComponent();
-        BindingContext = MauiProgram.Services.GetRequiredService<ExploreViewModel>();
+        _viewModel = MauiProgram.Services.GetRequiredService<ExploreViewModel>();
+        BindingContext = _viewModel;
         _travelBootstrapService = MauiProgram.Services.GetRequiredService<ITravelBootstrapService>();
         _audioPlayerService = MauiProgram.Services.GetRequiredService<IAudioPlayerService>();
         _logger = MauiProgram.Services.GetRequiredService<ILogger<ExplorePage>>();
@@ -28,6 +30,7 @@ public partial class ExplorePage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _viewModel.ResetBottomTabToExplore();
         StartAudioStatusTimer();
         _ = StartRuntimeAsync();
     }
@@ -41,13 +44,55 @@ public partial class ExplorePage : ContentPage
 
     private void InitializeMap()
     {
+#if WINDOWS
+        if (string.IsNullOrWhiteSpace(Windows.Services.Maps.MapService.ServiceToken))
+        {
+            _logger.LogWarning("Windows map token is missing. Set BING_MAPS_KEY to show map on Windows.");
+            var placeholderContainer = this.FindByName<Grid>("ExploreMapContainer");
+            if (placeholderContainer is not null)
+            {
+                placeholderContainer.Children.Clear();
+                placeholderContainer.Children.Add(new Label
+                {
+                    Text = "Map needs BING_MAPS_KEY on Windows.",
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
+                    TextColor = Colors.Gray,
+                    Margin = new Thickness(12)
+                });
+            }
+
+            return;
+        }
+#endif
+
+        InitializeMapInContainer("ExploreMapContainer", showUser: false, radiusKm: 1);
+        InitializeMapInContainer("DiscoverMapContainer", showUser: true, radiusKm: 1.2);
+    }
+
+    private void InitializeMapInContainer(string containerName, bool showUser, double radiusKm)
+    {
+        var map = new Microsoft.Maui.Controls.Maps.Map
+        {
+            MapType = MapType.Street,
+            IsTrafficEnabled = false,
+            IsShowingUser = showUser
+        };
+
+        var mapContainer = this.FindByName<Grid>(containerName);
+        if (mapContainer is null)
+        {
+            _logger.LogWarning("Map container '{ContainerName}' was not found in XAML.", containerName);
+            return;
+        }
+
+        mapContainer.Children.Clear();
+        mapContainer.Children.Add(map);
+
         var hoChiMinhCity = new Location(10.7769, 106.7009);
+        map.MoveToRegion(MapSpan.FromCenterAndRadius(hoChiMinhCity, Distance.FromKilometers(radiusKm)));
 
-        ExploreMap.MoveToRegion(MapSpan.FromCenterAndRadius(
-            hoChiMinhCity,
-            Distance.FromKilometers(1)));
-
-        ExploreMap.Pins.Add(new Pin
+        map.Pins.Add(new Pin
         {
             Label = "Ho Chi Minh City",
             Address = "District 1",

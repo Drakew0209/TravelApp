@@ -14,6 +14,10 @@ public class ExploreViewModel : INotifyPropertyChanged
     private bool _isMenuOpen;
     private bool _isLoggedIn;
     private readonly IPoiApiClient _poiApiClient;
+    private readonly IAudioLibraryService _audioLibraryService;
+    private readonly IBookmarkHistoryService _bookmarkHistoryService;
+    private int _offlineDownloadsCount;
+    private string _selectedBottomTab = "Explore";
 
     public ObservableCollection<PoiModel> ForYouItems { get; }
     public ObservableCollection<PoiModel> EditorsChoiceItems { get; }
@@ -42,6 +46,12 @@ public class ExploreViewModel : INotifyPropertyChanged
     }
 
     public string AuthMenuText => IsLoggedIn ? "Sign Out" : "Sign In";
+    public string PurchasesMenuText => _offlineDownloadsCount > 0 ? $"◍  Purchases ({_offlineDownloadsCount})" : "◍  Purchases";
+    public bool IsExploreTabActive => string.Equals(_selectedBottomTab, "Explore", StringComparison.Ordinal);
+    public bool IsDiscoverTabActive => string.Equals(_selectedBottomTab, "Discover", StringComparison.Ordinal);
+    public bool IsMyToursTabActive => string.Equals(_selectedBottomTab, "MyTours", StringComparison.Ordinal);
+    public bool IsSavedTabActive => string.Equals(_selectedBottomTab, "Saved", StringComparison.Ordinal);
+    public bool IsMenuTabActive => string.Equals(_selectedBottomTab, "Menu", StringComparison.Ordinal);
 
     public ICommand ToggleMenuCommand { get; }
     public ICommand CloseMenuCommand { get; }
@@ -50,13 +60,37 @@ public class ExploreViewModel : INotifyPropertyChanged
     public ICommand OpenTourDetailCommand { get; }
     public ICommand OpenProfileCommand { get; }
     public ICommand OpenDebugConsoleCommand { get; }
+    public ICommand OpenNowPlayingCommand { get; }
+    public ICommand OpenMyAudioLibraryCommand { get; }
+    public ICommand OpenHistoryCommand { get; }
+    public ICommand OpenBookmarksCommand { get; }
+    public ICommand OpenTourMapRouteCommand { get; }
+    public ICommand SelectBottomTabCommand { get; }
 
-    public ExploreViewModel(IPoiApiClient poiApiClient)
+    public void ResetBottomTabToExplore()
+    {
+        if (string.Equals(_selectedBottomTab, "Explore", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _selectedBottomTab = "Explore";
+        RaiseBottomTabChanged();
+    }
+
+    public ExploreViewModel(
+        IPoiApiClient poiApiClient,
+        IAudioLibraryService audioLibraryService,
+        IBookmarkHistoryService bookmarkHistoryService)
     {
         _poiApiClient = poiApiClient;
+        _audioLibraryService = audioLibraryService;
+        _bookmarkHistoryService = bookmarkHistoryService;
         IsLoggedIn = AuthStateService.IsLoggedIn;
         ForYouItems = [];
         EditorsChoiceItems = [];
+
+        _audioLibraryService.LibraryChanged += async (_, _) => await RefreshOfflineDownloadsCountAsync();
 
         AuthStateService.AuthStateChanged += (_, _) =>
         {
@@ -90,13 +124,80 @@ public class ExploreViewModel : INotifyPropertyChanged
             IsMenuOpen = false;
             await Shell.Current.GoToAsync("DebugRuntimeConsolePage");
         });
+        OpenNowPlayingCommand = new Command(async () => await Shell.Current.GoToAsync("NowPlayingPage"));
+        OpenMyAudioLibraryCommand = new Command(async () =>
+        {
+            IsMenuOpen = false;
+            await Shell.Current.GoToAsync("MyAudioLibraryPage");
+        });
+        OpenHistoryCommand = new Command(async () =>
+        {
+            IsMenuOpen = false;
+            await Shell.Current.GoToAsync("BookmarksHistoryPage?tab=history");
+        });
+        OpenBookmarksCommand = new Command(async () =>
+        {
+            IsMenuOpen = false;
+            await Shell.Current.GoToAsync("BookmarksHistoryPage?tab=bookmarks");
+        });
+        OpenTourMapRouteCommand = new Command(async () => await Shell.Current.GoToAsync("TourMapRoutePage"));
+        SelectBottomTabCommand = new Command<string>(async tab => await SelectBottomTabAsync(tab));
         OpenTourDetailCommand = new Command<PoiModel>(async item =>
         {
             if (item is null) return;
+            await _bookmarkHistoryService.AddHistoryAsync(item);
             await Shell.Current.GoToAsync($"TourDetailPage?tourId={item.Id}");
         });
 
         _ = LoadPoisAsync();
+        _ = RefreshOfflineDownloadsCountAsync();
+    }
+
+    private async Task SelectBottomTabAsync(string? tab)
+    {
+        if (string.IsNullOrWhiteSpace(tab))
+        {
+            return;
+        }
+
+        _selectedBottomTab = tab;
+        RaiseBottomTabChanged();
+
+        switch (tab)
+        {
+            case "Discover":
+                break;
+            case "MyTours":
+                await Shell.Current.GoToAsync("TourMapRoutePage");
+                break;
+            case "Saved":
+                await Shell.Current.GoToAsync("BookmarksHistoryPage?tab=bookmarks");
+                break;
+            case "Menu":
+                IsMenuOpen = true;
+                break;
+        }
+    }
+
+    private void RaiseBottomTabChanged()
+    {
+        OnPropertyChanged(nameof(IsExploreTabActive));
+        OnPropertyChanged(nameof(IsDiscoverTabActive));
+        OnPropertyChanged(nameof(IsMyToursTabActive));
+        OnPropertyChanged(nameof(IsSavedTabActive));
+        OnPropertyChanged(nameof(IsMenuTabActive));
+    }
+
+    private async Task RefreshOfflineDownloadsCountAsync()
+    {
+        var count = await _audioLibraryService.GetDownloadedCountAsync(UserProfileService.PreferredLanguage);
+        if (_offlineDownloadsCount == count)
+        {
+            return;
+        }
+
+        _offlineDownloadsCount = count;
+        MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(PurchasesMenuText)));
     }
 
     private async Task LoadPoisAsync()

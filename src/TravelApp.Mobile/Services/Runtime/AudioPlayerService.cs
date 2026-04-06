@@ -8,6 +8,8 @@ namespace TravelApp.Services.Runtime;
 
 public class AudioPlayerService : IAudioPlayerService
 {
+    public event EventHandler<AudioPlaybackStateChangedEventArgs>? PlaybackStateChanged;
+
     private readonly IAudioManager _audioManager;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogService _logService;
@@ -72,6 +74,7 @@ public class AudioPlayerService : IAudioPlayerService
             IsPlaying = true;
             CurrentPoiId = request.Poi.Id;
             CurrentPoiTitle = request.Poi.Title;
+            RaisePlaybackStateChanged();
             _logger.LogInformation(
                 "Audio started: POI {PoiId} ({PoiTitle}), source={SourceType}.",
                 request.Poi.Id,
@@ -126,12 +129,18 @@ public class AudioPlayerService : IAudioPlayerService
         IsPlaying = false;
         CurrentPoiId = null;
         CurrentPoiTitle = null;
+        RaisePlaybackStateChanged();
 
         if (wasPlaying)
         {
             _logger.LogInformation("Audio stopped: POI {PoiId} ({PoiTitle}), reason={Reason}.", poiId, poiTitle, reason);
             _logService.Log("Audio", $"STOP poi={poiId} ({poiTitle}) reason={reason}");
         }
+        }
+
+    private void RaisePlaybackStateChanged()
+    {
+        PlaybackStateChanged?.Invoke(this, new AudioPlaybackStateChangedEventArgs(IsPlaying, CurrentPoiId, CurrentPoiTitle));
     }
 
     private void OnPlaybackEnded(object? sender, EventArgs e)

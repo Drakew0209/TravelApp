@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelApp.BookmarksHistoryPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light=#F6F7FB, Dark=#111318}">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16,48,16,12">
+        <Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="10">
+            <Border WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M15.4,4.6L14,3.2L5.2,12L14,20.8L15.4,19.4L8,12L15.4,4.6Z"
+                      Fill="{AppThemeBinding Light=#333A4A, Dark=#F3F5FA}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+
+            <Label Grid.Column="1"
+                   Text="Bookmarks &amp; History"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
+                   LineBreakMode="TailTruncation"
+                   VerticalTextAlignment="Center" />
+
+            <Border Grid.Column="2"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#F0D5DF, Dark=#553142}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=#FFF3F7, Dark=#2A1A24}"
+                    IsVisible="{Binding IsHistoryTabActive}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ClearHistoryCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M7,7H17M10,7V5H14V7M8,7L9,18H15L16,7"
+                      Stroke="#D11A5B"
+                      StrokeThickness="1.8"
+                      StrokeLineCap="Round"
+                      StrokeLineJoin="Round"
+                      WidthRequest="18"
+                      HeightRequest="18"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+        </Grid>
+
+        <Label Grid.Row="1"
+               Margin="0,10,0,10"
+               Text="{Binding StatusText}"
+               FontSize="13"
+               TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" />
+
+        <HorizontalStackLayout Grid.Row="2" Spacing="8" Margin="0,0,0,10">
+            <Button Text="{Binding BookmarksTabText}"
+                    Command="{Binding ShowBookmarksCommand}"
+                    FontSize="12"
+                    HeightRequest="34"
+                    CornerRadius="16"
+                    Padding="10,0">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsBookmarksTabActive}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#E31667" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsBookmarksTabActive}" Value="False">
+                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E9EDF7, Dark=#2A2F3A}" />
+                        <Setter Property="TextColor" Value="{AppThemeBinding Light=#3D4558, Dark=#C4CDDE}" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <Button Text="{Binding HistoryTabText}"
+                    Command="{Binding ShowHistoryCommand}"
+                    FontSize="12"
+                    HeightRequest="34"
+                    CornerRadius="16"
+                    Padding="10,0">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsHistoryTabActive}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#E31667" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsHistoryTabActive}" Value="False">
+                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E9EDF7, Dark=#2A2F3A}" />
+                        <Setter Property="TextColor" Value="{AppThemeBinding Light=#3D4558, Dark=#C4CDDE}" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+        </HorizontalStackLayout>
+
+        <Grid Grid.Row="3">
+            <CollectionView ItemsSource="{Binding Bookmarks}" IsVisible="{Binding ShowBookmarks}" SelectionMode="None" EmptyView="No bookmarked tours yet">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16"
+                                BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                                Padding="12"
+                                Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="78,*,Auto" ColumnSpacing="10">
+                                <Border WidthRequest="78" HeightRequest="78" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Subtitle}" FontSize="13" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Location}" FontSize="12" TextColor="{AppThemeBinding Light=#8E96A8, Dark=#9BA5BB}" LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="2" Spacing="8" VerticalOptions="Center">
+                                    <Button Text="Open"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenBookmarkDetailCommand}"
+                                            CommandParameter="{Binding .}"
+                                            FontSize="12"
+                                            HeightRequest="32"
+                                            CornerRadius="16"
+                                            BackgroundColor="#E31667"
+                                            TextColor="White"
+                                            WidthRequest="82" />
+                                    <Button Text="Unsave"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleBookmarkCommand}"
+                                            CommandParameter="{Binding .}"
+                                            FontSize="12"
+                                            HeightRequest="32"
+                                            CornerRadius="16"
+                                            BorderColor="#D11A5B"
+                                            BorderWidth="1"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#D11A5B"
+                                            WidthRequest="82" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <CollectionView ItemsSource="{Binding History}" IsVisible="{Binding ShowHistory}" SelectionMode="None" EmptyView="No history yet">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16"
+                                BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                                Padding="12"
+                                Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="78,*,Auto" ColumnSpacing="10">
+                                <Border WidthRequest="78" HeightRequest="78" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                                    <Image Source="{Binding Poi.ImageUrl}" Aspect="AspectFill" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding Poi.Title}" FontSize="16" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Poi.Location}" FontSize="13" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding VisitedAtUtc, StringFormat='Visited: {0:dd/MM HH:mm}'}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light=#8E96A8, Dark=#9BA5BB}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="2" Spacing="8" VerticalOptions="Center">
+                                    <Button Text="Open"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenHistoryDetailCommand}"
+                                            CommandParameter="{Binding .}"
+                                            FontSize="12"
+                                            HeightRequest="32"
+                                            CornerRadius="16"
+                                            BackgroundColor="#E31667"
+                                            TextColor="White"
+                                            WidthRequest="82" />
+                                    <Button Text="Remove"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveHistoryItemCommand}"
+                                            CommandParameter="{Binding .}"
+                                            FontSize="12"
+                                            HeightRequest="32"
+                                            CornerRadius="16"
+                                            BorderColor="#D11A5B"
+                                            BorderWidth="1"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#D11A5B"
+                                            WidthRequest="82" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#E31667"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+
+</ContentPage>

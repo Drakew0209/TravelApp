@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelApp.MyAudioLibraryPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light=#F6F7FB, Dark=#111318}">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16,48,16,12">
+        <Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="10">
+            <Border WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M15.4,4.6L14,3.2L5.2,12L14,20.8L15.4,19.4L8,12L15.4,4.6Z"
+                      Fill="{AppThemeBinding Light=#333A4A, Dark=#F3F5FA}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+
+            <Label Grid.Column="1"
+                   Text="My Audio Library"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
+                   VerticalTextAlignment="Center" />
+
+            <Border Grid.Column="2"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#E7D8E1, Dark=#4B2D3F}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=#FFF3F8, Dark=#2A1A24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M12,5A7,7 0 1,1 7.05,7.05M12,2V5H15"
+                      Stroke="{StaticResource TravelAccent}"
+                      StrokeThickness="2"
+                      StrokeLineCap="Round"
+                      StrokeLineJoin="Round"
+                      WidthRequest="18"
+                      HeightRequest="18"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="1"
+                Margin="0,14,0,10"
+                BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 16"
+                Padding="14,12">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{Binding StorageSummary}"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       TextColor="#D11A5B" />
+                <Label Text="{Binding StatusText}"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}"
+                       LineBreakMode="WordWrap" />
+                <Label Text="{Binding QueueEtaText}"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light=#8A93A6, Dark=#9FA9BE}" />
+            </VerticalStackLayout>
+        </Border>
+
+        <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="8" Margin="0,0,0,10">
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="{Binding FilterAllText}"
+                        Command="{Binding SetFilterCommand}"
+                        CommandParameter="All"
+                        FontSize="12"
+                        CornerRadius="14"
+                        HeightRequest="34"
+                        Padding="10,0">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsAllFilterActive}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#E31667" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsAllFilterActive}" Value="False">
+                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E9EDF7, Dark=#2A2F3A}" />
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light=#3D4558, Dark=#C4CDDE}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+
+                <Button Text="{Binding FilterDownloadedText}"
+                        Command="{Binding SetFilterCommand}"
+                        CommandParameter="Downloaded"
+                        FontSize="12"
+                        CornerRadius="14"
+                        HeightRequest="34"
+                        Padding="10,0">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsDownloadedFilterActive}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#E31667" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsDownloadedFilterActive}" Value="False">
+                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E9EDF7, Dark=#2A2F3A}" />
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light=#3D4558, Dark=#C4CDDE}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+
+                <Button Text="{Binding FilterPendingText}"
+                        Command="{Binding SetFilterCommand}"
+                        CommandParameter="Pending"
+                        FontSize="12"
+                        CornerRadius="14"
+                        HeightRequest="34"
+                        Padding="10,0">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsPendingFilterActive}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#E31667" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsPendingFilterActive}" Value="False">
+                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E9EDF7, Dark=#2A2F3A}" />
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light=#3D4558, Dark=#C4CDDE}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+            </HorizontalStackLayout>
+            </ScrollView>
+
+            <HorizontalStackLayout Grid.Row="1" Spacing="6" HorizontalOptions="End">
+                <Button Text="{Binding RetryFailedText}"
+                        Command="{Binding RetryFailedCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="#D11A5B"
+                        HeightRequest="34"
+                        CornerRadius="17"
+                        FontSize="11"
+                        Padding="10,0"
+                        BorderColor="#D11A5B"
+                        BorderWidth="1"
+                        IsVisible="{Binding HasFailedDownloads}" />
+
+                <Button Text="Download all"
+                        Command="{Binding DownloadAllCommand}"
+                        BackgroundColor="#E31667"
+                        TextColor="White"
+                        HeightRequest="34"
+                        CornerRadius="17"
+                        FontSize="12"
+                        Padding="12,0" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <Grid Grid.Row="3">
+            <CollectionView ItemsSource="{Binding Items}"
+                            SelectionMode="None"
+                            EmptyView="No audio tours available">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 18"
+                                BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                                Padding="12">
+                            <Grid ColumnDefinitions="84,*,Auto" ColumnSpacing="10">
+                                <Border WidthRequest="84" HeightRequest="84" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                    <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Location}" FontSize="13" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding FileSizeBytes, StringFormat='Offline size: {0} bytes'}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light=#8F95A3, Dark=#9EA8BC}">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsDownloaded}" Value="False">
+                                                <Setter Property="Text" Value="Not downloaded yet" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                    <ProgressBar Progress="{Binding DownloadProgress}" HeightRequest="4" IsVisible="{Binding IsBusy}" />
+                                    <Label Text="{Binding DownloadStatusText}" FontSize="11" TextColor="{AppThemeBinding Light=#8F95A3, Dark=#9EA8BC}" IsVisible="{Binding IsBusy}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="2" Spacing="8" VerticalOptions="Center">
+                                    <Button Text="Download"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DownloadCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#E31667"
+                                            TextColor="White"
+                                            FontSize="12"
+                                            CornerRadius="16"
+                                            HeightRequest="34"
+                                            WidthRequest="90">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding IsDownloaded}" Value="True">
+                                                <Setter Property="Text" Value="Downloaded" />
+                                                <Setter Property="IsEnabled" Value="False" />
+                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#D7DCE7, Dark=#2F3747}" />
+                                                <Setter Property="TextColor" Value="{AppThemeBinding Light=#4E576C, Dark=#B4BDCF}" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+
+                                    <Button Text="Remove"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#D11A5B"
+                                            FontSize="12"
+                                            CornerRadius="16"
+                                            HeightRequest="34"
+                                            WidthRequest="90"
+                                            BorderColor="#D11A5B"
+                                            BorderWidth="1">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding IsDownloaded}" Value="False">
+                                                <Setter Property="IsEnabled" Value="False" />
+                                                <Setter Property="TextColor" Value="{AppThemeBinding Light=#9AA1AE, Dark=#6F788D}" />
+                                                <Setter Property="BorderColor" Value="{AppThemeBinding Light=#CFD4E0, Dark=#3A4150}" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#E31667"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+
+</ContentPage>

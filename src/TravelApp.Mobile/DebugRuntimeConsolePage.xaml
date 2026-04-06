@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelApp.DebugRuntimeConsolePage"
              Title="Debug Runtime Console"
-             BackgroundColor="Black">
+             BackgroundColor="{AppThemeBinding Light=Black, Dark=Black}">
 
     <Grid RowDefinitions="Auto,Auto,*" Padding="12">
         <HorizontalStackLayout Spacing="10">
@@ -13,6 +13,7 @@
             <Switch x:Name="DebugModeSwitch" />
             <Button Text="Clear"
                     Clicked="OnClearClicked"
+                    AutomationProperties.Name="Clear logs"
                     BackgroundColor="#333333"
                     TextColor="White"
                     Padding="10,4" />

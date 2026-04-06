@@ -13,6 +13,10 @@
             Routing.RegisterRoute("EditProfilePage", typeof(EditProfilePage));
             Routing.RegisterRoute("DebugRuntimeConsolePage", typeof(DebugRuntimeConsolePage));
             Routing.RegisterRoute("PoiListPage", typeof(PoiListPage));
+            Routing.RegisterRoute("NowPlayingPage", typeof(NowPlayingPage));
+            Routing.RegisterRoute("MyAudioLibraryPage", typeof(MyAudioLibraryPage));
+            Routing.RegisterRoute("BookmarksHistoryPage", typeof(BookmarksHistoryPage));
+            Routing.RegisterRoute("TourMapRoutePage", typeof(TourMapRoutePage));
         }
     }
 }

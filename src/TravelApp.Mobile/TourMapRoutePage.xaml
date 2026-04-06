@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelApp.TourMapRoutePage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light=#F6F7FB, Dark=#111318}">
+
+    <Grid RowDefinitions="Auto,Auto,280,*" Padding="16,48,16,12">
+        <Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="10">
+            <Border WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M15.4,4.6L14,3.2L5.2,12L14,20.8L15.4,19.4L8,12L15.4,4.6Z"
+                      Fill="{AppThemeBinding Light=#333A4A, Dark=#F3F5FA}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+
+            <Label Grid.Column="1"
+                   Text="Tour Map Route"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
+                   VerticalTextAlignment="Center" />
+        </Grid>
+
+        <Label Grid.Row="1"
+               Margin="0,8,0,10"
+               Text="{Binding StatusText}"
+               FontSize="13"
+               TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" />
+
+        <Border Grid.Row="2"
+                Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 16"
+                BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+            <Grid x:Name="TourMapContainer" />
+        </Border>
+
+        <CollectionView Grid.Row="3" ItemsSource="{Binding Waypoints}" SelectionMode="None" Margin="0,10,0,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14"
+                            BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                            Padding="12"
+                            Margin="0,0,0,8">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectWaypointCommand}"
+                                                  CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsActive}" Value="True">
+                                <Setter Property="Stroke" Value="#E31667" />
+                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFF2F7, Dark=#2A1A24}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Border WidthRequest="16"
+                                    HeightRequest="16"
+                                    Stroke="#3F7DFF"
+                                    StrokeThickness="1.4"
+                                    StrokeShape="RoundRectangle 8"
+                                    BackgroundColor="Transparent"
+                                    VerticalOptions="Center">
+                                <Border WidthRequest="6"
+                                        HeightRequest="6"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#3F7DFF"
+                                        StrokeShape="RoundRectangle 3"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsActive}" Value="True">
+                                        <Setter Property="Stroke" Value="#E31667" />
+                                        <Setter Property="BackgroundColor" Value="#22E31667" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="{Binding Title}" FontSize="15" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Location}" FontSize="12" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding DistanceMeters, StringFormat='Distance: {0:F0} m'}"
+                                       FontSize="11"
+                                       TextColor="{AppThemeBinding Light=#8A93A6, Dark=#9EA8BC}" />
+                            </VerticalStackLayout>
+
+                            <Button Grid.Column="2"
+                                    Text="Open"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenPoiCommand}"
+                                    CommandParameter="{Binding .}"
+                                    FontSize="12"
+                                    HeightRequest="32"
+                                    WidthRequest="72"
+                                    CornerRadius="16"
+                                    BackgroundColor="#E31667"
+                                    TextColor="White"
+                                    VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentPage>
