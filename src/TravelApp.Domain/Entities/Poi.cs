@@ -13,6 +13,9 @@ public class Poi
     public double Longitude { get; set; }
     public double GeofenceRadiusMeters { get; set; } = 100;
     public string PrimaryLanguage { get; set; } = "en";
+    public string? Duration { get; set; }
+    public string? Provider { get; set; }
+    public string? Credit { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAtUtc { get; set; }
 

@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using TravelApp.Services;
+using TravelApp.Services.Abstractions;
 
 namespace TravelApp.ViewModels;
 
@@ -12,6 +14,7 @@ public class SearchViewModel : INotifyPropertyChanged
     private bool _tourEnabled = true;
     private bool _museumEnabled = true;
     private bool _questEnabled = true;
+    private readonly IPoiApiClient _poiApiClient;
 
     public ObservableCollection<SearchDestinationItem> PopularDestinations { get; }
     public ObservableCollection<TourTypeOption> TourTypes { get; }
@@ -78,16 +81,10 @@ public class SearchViewModel : INotifyPropertyChanged
     public ICommand ClearFiltersCommand { get; }
     public ICommand ToggleTourTypeCommand { get; }
 
-    public SearchViewModel()
+    public SearchViewModel(IPoiApiClient poiApiClient)
     {
-        PopularDestinations = new ObservableCollection<SearchDestinationItem>
-        {
-            new() { Name = "London", Type = "CITY", Count = 3, ImageUrl = "https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=1200&h=600&fit=crop" },
-            new() { Name = "Paris", Type = "CITY", Count = 1, ImageUrl = "https://images.unsplash.com/photo-1431274172761-fca41d930114?w=1200&h=600&fit=crop" },
-            new() { Name = "Seoul", Type = "CITY", Count = 2, ImageUrl = "https://images.unsplash.com/photo-1538669715315-155098f0fb1d?w=1200&h=600&fit=crop" },
-            new() { Name = "Rome", Type = "CITY", Count = 4, ImageUrl = "https://images.unsplash.com/photo-1525874684015-58379d421a52?w=1200&h=600&fit=crop" }
-        };
-
+        _poiApiClient = poiApiClient;
+        PopularDestinations = [];
         TourTypes = new ObservableCollection<TourTypeOption>
         {
             new() { Name = "Car tour", IsSelected = true },
@@ -119,6 +116,59 @@ public class SearchViewModel : INotifyPropertyChanged
             {
                 type.IsSelected = false;
             }
+        });
+
+        _ = LoadDestinationsAsync();
+    }
+
+    private async Task LoadDestinationsAsync()
+    {
+        try
+        {
+            var language = UserProfileService.PreferredLanguage;
+            var pois = await _poiApiClient.GetAllAsync(language);
+
+            // Group POIs by location and create destination items
+            var destinations = pois
+                .GroupBy(p => p.Subtitle)
+                .Select(g => new SearchDestinationItem
+                {
+                    Name = g.Key ?? "Unknown",
+                    Type = "DESTINATION",
+                    Count = g.Count(),
+                    ImageUrl = g.FirstOrDefault()?.ImageUrl ?? "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=600&fit=crop"
+                })
+                .ToList();
+
+            if (destinations.Count == 0)
+            {
+                LoadMockDestinations();
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    PopularDestinations.Clear();
+                    foreach (var destination in destinations)
+                    {
+                        PopularDestinations.Add(destination);
+                    }
+                });
+            }
+        }
+        catch
+        {
+            LoadMockDestinations();
+        }
+    }
+
+    private void LoadMockDestinations()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            PopularDestinations.Clear();
+            PopularDestinations.Add(new() { Name = "🍲 Ho Chi Minh Food Tour", Type = "DESTINATION", Count = 3, ImageUrl = "https://images.unsplash.com/photo-1564078516577-e37020a4c3f0?w=1200&h=600&fit=crop" });
+            PopularDestinations.Add(new() { Name = "🍜 Hanoi Food Tour", Type = "DESTINATION", Count = 3, ImageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=600&fit=crop" });
         });
     }
 

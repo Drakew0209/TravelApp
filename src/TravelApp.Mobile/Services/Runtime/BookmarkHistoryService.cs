@@ -207,7 +207,7 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
         {
             foreach (var missingId in missingIds)
             {
-                var remotePoi = await _poiApiClient.GetByIdAsync(missingId, cancellationToken);
+                var remotePoi = await _poiApiClient.GetByIdAsync(missingId, languageCode, cancellationToken);
                 if (remotePoi is null)
                 {
                     continue;
@@ -229,9 +229,6 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
             Subtitle = poi.Subtitle,
             ImageUrl = poi.ImageUrl,
             Location = poi.Location,
-            Rating = 0,
-            ReviewCount = 0,
-            Price = string.Empty,
             Distance = string.Empty,
             Duration = string.Empty,
             Description = poi.Description,
@@ -249,9 +246,6 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
             Subtitle = poi.Subtitle,
             ImageUrl = poi.ImageUrl,
             Location = poi.Location,
-            Rating = poi.Rating,
-            ReviewCount = poi.ReviewCount,
-            Price = poi.Price,
             Distance = poi.Distance,
             Duration = poi.Duration,
             Description = poi.Description,

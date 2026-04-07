@@ -31,11 +31,21 @@ public class TourDetailViewModel : INotifyPropertyChanged
     public string Credit => Tour?.Credit ?? string.Empty;
 
     public ICommand BackCommand { get; }
+    public ICommand ViewTourCommand { get; }
 
     public TourDetailViewModel(IPoiApiClient poiApiClient)
     {
         _poiApiClient = poiApiClient;
         BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        ViewTourCommand = new Command(async () =>
+        {
+            if (Tour is null)
+            {
+                return;
+            }
+
+            await Shell.Current.GoToAsync($"TourMapRoutePage?tourId={Tour.Id}");
+        });
     }
 
     public void Load(string? tourId)
@@ -50,7 +60,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
     {
         try
         {
-            var dto = await _poiApiClient.GetByIdAsync(id);
+            var dto = await _poiApiClient.GetByIdAsync(id, UserProfileService.PreferredLanguage);
             if (dto is not null)
             {
                 Tour = MapPoi(dto);
@@ -73,9 +83,6 @@ public class TourDetailViewModel : INotifyPropertyChanged
             Subtitle = dto.Subtitle,
             ImageUrl = dto.ImageUrl,
             Location = dto.Location,
-            Rating = dto.Rating,
-            ReviewCount = dto.ReviewCount,
-            Price = dto.Price,
             Distance = dto.Distance,
             Duration = dto.Duration,
             Description = dto.Description,

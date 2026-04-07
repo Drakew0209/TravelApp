@@ -13,6 +13,8 @@ public class TravelAppDbContext : DbContext, ITravelAppDbContext
     public DbSet<Poi> Pois => Set<Poi>();
     public DbSet<PoiLocalization> PoiLocalizations => Set<PoiLocalization>();
     public DbSet<PoiAudio> PoiAudios => Set<PoiAudio>();
+    public DbSet<Tour> Tours => Set<Tour>();
+    public DbSet<TourPoi> TourPois => Set<TourPoi>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();

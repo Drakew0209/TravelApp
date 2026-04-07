@@ -8,7 +8,6 @@
             Routing.RegisterRoute("SearchPage", typeof(SearchPage));
             Routing.RegisterRoute("TourDetailPage", typeof(TourDetailPage));
             Routing.RegisterRoute("LoginPage", typeof(LoginPage));
-            Routing.RegisterRoute("SignUpPage", typeof(SignUpPage));
             Routing.RegisterRoute("ProfilePage", typeof(ProfilePage));
             Routing.RegisterRoute("EditProfilePage", typeof(EditProfilePage));
             Routing.RegisterRoute("DebugRuntimeConsolePage", typeof(DebugRuntimeConsolePage));
@@ -17,6 +16,7 @@
             Routing.RegisterRoute("MyAudioLibraryPage", typeof(MyAudioLibraryPage));
             Routing.RegisterRoute("BookmarksHistoryPage", typeof(BookmarksHistoryPage));
             Routing.RegisterRoute("TourMapRoutePage", typeof(TourMapRoutePage));
+            Routing.RegisterRoute("MapPage", typeof(MapPage));
         }
     }
 }

@@ -59,14 +59,12 @@ public class LoginViewModel : INotifyPropertyChanged
     public ICommand BackCommand { get; }
     public ICommand TogglePasswordVisibilityCommand { get; }
     public ICommand SignInCommand { get; }
-    public ICommand OpenSignUpCommand { get; }
 
     public LoginViewModel(IAuthApiClient authApiClient)
     {
         _authApiClient = authApiClient;
         BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
         TogglePasswordVisibilityCommand = new Command(() => IsPasswordHidden = !IsPasswordHidden);
-        OpenSignUpCommand = new Command(async () => await Shell.Current.GoToAsync("SignUpPage"));
         SignInCommand = new Command(async () =>
         {
             if (!await ValidateInputAsync())

@@ -31,6 +31,15 @@ public class PoiConfiguration : IEntityTypeConfiguration<Poi>
         builder.Property(x => x.ImageUrl)
             .HasMaxLength(1024);
 
+        builder.Property(x => x.Duration)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.Provider)
+            .HasMaxLength(256);
+
+        builder.Property(x => x.Credit)
+            .HasMaxLength(1024);
+
         builder.Property(x => x.PrimaryLanguage)
             .HasMaxLength(10)
             .IsRequired();

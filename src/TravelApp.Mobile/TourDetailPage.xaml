@@ -93,12 +93,9 @@
 
                     <Label Text="{Binding Credit}" FontSize="14" TextColor="#2D89C8" TextDecorations="Underline" LineBreakMode="WordWrap" />
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="0,10,0,10">
-                        <Border Stroke="#D31963" StrokeThickness="2" StrokeShape="RoundRectangle 28" HeightRequest="58">
-                            <Label Text="Get Tickets" TextColor="#D31963" FontSize="20" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" />
-                        </Border>
-                        <Button Grid.Column="1"
-                                Text="Buy Tour"
+                    <Grid ColumnDefinitions="*" Margin="0,10,0,10">
+                        <Button Text="View Tour"
+                                Command="{Binding ViewTourCommand}"
                                 Style="{StaticResource PrimaryPillButtonStyle}"
                                 HeightRequest="58"
                                 CornerRadius="28"

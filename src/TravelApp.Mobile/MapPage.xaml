@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+             x:Class="TravelApp.MapPage"
+             Title="POI Map"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light=#F6F7FB, Dark=#111318}">
+
+    <Grid RowDefinitions="Auto,*" Padding="0">
+        <!-- Header -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="40,*,40"
+              ColumnSpacing="10"
+              Padding="16"
+              BackgroundColor="{AppThemeBinding Light=White, Dark=#1A1F2B}">
+            
+            <Border WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M15.4,4.6L14,3.2L5.2,12L14,20.8L15.4,19.4L8,12L15.4,4.6Z"
+                      Fill="{AppThemeBinding Light=#333A4A, Dark=#F3F5FA}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+
+            <Label Grid.Column="1"
+                   Text="🗺️ POI Map"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
+                   VerticalTextAlignment="Center" />
+
+            <Border Grid.Column="2"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                </Border.GestureRecognizers>
+                <Label Text="🔄"
+                       FontSize="14"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Border>
+        </Grid>
+
+        <!-- Map Area -->
+        <Grid Grid.Row="1" RowDefinitions="*,Auto">
+            <!-- Map with pins -->
+            <maps:Map x:Name="map"
+                      Grid.Row="0"
+                      IsShowingUser="True" />
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator Grid.Row="0"
+                               IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#FF9500"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+
+            <!-- Status Text -->
+            <Label Grid.Row="0"
+                   Margin="16"
+                   Text="{Binding StatusText}"
+                   FontSize="12"
+                   TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Start" />
+
+            <!-- POI List at Bottom -->
+            <CollectionView Grid.Row="1"
+                           ItemsSource="{Binding PoisData}"
+                           SelectionMode="Single"
+                           SelectionChangedCommand="{Binding OpenPoiDetailCommand}"
+                           SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}"
+                           HeightRequest="180"
+                           Margin="0">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal"
+                                      ItemSpacing="8" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <StackLayout Padding="8,12,8,12" WidthRequest="140">
+                            <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                                    Padding="10">
+                                <StackLayout Spacing="6">
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="0" Padding="0" HeightRequest="70">
+                                        <Image Source="{Binding ImageUrl}"
+                                               Aspect="AspectFill" />
+                                    </Border>
+
+                                    <Label Text="{Binding Title}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
+                                           LineBreakMode="TailTruncation" />
+                                    
+                                    <Label Text="{Binding Location}"
+                                           FontSize="10"
+                                           TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}"
+                                           LineBreakMode="TailTruncation" />
+                                </StackLayout>
+                            </Border>
+                        </StackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </Grid>
+</ContentPage>

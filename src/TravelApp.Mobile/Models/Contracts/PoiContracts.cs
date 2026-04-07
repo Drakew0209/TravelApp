@@ -14,9 +14,6 @@ public class PoiDto
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public double? GeofenceRadiusMeters { get; set; }
-    public double Rating { get; set; }
-    public int ReviewCount { get; set; }
-    public string Price { get; set; } = string.Empty;
     public string Distance { get; set; } = string.Empty;
     public string Duration { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -41,5 +38,8 @@ public record UpsertPoiRequestDto(
     string? Description,
     string? Category,
     string? PrimaryLanguage,
+    string? Duration,
+    string? Provider,
+    string? Credit,
     IReadOnlyList<PoiLocalizationDto>? Localizations,
     IReadOnlyList<PoiAudioDto>? AudioAssets);

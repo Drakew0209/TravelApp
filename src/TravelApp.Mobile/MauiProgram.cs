@@ -72,6 +72,8 @@ namespace TravelApp
             builder.Services.AddTransient<IAuthApiClient, AuthApiClient>();
             builder.Services.AddTransient<IProfileApiClient, ProfileApiClient>();
             builder.Services.AddTransient<IPoiApiClient, PoiApiClient>();
+            builder.Services.AddTransient<ITourApiClient, TourApiClient>();
+            builder.Services.AddTransient<ITourRouteCatalogService, TourRouteCatalogService>();
             builder.Services.AddTransient<IPoiApiService, PoiApiService>();
 
             builder.Services.AddSingleton(TimeProvider.System);
@@ -86,13 +88,14 @@ namespace TravelApp
             builder.Services.AddSingleton<IBookmarkHistoryService, BookmarkHistoryService>();
             builder.Services.AddSingleton<ITourMapRouteService, TourMapRouteService>();
             builder.Services.AddSingleton<IAutoAudioTriggerService, AutoAudioTriggerService>();
+            builder.Services.AddSingleton<ITourRoutePlaybackService, TourRoutePlaybackService>();
             builder.Services.AddSingleton<IAudioService, AudioService>();
             builder.Services.AddSingleton<ITravelRuntimePipeline, TravelRuntimePipeline>();
             builder.Services.AddSingleton<ITravelBootstrapService, TravelBootstrapService>();
 
             builder.Services.AddTransient<LoginViewModel>();
-            builder.Services.AddTransient<SignUpViewModel>();
             builder.Services.AddTransient<ExploreViewModel>();
+            builder.Services.AddTransient<SearchViewModel>();
             builder.Services.AddTransient<TourDetailViewModel>();
             builder.Services.AddTransient<ProfileViewModel>();
             builder.Services.AddTransient<EditProfileViewModel>();
@@ -101,6 +104,7 @@ namespace TravelApp
             builder.Services.AddTransient<MyAudioLibraryViewModel>();
             builder.Services.AddTransient<BookmarksHistoryViewModel>();
             builder.Services.AddTransient<TourMapRouteViewModel>();
+            builder.Services.AddTransient<MapViewModel>();
 
             builder.Services.AddSingleton<AppShell>();
 

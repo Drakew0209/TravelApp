@@ -4,6 +4,9 @@ namespace TravelApp.Services;
 
 public class MockDataService
 {
+    /// <summary>
+    /// HCM Food Tour - Starting point and first waypoint
+    /// </summary>
     public static List<PoiModel> GetForYouData()
     {
         return new List<PoiModel>
@@ -11,52 +14,35 @@ public class MockDataService
             new PoiModel
             {
                 Id = 1,
-                Title = "Royal London: Buckingham Palace and Pall Mall",
-                Subtitle = "Walking tour",
-                ImageUrl = "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=1200&h=800&fit=crop",
-                Location = "London, United Kingdom",
-                Rating = 4.8,
-                ReviewCount = 120,
-                Price = "99.000Đ",
-                Distance = "3 km | 2 mi",
-                Duration = "1 h 40 min",
-                Provider = "Cityzeum",
-                Description = "Saint James’ Park is the nearest underground station to the starting point of the tour. This tour can be done any day of the week.",
-                Credit = "Photo \"Buckingham Palace from gardens\" by Diliff under CC BY-SA 3.0"
+                Title = "Chợ Bến Thành",
+                Subtitle = "Food Tour HCM - Starting Point",
+                ImageUrl = "https://images.unsplash.com/photo-1555521760-cb7ebb6a9c62?w=800&h=600&fit=crop",
+                Location = "Chợ Bến Thành, Quận 1, TPHCM",
+                Distance = "0 km",
+                Duration = "45 min",
+                Provider = "TravelApp",
+                Description = "Điểm khởi đầu của tour ẩm thực HCM. Chợ Bến Thành là một trong những chợ truyền thống nổi tiếng nhất Sài Gòn với đa dạng hàng hóa và đặc biệt là các quán ăn địa phương.",
+                Credit = "Photo from Unsplash"
             },
             new PoiModel
             {
                 Id = 2,
-                Title = "The Jade Emperor Adventure",
-                Subtitle = "Bike tour",
-                ImageUrl = "https://images.unsplash.com/photo-1518611505868-d7380b0f0d00?w=500&h=400&fit=crop",
-                Location = "Da Nang, Vietnam",
-                Rating = 4.5,
-                ReviewCount = 23,
-                Price = "$25",
-                Distance = "5 km | 3 mi",
-                Duration = "45 min",
+                Title = "Phở Vĩnh Khánh",
+                Subtitle = "Food Tour HCM - Pho Experience",
+                ImageUrl = "https://images.unsplash.com/photo-1565030826693-9d4595707d90?w=800&h=600&fit=crop",
+                Location = "Phố Vĩnh Khánh, Quận 4, TPHCM",
+                Distance = "0.9 km",
+                Duration = "30 min",
                 Provider = "TravelApp",
-                Description = "A short but energetic route through iconic streets with local stories and food stops."
-            },
-            new PoiModel
-            {
-                Id = 3,
-                Title = "Hanoi Old Quarter Walk",
-                Subtitle = "Walking tour",
-                ImageUrl = "https://images.unsplash.com/photo-1508615039623-a25605d2b022?w=500&h=400&fit=crop",
-                Location = "Hanoi, Vietnam",
-                Rating = 4.8,
-                ReviewCount = 156,
-                Price = "$15",
-                Distance = "2 km | 1.2 mi",
-                Duration = "1 h 20 min",
-                Provider = "TravelApp",
-                Description = "Explore hidden alleys, architecture, and local culture in the heart of Hanoi."
+                Description = "Quán phở nổi tiếng với nước dùng được ninh từ 12h, phục vụ phở bò ngon nhất Quận 4.",
+                Credit = "Photo from Unsplash"
             }
         };
     }
 
+    /// <summary>
+    /// Hanoi Food Tour - Starting point and first waypoint
+    /// </summary>
     public static List<PoiModel> GetEditorsChoiceData()
     {
         return new List<PoiModel>
@@ -64,47 +50,28 @@ public class MockDataService
             new PoiModel
             {
                 Id = 4,
-                Title = "Mountain Hiking",
-                Subtitle = "Adventure tour",
-                ImageUrl = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=400&fit=crop",
-                Location = "Sapa, Vietnam",
-                Rating = 5.0,
-                ReviewCount = 89,
-                Price = "Free",
-                Distance = "10 km | 6.2 mi",
-                Duration = "2 h 00 min",
+                Title = "Chùa Một Cột",
+                Subtitle = "Food Tour Hanoi - Starting Point",
+                ImageUrl = "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&h=600&fit=crop",
+                Location = "Chùa Một Cột, Quận Ba Đình, Hà Nội",
+                Distance = "0 km",
+                Duration = "45 min",
                 Provider = "TravelApp",
-                Description = "Guided trek with panoramic views and village visits."
+                Description = "Điểm khởi đầu của tour ẩm thực Hà Nội. Chùa Một Cột là một di tích lịch sử quan trọng, nằm gần khu phố cổ Hà Nội.",
+                Credit = "Photo from Unsplash"
             },
             new PoiModel
             {
                 Id = 5,
-                Title = "Beach Resort",
-                Subtitle = "Beach tour",
-                ImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&h=400&fit=crop",
-                Location = "Phu Quoc, Vietnam",
-                Rating = 4.7,
-                ReviewCount = 234,
-                Price = "$40",
-                Distance = "8 km | 5 mi",
-                Duration = "4 h 00 min",
+                Title = "Phố Hàng Xanh",
+                Subtitle = "Food Tour Hanoi - Local Cuisine",
+                ImageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561d1b?w=800&h=600&fit=crop",
+                Location = "Phố Hàng Xanh, Quận Hoàn Kiếm, Hà Nội",
+                Distance = "0.3 km",
+                Duration = "45 min",
                 Provider = "TravelApp",
-                Description = "Relaxed coastline route with premium beach viewpoints."
-            },
-            new PoiModel
-            {
-                Id = 6,
-                Title = "Cultural Heritage",
-                Subtitle = "Historical tour",
-                ImageUrl = "https://images.unsplash.com/photo-1518684913413-3b40b3a1b91d?w=500&h=400&fit=crop",
-                Location = "Hoi An, Vietnam",
-                Rating = 4.9,
-                ReviewCount = 412,
-                Price = "$20",
-                Distance = "4 km | 2.5 mi",
-                Duration = "3 h 00 min",
-                Provider = "TravelApp",
-                Description = "Discover historical landmarks and stories across the ancient town."
+                Description = "Phố Hàng Xanh là một trong những phố cổ nổi tiếng của Hà Nội với các quán ăn truyền thống.",
+                Credit = "Photo from Unsplash"
             }
         };
     }

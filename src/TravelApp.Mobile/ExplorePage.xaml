@@ -135,17 +135,38 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="14,14,14,8" Spacing="14">
 
-                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" VerticalOptions="Center">
                     <Label Text="Around me" Style="{StaticResource SectionTitleStyle}" />
-                    <Label Grid.Column="1"
-                           Text="Map view"
-                           FontSize="14"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource PrimaryAccent}"
-                           VerticalTextAlignment="Center" />
-                    <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding OpenTourMapRouteCommand}" />
-                    </Grid.GestureRecognizers>
+
+                    <Border Grid.Column="1"
+                            StrokeThickness="0"
+                            BackgroundColor="Transparent"
+                            Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenMapCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="POI Map"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryAccent}"
+                               VerticalTextAlignment="Center"
+                               Padding="0,8" />
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            StrokeThickness="0"
+                            BackgroundColor="Transparent"
+                            Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenTourMapRouteCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Map view"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryAccent}"
+                               VerticalTextAlignment="Center"
+                               Padding="0,8" />
+                    </Border>
                 </Grid>
 
                 <Border BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource DarkCardBackground}}"
@@ -180,29 +201,15 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8" VerticalOptions="Center">
-                    <Label Text="For you" Style="{StaticResource SectionTitleStyle}" />
-                    <Border Grid.Column="1"
-                            WidthRequest="18"
-                            HeightRequest="18"
-                            Stroke="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 4"
-                            BackgroundColor="Transparent"
-                            VerticalOptions="Center">
-                        <Grid RowDefinitions="*,*" ColumnDefinitions="*,*" Padding="3" RowSpacing="2" ColumnSpacing="2">
-                            <BoxView Color="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" />
-                            <BoxView Grid.Column="1" Color="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" />
-                            <BoxView Grid.Row="1" Color="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" />
-                            <BoxView Grid.Row="1" Grid.Column="1" Color="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" />
-                        </Grid>
-                    </Border>
-                    <Label Grid.Column="3"
-                           Text="See more"
-                           FontSize="14"
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" VerticalOptions="Center" Margin="0,12,0,8">
+                    <Label Text="🍲 Ho Chi Minh Food Tour" Style="{StaticResource SectionTitleStyle}" />
+                    <Label Grid.Column="1"
+                           Text="Featured"
+                           FontSize="12"
                            FontAttributes="Bold"
-                           TextColor="{StaticResource PrimaryAccent}"
-                           VerticalTextAlignment="Center" />
+                           TextColor="#FF9800"
+                           VerticalTextAlignment="Center"
+                           Padding="8,4" />
                 </Grid>
 
                 <CollectionView x:Name="ForYouCollection" ItemsSource="{Binding ForYouItems}" HeightRequest="290" SelectionMode="None">
@@ -257,21 +264,27 @@
 
                                     <Grid Grid.Row="1"
                                           Padding="14,10,14,12"
-                                          RowDefinitions="Auto,Auto,Auto"
-                                          ColumnDefinitions="*,Auto">
+                                          RowDefinitions="Auto,Auto,Auto,Auto"
+                                          ColumnDefinitions="*">
                                         <Label Text="{Binding Title}" Style="{StaticResource CardTitleStyle}" />
-                                        <Label Grid.Column="1" Text="{Binding Price}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource PrimaryAccent}" />
-
                                         <Label Grid.Row="1" Text="{Binding Subtitle}" Style="{StaticResource CardSubTitleStyle}" />
-                                        <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="4" HorizontalOptions="End">
-                                            <Label Text="★" TextColor="#F6A928" FontSize="14" />
-                                            <Label Text="{Binding Rating}" FontSize="14" TextColor="{AppThemeBinding Light=#777781, Dark=#C5CBD9}" />
-                                            <Label Text="{Binding ReviewCount, StringFormat='({0})'}" FontSize="12" TextColor="{AppThemeBinding Light=#9AA1AE, Dark=#ABB5C8}" />
+
+                                        <!-- Duration + Distance -->
+                                        <HorizontalStackLayout Grid.Row="2" Spacing="12" VerticalOptions="Center" Margin="0,6,0,0">
+                                            <HorizontalStackLayout Spacing="4">
+                                                <Label Text="⏱️" FontSize="12" VerticalTextAlignment="Center" />
+                                                <Label Text="{Binding Duration}" FontSize="12" TextColor="{AppThemeBinding Light=#6E7380, Dark=#C5CBD9}" VerticalTextAlignment="Center" />
+                                            </HorizontalStackLayout>
+                                            <HorizontalStackLayout Spacing="4">
+                                                <Label Text="🎯" FontSize="12" VerticalTextAlignment="Center" />
+                                                <Label Text="{Binding Distance}" FontSize="12" TextColor="{AppThemeBinding Light=#6E7380, Dark=#C5CBD9}" VerticalTextAlignment="Center" />
+                                            </HorizontalStackLayout>
                                         </HorizontalStackLayout>
 
-                                        <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="5">
-                                            <Label Text="◉" TextColor="#3F7DFF" FontSize="12" />
-                                            <Label Text="{Binding Location}" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" LineBreakMode="TailTruncation" />
+                                        <!-- Location -->
+                                        <HorizontalStackLayout Grid.Row="3" Spacing="5" Margin="0,6,0,0">
+                                            <Label Text="📍" FontSize="12" VerticalTextAlignment="Start" />
+                                            <Label Text="{Binding Location}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" LineBreakMode="TailTruncation" />
                                         </HorizontalStackLayout>
                                     </Grid>
                                 </Grid>
@@ -280,7 +293,7 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <Label Text="Editor&apos;s choice" Style="{StaticResource SectionTitleStyle}" />
+                <Label Text="🍜 Hanoi Food Tour" Style="{StaticResource SectionTitleStyle}" Margin="0,12,0,8" />
 
                 <CollectionView x:Name="EditorsChoiceCollection" ItemsSource="{Binding EditorsChoiceItems}" HeightRequest="260" SelectionMode="None">
                     <CollectionView.ItemsLayout>
@@ -319,13 +332,26 @@
                                         </Border>
                                     </Grid>
 
-                                    <Grid Grid.Row="1" Padding="14,10,14,12" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                    <Grid Grid.Row="1" Padding="14,10,14,12" RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*">
                                         <Label Text="{Binding Title}" Style="{StaticResource CardTitleStyle}" />
-                                        <Label Grid.Column="1" Text="{Binding Price}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource PrimaryAccent}" />
                                         <Label Grid.Row="1" Text="{Binding Subtitle}" Style="{StaticResource CardSubTitleStyle}" />
-                                        <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="5">
-                                            <Label Text="◉" TextColor="#3F7DFF" FontSize="12" />
-                                            <Label Text="{Binding Location}" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" LineBreakMode="TailTruncation" />
+
+                                        <!-- Duration + Distance -->
+                                        <HorizontalStackLayout Grid.Row="2" Spacing="12" VerticalOptions="Center" Margin="0,6,0,0">
+                                            <HorizontalStackLayout Spacing="4">
+                                                <Label Text="⏱️" FontSize="12" VerticalTextAlignment="Center" />
+                                                <Label Text="{Binding Duration}" FontSize="12" TextColor="{AppThemeBinding Light=#6E7380, Dark=#C5CBD9}" VerticalTextAlignment="Center" />
+                                            </HorizontalStackLayout>
+                                            <HorizontalStackLayout Spacing="4">
+                                                <Label Text="🎯" FontSize="12" VerticalTextAlignment="Center" />
+                                                <Label Text="{Binding Distance}" FontSize="12" TextColor="{AppThemeBinding Light=#6E7380, Dark=#C5CBD9}" VerticalTextAlignment="Center" />
+                                            </HorizontalStackLayout>
+                                        </HorizontalStackLayout>
+
+                                        <!-- Location -->
+                                        <HorizontalStackLayout Grid.Row="3" Spacing="5" Margin="0,6,0,0">
+                                            <Label Text="📍" FontSize="12" VerticalTextAlignment="Start" />
+                                            <Label Text="{Binding Location}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource SecondaryText}, Dark={StaticResource DarkSecondaryText}}" LineBreakMode="TailTruncation" />
                                         </HorizontalStackLayout>
                                     </Grid>
                                 </Grid>

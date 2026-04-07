@@ -1,14 +1,25 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
+using TravelApp.Models.Runtime;
 using TravelApp.ViewModels;
 
 namespace TravelApp;
 
-public partial class TourMapRoutePage : ContentPage
+public partial class TourMapRoutePage : ContentPage, IQueryAttributable
 {
+    private const double PulseMinMeters = 26;
+    private const double PulseMaxMeters = 86;
+    private const double PulseStepMeters = 4;
+
     private readonly TourMapRouteViewModel _viewModel;
     private readonly Microsoft.Maui.Controls.Maps.Map _map;
+    private int? _tourId;
+    private bool _routeLoaded;
+    private IDispatcherTimer? _pulseTimer;
+    private Circle? _activePulseCircle;
+    private double _pulseRadiusMeters = PulseMinMeters;
+    private bool _pulseExpanding = true;
 
     public TourMapRoutePage()
     {
@@ -27,18 +38,51 @@ public partial class TourMapRoutePage : ContentPage
         TourMapContainer.Children.Add(_map);
     }
 
+    public async void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (!query.TryGetValue("tourId", out var tourIdValue))
+        {
+            return;
+        }
+
+        if (int.TryParse(tourIdValue?.ToString(), out var tourId))
+        {
+            _tourId = tourId;
+            await LoadRouteAsync();
+        }
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _viewModel.StartAsync();
+
+        StartPulseTimer();
+
+        if (_tourId.HasValue && !_routeLoaded)
+        {
+            await LoadRouteAsync();
+        }
     }
 
     protected override async void OnDisappearing()
     {
         base.OnDisappearing();
+        StopPulseTimer();
         await _viewModel.StopAsync();
         _viewModel.RouteChanged -= OnRouteChanged;
         _viewModel.Dispose();
+    }
+
+    private async Task LoadRouteAsync()
+    {
+        if (!_tourId.HasValue)
+        {
+            return;
+        }
+
+        await _viewModel.LoadAsync(_tourId.Value);
+        _routeLoaded = true;
+        RenderRoute();
     }
 
     private void OnRouteChanged(object? sender, EventArgs e)
@@ -51,32 +95,16 @@ public partial class TourMapRoutePage : ContentPage
         _map.Pins.Clear();
         _map.MapElements.Clear();
 
-        var snapshot = _viewModel.Snapshot;
-        if (snapshot?.CurrentLocation is null)
+        var waypoints = _viewModel.Waypoints;
+        if (waypoints.Count == 0)
         {
             return;
         }
 
-        var center = new Location(snapshot.CurrentLocation.Latitude, snapshot.CurrentLocation.Longitude);
-        var selectedWaypoint = _viewModel.SelectedWaypoint;
-        var mapCenter = selectedWaypoint is null
-            ? center
-            : new Location(selectedWaypoint.Latitude, selectedWaypoint.Longitude);
+        var selectedWaypoint = _viewModel.SelectedWaypoint ?? waypoints.First();
+        var mapCenter = new Location(selectedWaypoint.Latitude, selectedWaypoint.Longitude);
 
-        _map.MoveToRegion(MapSpan.FromCenterAndRadius(mapCenter, Distance.FromKilometers(2)));
-
-        _map.Pins.Add(new Pin
-        {
-            Label = "You",
-            Address = "Current location",
-            Type = PinType.SavedPin,
-            Location = center
-        });
-
-        if (snapshot.Waypoints.Count == 0)
-        {
-            return;
-        }
+        MoveMapToSelectedWaypoint(selectedWaypoint, waypoints.Count);
 
         var polyline = new Polyline
         {
@@ -84,24 +112,117 @@ public partial class TourMapRoutePage : ContentPage
             StrokeWidth = 4
         };
 
-        polyline.Geopath.Add(center);
-
-        foreach (var waypoint in snapshot.Waypoints)
+        foreach (var waypoint in waypoints)
         {
             var location = new Location(waypoint.Latitude, waypoint.Longitude);
             polyline.Geopath.Add(location);
 
-            var isActive = selectedWaypoint is not null && selectedWaypoint.PoiId == waypoint.PoiId;
-
-            _map.Pins.Add(new Pin
+            var isActive = selectedWaypoint.PoiId == waypoint.PoiId;
+            var pin = new Pin
             {
-                Label = isActive ? $"★ {waypoint.Title}" : waypoint.Title,
+                Label = isActive ? $"▶ {waypoint.SortOrder}. {waypoint.Title}" : $"{waypoint.SortOrder}. {waypoint.Title}",
                 Address = waypoint.Location,
                 Type = isActive ? PinType.SavedPin : PinType.Place,
                 Location = location
-            });
+            };
+
+            pin.InfoWindowClicked += (_, _) =>
+            {
+                if (_viewModel.SelectWaypointCommand is Command command)
+                {
+                    command.Execute(waypoint);
+                }
+            };
+
+            _map.Pins.Add(pin);
         }
 
         _map.MapElements.Add(polyline);
+        ConfigurePulseCircle(selectedWaypoint);
+    }
+
+    private void MoveMapToSelectedWaypoint(TourMapWaypoint selectedWaypoint, int waypointCount)
+    {
+        var zoomMeters = waypointCount <= 1 ? 700d : 550d;
+        var center = new Location(selectedWaypoint.Latitude, selectedWaypoint.Longitude);
+        _map.MoveToRegion(MapSpan.FromCenterAndRadius(center, Distance.FromMeters(zoomMeters)));
+    }
+
+    private void ConfigurePulseCircle(TourMapWaypoint selectedWaypoint)
+    {
+        if (_activePulseCircle is not null)
+        {
+            _map.MapElements.Remove(_activePulseCircle);
+            _activePulseCircle = null;
+        }
+
+        var location = new Location(selectedWaypoint.Latitude, selectedWaypoint.Longitude);
+        _activePulseCircle = new Circle
+        {
+            Center = location,
+            Radius = Distance.FromMeters(PulseMinMeters),
+            StrokeColor = Color.FromArgb("#E31667"),
+            StrokeWidth = 2,
+            FillColor = Color.FromArgb("#22E31667")
+        };
+
+        _map.MapElements.Add(_activePulseCircle);
+        _pulseRadiusMeters = PulseMinMeters;
+        _pulseExpanding = true;
+    }
+
+    private void StartPulseTimer()
+    {
+        if (_pulseTimer is not null)
+        {
+            _pulseTimer.Start();
+            return;
+        }
+
+        _pulseTimer = Dispatcher.CreateTimer();
+        _pulseTimer.Interval = TimeSpan.FromMilliseconds(220);
+        _pulseTimer.Tick += OnPulseTimerTick;
+        _pulseTimer.Start();
+    }
+
+    private void StopPulseTimer()
+    {
+        if (_pulseTimer is null)
+        {
+            return;
+        }
+
+        _pulseTimer.Stop();
+        _pulseTimer.Tick -= OnPulseTimerTick;
+        _pulseTimer = null;
+    }
+
+    private void OnPulseTimerTick(object? sender, EventArgs e)
+    {
+        if (_activePulseCircle is null)
+        {
+            return;
+        }
+
+        if (_pulseExpanding)
+        {
+            _pulseRadiusMeters += PulseStepMeters;
+            if (_pulseRadiusMeters >= PulseMaxMeters)
+            {
+                _pulseRadiusMeters = PulseMaxMeters;
+                _pulseExpanding = false;
+            }
+        }
+        else
+        {
+            _pulseRadiusMeters -= PulseStepMeters;
+            if (_pulseRadiusMeters <= PulseMinMeters)
+            {
+                _pulseRadiusMeters = PulseMinMeters;
+                _pulseExpanding = true;
+            }
+        }
+
+        _activePulseCircle.Radius = Distance.FromMeters(_pulseRadiusMeters);
     }
 }

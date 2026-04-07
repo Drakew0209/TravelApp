@@ -37,10 +37,14 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
         return await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? [];
     }
 
-    public async Task<PoiDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<PoiDto?> GetByIdAsync(int id, string? languageCode = null, CancellationToken cancellationToken = default)
     {
         var client = CreateClient();
-        var response = await client.GetAsync($"poi/{id}", cancellationToken);
+        var endpoint = string.IsNullOrWhiteSpace(languageCode)
+            ? $"api/pois/{id}"
+            : $"api/pois/{id}?lang={Uri.EscapeDataString(languageCode)}";
+
+        var response = await client.GetAsync(endpoint, cancellationToken);
         return await ReadAsAsync<PoiDto>(response, cancellationToken);
     }
 

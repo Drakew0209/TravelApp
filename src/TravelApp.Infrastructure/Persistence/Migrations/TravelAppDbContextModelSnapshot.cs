@@ -37,9 +37,17 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Credit")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Duration")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<double>("GeofenceRadiusMeters")
                         .ValueGeneratedOnAdd()
@@ -64,6 +72,10 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("Subtitle")
                         .HasMaxLength(512)
@@ -154,6 +166,117 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("POI_Localization", (string)null);
+                });
+
+            modelBuilder.Entity("TravelApp.Domain.Entities.Tour", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnchorPoiId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("PrimaryLanguage")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnchorPoiId")
+                        .IsUnique();
+
+                    b.ToTable("Tours", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AnchorPoiId = 1,
+                            CoverImageUrl = "https://images.unsplash.com/photo-1555521760-cb7ebb6a9c62?w=1200&h=800&fit=crop",
+                            CreatedAtUtc = new DateTimeOffset(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified), TimeSpan.Zero),
+                            Description = "Tour ẩm thực Sài Gòn với các điểm dừng được sắp xếp theo lộ trình thật.",
+                            IsPublished = true,
+                            Name = "HCM Food Tour",
+                            PrimaryLanguage = "vi",
+                            UpdatedAtUtc = (DateTimeOffset?)null
+                        },
+                        new
+                        {
+                            Id = 2,
+                            AnchorPoiId = 4,
+                            CoverImageUrl = "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1200&h=800&fit=crop",
+                            CreatedAtUtc = new DateTimeOffset(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified), TimeSpan.Zero),
+                            Description = "Tour ẩm thực Hà Nội với các mốc waypoint, bản đồ và audio tự động.",
+                            IsPublished = true,
+                            Name = "Hanoi Food Tour",
+                            PrimaryLanguage = "vi",
+                            UpdatedAtUtc = (DateTimeOffset?)null
+                        });
+                });
+
+            modelBuilder.Entity("TravelApp.Domain.Entities.TourPoi", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double?>("DistanceFromPreviousMeters")
+                        .HasColumnType("float");
+
+                    b.Property<int>("PoiId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TourId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PoiId");
+
+                    b.HasIndex("TourId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("TourPois", (string)null);
+
+                    b.HasData(
+                        new { Id = 1, TourId = 1, PoiId = 1, SortOrder = 1, DistanceFromPreviousMeters = 0d },
+                        new { Id = 2, TourId = 1, PoiId = 2, SortOrder = 2, DistanceFromPreviousMeters = 900d },
+                        new { Id = 3, TourId = 1, PoiId = 3, SortOrder = 3, DistanceFromPreviousMeters = 1100d },
+                        new { Id = 4, TourId = 2, PoiId = 4, SortOrder = 1, DistanceFromPreviousMeters = 0d },
+                        new { Id = 5, TourId = 2, PoiId = 5, SortOrder = 2, DistanceFromPreviousMeters = 300d },
+                        new { Id = 6, TourId = 2, PoiId = 6, SortOrder = 3, DistanceFromPreviousMeters = 500d });
                 });
 
             modelBuilder.Entity("TravelApp.Domain.Entities.Role", b =>
@@ -282,6 +405,36 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                     b.Navigation("Poi");
                 });
 
+            modelBuilder.Entity("TravelApp.Domain.Entities.Tour", b =>
+                {
+                    b.HasOne("TravelApp.Domain.Entities.Poi", "AnchorPoi")
+                        .WithMany()
+                        .HasForeignKey("AnchorPoiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AnchorPoi");
+                    b.Navigation("TourPois");
+                });
+
+            modelBuilder.Entity("TravelApp.Domain.Entities.TourPoi", b =>
+                {
+                    b.HasOne("TravelApp.Domain.Entities.Poi", "Poi")
+                        .WithMany()
+                        .HasForeignKey("PoiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TravelApp.Domain.Entities.Tour", "Tour")
+                        .WithMany("TourPois")
+                        .HasForeignKey("TourId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Poi");
+                    b.Navigation("Tour");
+                });
+
             modelBuilder.Entity("TravelApp.Domain.Entities.UserRole", b =>
                 {
                     b.HasOne("TravelApp.Domain.Entities.Role", "Role")
@@ -306,6 +459,20 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                     b.Navigation("AudioAssets");
 
                     b.Navigation("Localizations");
+                });
+
+            modelBuilder.Entity("TravelApp.Domain.Entities.Tour", b =>
+                {
+                    b.Navigation("AnchorPoi");
+
+                    b.Navigation("TourPois");
+                });
+
+            modelBuilder.Entity("TravelApp.Domain.Entities.TourPoi", b =>
+                {
+                    b.Navigation("Poi");
+
+                    b.Navigation("Tour");
                 });
 
             modelBuilder.Entity("TravelApp.Domain.Entities.Role", b =>

@@ -65,6 +65,7 @@ public class ExploreViewModel : INotifyPropertyChanged
     public ICommand OpenHistoryCommand { get; }
     public ICommand OpenBookmarksCommand { get; }
     public ICommand OpenTourMapRouteCommand { get; }
+    public ICommand OpenMapCommand { get; }
     public ICommand SelectBottomTabCommand { get; }
 
     public void ResetBottomTabToExplore()
@@ -141,10 +142,20 @@ public class ExploreViewModel : INotifyPropertyChanged
             await Shell.Current.GoToAsync("BookmarksHistoryPage?tab=bookmarks");
         });
         OpenTourMapRouteCommand = new Command(async () => await Shell.Current.GoToAsync("TourMapRoutePage"));
+        OpenMapCommand = new Command(async () => await Shell.Current.GoToAsync("MapPage"));
         SelectBottomTabCommand = new Command<string>(async tab => await SelectBottomTabAsync(tab));
         OpenTourDetailCommand = new Command<PoiModel>(async item =>
         {
             if (item is null) return;
+
+            // Check if user is logged in
+            if (!AuthStateService.IsLoggedIn)
+            {
+                await Shell.Current.DisplayAlert("Login Required", "Please sign in to view tour details.", "OK");
+                await Shell.Current.GoToAsync("LoginPage");
+                return;
+            }
+
             await _bookmarkHistoryService.AddHistoryAsync(item);
             await Shell.Current.GoToAsync($"TourDetailPage?tourId={item.Id}");
         });
@@ -260,9 +271,6 @@ public class ExploreViewModel : INotifyPropertyChanged
             Subtitle = dto.Subtitle,
             ImageUrl = dto.ImageUrl,
             Location = dto.Location,
-            Rating = dto.Rating,
-            ReviewCount = dto.ReviewCount,
-            Price = dto.Price,
             Distance = dto.Distance,
             Duration = dto.Duration,
             Description = dto.Description,
