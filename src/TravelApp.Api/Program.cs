@@ -54,6 +54,8 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.Migrate();
     await EnsureTourSchemaAsync(dbContext);
     await EnsurePoiSpeechTextColumnAsync(dbContext);
+    await EnsurePoiSpeechTextsColumnAsync(dbContext);
+    await EnsurePoiSpeechTextLanguageCodeColumnAsync(dbContext);
     await ProgramStartupHelpers.EnsureSeedPoisAsync(dbContext);
 
     if (app.Environment.IsDevelopment())
@@ -113,6 +115,38 @@ static bool ShouldBaselineLegacyDatabase(TravelAppDbContext dbContext)
         if (shouldClose)
         {
             connection.Close();
+        }
+    }
+}
+
+static async Task EnsurePoiSpeechTextsColumnAsync(TravelAppDbContext dbContext)
+{
+    var connection = dbContext.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+    {
+        await connection.OpenAsync();
+    }
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'POI' AND COLUMN_NAME = 'SpeechTextsJson'";
+        var exists = Convert.ToInt32(await command.ExecuteScalarAsync()) > 0;
+
+        if (exists)
+        {
+            return;
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE [POI] ADD [SpeechTextsJson] nvarchar(max) NULL;");
+    }
+    finally
+    {
+        if (shouldClose)
+        {
+            await connection.CloseAsync();
         }
     }
 }
@@ -271,6 +305,38 @@ static async Task EnsurePoiSpeechTextColumnAsync(TravelAppDbContext dbContext)
         }
 
         await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE [POI] ADD [SpeechText] nvarchar(4000) NULL;");
+    }
+    finally
+    {
+        if (shouldClose)
+        {
+            await connection.CloseAsync();
+        }
+    }
+}
+
+static async Task EnsurePoiSpeechTextLanguageCodeColumnAsync(TravelAppDbContext dbContext)
+{
+    var connection = dbContext.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+    {
+        await connection.OpenAsync();
+    }
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'POI' AND COLUMN_NAME = 'SpeechTextLanguageCode'";
+        var exists = Convert.ToInt32(await command.ExecuteScalarAsync()) > 0;
+
+        if (exists)
+        {
+            return;
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE [POI] ADD [SpeechTextLanguageCode] nvarchar(10) NULL;");
     }
     finally
     {

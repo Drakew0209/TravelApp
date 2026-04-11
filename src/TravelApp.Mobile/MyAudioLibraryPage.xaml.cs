@@ -20,9 +20,10 @@ public partial class MyAudioLibraryPage : ContentPage
         await _viewModel.RefreshAsync();
     }
 
-    protected override void OnDisappearing()
+    protected override async void OnDisappearing()
     {
         base.OnDisappearing();
+        await _viewModel.StopAsync();
         _viewModel.Dispose();
     }
 }

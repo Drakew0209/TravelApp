@@ -21,4 +21,15 @@ public class TourApiClient : ApiClientBase, ITourApiClient
         var response = await client.GetAsync(endpoint, cancellationToken);
         return await ReadAsAsync<TourRouteDto>(response, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<TourRouteDto>> GetAllAsync(string? languageCode = null, CancellationToken cancellationToken = default)
+    {
+        var client = CreateClient();
+        var endpoint = string.IsNullOrWhiteSpace(languageCode)
+            ? "api/tours"
+            : $"api/tours?lang={Uri.EscapeDataString(languageCode)}";
+
+        var response = await client.GetAsync(endpoint, cancellationToken);
+        return await ReadAsAsync<List<TourRouteDto>>(response, cancellationToken) ?? [];
+    }
 }

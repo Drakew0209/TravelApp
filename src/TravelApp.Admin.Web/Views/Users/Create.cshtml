@@ -1,0 +1,107 @@
+@model TravelApp.Admin.Web.Models.Users.UserEditorViewModel
+
+@{
+    ViewData["Title"] = "Tạo User";
+}
+
+<div class="dashboard-grid">
+    <div class="section-header">
+        <div>
+            <h1 class="section-title">Tạo User mới</h1>
+            <p class="section-subtitle">Tài khoản mới sẽ dùng được ngay cho đăng nhập.</p>
+        </div>
+        <div class="section-actions">
+            <span class="soft-badge">User • Create</span>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post" class="content-grid">
+        <div class="d-grid gap-4">
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Thông tin tài khoản</h2>
+                        <p class="section-subtitle">Username, email, mật khẩu và trạng thái.</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="UserName" class="form-label"></label>
+                        <input asp-for="UserName" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Password" class="form-label">Password</label>
+                        <input asp-for="Password" class="form-control" type="password" />
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Roles</h2>
+                        <p class="section-subtitle">Chọn một hoặc nhiều role cho tài khoản.</p>
+                    </div>
+                </div>
+                <select asp-for="SelectedRoleIds" asp-items="Model.AvailableRoles" class="form-select" multiple size="6"></select>
+            </div>
+        </div>
+
+        <div class="preview-card sticky-top" style="top: 1rem;">
+            <div class="preview-hero">
+                <div class="user-preview-shell">
+                    <div class="user-avatar">U</div>
+                    <div>
+                        <div class="preview-title">@(string.IsNullOrWhiteSpace(Model.UserName) ? "User Preview" : Model.UserName)</div>
+                        <div class="preview-subtitle">@(string.IsNullOrWhiteSpace(Model.Email) ? "Nhập thông tin để xem preview" : Model.Email)</div>
+                    </div>
+                </div>
+                <div class="preview-overlay"></div>
+                <div class="preview-meta">
+                    <div>
+                        <div class="preview-title">@(Model.IsActive ? "Active" : "Inactive")</div>
+                        <div class="preview-subtitle">Preview</div>
+                    </div>
+                    <span class="soft-badge">Draft</span>
+                </div>
+            </div>
+            <div class="preview-body">
+                <div class="preview-stats">
+                    <div class="preview-stat">
+                        <div class="label">Roles</div>
+                        <div class="value">@Model.SelectedRoleIds.Count</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Status</div>
+                        <div class="value">@(Model.IsActive ? "Active" : "Inactive")</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Password</div>
+                        <div class="value">Required</div>
+                    </div>
+                </div>
+
+                <ul class="preview-list mt-3">
+                    <li><span>Username</span><strong>@(string.IsNullOrWhiteSpace(Model.UserName) ? "—" : Model.UserName)</strong></li>
+                    <li><span>Email</span><strong>@(string.IsNullOrWhiteSpace(Model.Email) ? "—" : Model.Email)</strong></li>
+                    <li><span>Roles</span><strong>@(Model.SelectedRoleIds.Count == 0 ? "—" : string.Join(", ", Model.AvailableRoles.Where(x => x.Selected).Select(x => x.Text)))</strong></li>
+                </ul>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary w-100">Lưu user</button>
+                    <a asp-action="Index" class="btn btn-outline-light w-100">Hủy</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

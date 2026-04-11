@@ -1,5 +1,11 @@
 namespace TravelApp.Models.Contracts;
 
+public class PoiSpeechTextMobileDto
+{
+    public string LanguageCode { get; set; } = "en";
+    public string Text { get; set; } = string.Empty;
+}
+
 public class PoiMobileDto
 {
     public int Id { get; set; }
@@ -16,7 +22,10 @@ public class PoiMobileDto
     public double GeofenceRadiusMeters { get; set; }
     public string Category { get; set; } = string.Empty;
     public string? SpeechText { get; set; }
+    public string? SpeechTextLanguageCode { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
     public List<PoiAudioMobileDto> AudioAssets { get; set; } = [];
+    public List<PoiSpeechTextMobileDto> SpeechTexts { get; set; } = [];
 }
 
 public class PoiAudioMobileDto

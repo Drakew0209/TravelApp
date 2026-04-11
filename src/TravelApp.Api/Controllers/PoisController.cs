@@ -73,12 +73,19 @@ public class PoisController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var deleted = await _poiQueryService.DeleteAsync(id, cancellationToken);
-        if (!deleted)
+        try
         {
-            return NotFound();
-        }
+            var deleted = await _poiQueryService.DeleteAsync(id, cancellationToken);
+            if (!deleted)
+            {
+                return NotFound();
+            }
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 }

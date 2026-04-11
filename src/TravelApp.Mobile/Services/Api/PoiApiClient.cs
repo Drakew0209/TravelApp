@@ -15,8 +15,8 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
     {
         var client = CreateClient();
         var endpoint = string.IsNullOrWhiteSpace(languageCode)
-            ? "poi/load-all"
-            : $"poi/load-all?lang={Uri.EscapeDataString(languageCode)}";
+            ? "api/pois"
+            : $"api/pois?lang={Uri.EscapeDataString(languageCode)}";
 
         var response = await client.GetAsync(endpoint, cancellationToken);
         return await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? [];
@@ -33,7 +33,7 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
             queryString += $"&lang={Uri.EscapeDataString(languageCode)}";
         }
 
-        var response = await client.GetAsync($"poi/nearby?{queryString}", cancellationToken);
+        var response = await client.GetAsync($"api/pois?{queryString}", cancellationToken);
         return await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? [];
     }
 

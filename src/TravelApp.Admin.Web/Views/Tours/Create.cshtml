@@ -1,0 +1,243 @@
+@model TravelApp.Admin.Web.Models.Tours.TourEditorViewModel
+
+@{
+    ViewData["Title"] = "Create Tour";
+}
+
+<div class="dashboard-grid">
+    <div class="section-header">
+        <div>
+            <h1 class="section-title">Tạo tour mới</h1>
+            <p class="section-subtitle">Lưu trực tiếp vào API để cập nhật database thật.</p>
+        </div>
+        <div class="section-actions">
+            <span class="soft-badge">Tour • Create</span>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post" class="content-grid" data-live-preview-form>
+        <script type="application/json" data-anchor-poi-details>@Html.Raw(Model.AnchorPoiDetailsJson)</script>
+        <input asp-for="Title" type="hidden" data-live-preview-input="Title" />
+        <input asp-for="Subtitle" type="hidden" data-live-preview-input="Subtitle" />
+        <input asp-for="Description" type="hidden" data-live-preview-input="Description" />
+        <input asp-for="CoverImageUrl" type="hidden" data-live-preview-input="CoverImageUrl" />
+        <input asp-for="ImageUrl" type="hidden" data-live-preview-input="ImageUrl" />
+        <input asp-for="Location" type="hidden" data-live-preview-input="Location" />
+        <input asp-for="Latitude" type="hidden" data-live-preview-input="Latitude" />
+        <input asp-for="Longitude" type="hidden" data-live-preview-input="Longitude" />
+        <input asp-for="Category" type="hidden" data-live-preview-input="Category" />
+        <div class="d-grid gap-4">
+            <div class="admin-card p-4">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Thông tin cơ bản</h2>
+                        <p class="section-subtitle">Tên tour và ngôn ngữ.</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label">Tour name</label>
+                        <input asp-for="Name" class="form-control" data-live-preview-input="Name" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="PrimaryLanguage" class="form-label">Primary language</label>
+                        <input asp-for="PrimaryLanguage" class="form-control" data-live-preview-input="PrimaryLanguage" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">POI & định vị</h2>
+                        <p class="section-subtitle">Thông tin này tự đồng bộ từ Anchor POI.</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="AnchorPoiId" class="form-label">Anchor POI</label>
+                        <select asp-for="AnchorPoiId" asp-items="Model.AvailablePois" class="form-select" data-live-preview-input="AnchorPoiId" data-anchor-poi-select="true"></select>
+                        <div class="form-hint">Chọn POI gốc. Các trường bên dưới sẽ tự cập nhật và khóa chỉnh sửa.</div>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check">
+                            <input asp-for="IsPublished" class="form-check-input" data-live-preview-input="IsPublished" />
+                            <label asp-for="IsPublished" class="form-check-label">Published</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="card admin-card p-3">
+                            <div class="section-header mb-2">
+                                <div>
+                                    <h3 class="section-title" style="font-size: 16px;">Thông tin đồng bộ từ POI</h3>
+                                    <p class="section-subtitle mb-0">Các giá trị này được lấy tự động và chỉ để hiển thị.</p>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="preview-stat">
+                                        <div class="label">Title</div>
+                                        <div class="value" data-anchor-poi-summary="Title" data-live-preview="title" data-live-preview-source="Title">@Model.Title</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="preview-stat">
+                                        <div class="label">Subtitle</div>
+                                        <div class="value" data-anchor-poi-summary="Subtitle" data-live-preview="subtitle" data-live-preview-source="Subtitle">@Model.Subtitle</div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="preview-stat">
+                                        <div class="label">Description</div>
+                                        <div class="value" data-anchor-poi-summary="Description">@Model.Description</div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="preview-stat">
+                                        <div class="label">Location</div>
+                                        <div class="value" data-anchor-poi-summary="Location" data-live-preview="location" data-live-preview-source="Location">@Model.Location</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="preview-stat">
+                                        <div class="label">Latitude</div>
+                                        <div class="value" data-anchor-poi-summary="Latitude">@(Model.Latitude?.ToString() ?? "—")</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="preview-stat">
+                                        <div class="label">Longitude</div>
+                                        <div class="value" data-anchor-poi-summary="Longitude">@(Model.Longitude?.ToString() ?? "—")</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="preview-stat">
+                                        <div class="label">Category</div>
+                                        <div class="value" data-anchor-poi-summary="Category" data-live-preview="category" data-live-preview-source="Category">@(Model.Category ?? "—")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-card p-4 mb-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Danh sách POI trong tour</h2>
+                        <p class="section-subtitle">Dùng nút Add row để bổ sung waypoint.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="pois-rows" data-prefix="Pois">+ Add row</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>POI</th>
+                                <th>Sort</th>
+                                <th>Distance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pois-rows" data-next-index="@Model.Pois.Count">
+                            @for (var i = 0; i < Model.Pois.Count; i++)
+                            {
+                                <tr data-repeat-row>
+                                    <td>
+                                        <select asp-for="Pois[@i].PoiId" asp-items="Model.AvailablePois" class="form-select"></select>
+                                    </td>
+                                    <td><input asp-for="Pois[@i].SortOrder" class="form-control" type="number" /></td>
+                                    <td><input asp-for="Pois[@i].DistanceFromPreviousMeters" class="form-control" type="number" step="0.1" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-card p-4 mb-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Audio assets</h2>
+                        <p class="section-subtitle">Liên kết audio theo từng ngôn ngữ.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="audio-rows" data-prefix="AudioAssets">+ Add row</button>
+                </div>
+                <div id="audio-rows" data-next-index="@Model.AudioAssets.Count">
+                    @for (var i = 0; i < Model.AudioAssets.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="AudioAssets">
+                            <div class="col-md-2"><input asp-for="AudioAssets[@i].LanguageCode" class="form-control" /></div>
+                            <div class="col-md-5"><input asp-for="AudioAssets[@i].AudioUrl" class="form-control" placeholder="Audio URL" /></div>
+                            <div class="col-md-5"><input asp-for="AudioAssets[@i].Transcript" class="form-control" placeholder="Transcript" /></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Speech texts</h2>
+                        <p class="section-subtitle">Nội dung đọc tự động cho tour.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="speech-rows" data-prefix="SpeechTexts">+ Add row</button>
+                </div>
+                <div id="speech-rows" data-next-index="@Model.SpeechTexts.Count">
+                    @for (var i = 0; i < Model.SpeechTexts.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="SpeechTexts">
+                            <div class="col-md-2"><input asp-for="SpeechTexts[@i].LanguageCode" class="form-control" /></div>
+                            <div class="col-md-10"><textarea asp-for="SpeechTexts[@i].Text" rows="2" class="form-control"></textarea></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-card sticky-top" style="top: 1rem;">
+            <div class="preview-hero">
+                <img src="@(string.IsNullOrWhiteSpace(Model.ImageUrl) ? "https://placehold.co/800x600/png?text=Tour+Preview" : Model.ImageUrl)" alt="Tour preview" />
+                <div class="preview-overlay"></div>
+                <div class="preview-meta">
+                    <div>
+                        <div class="preview-title" data-live-preview="title" data-live-preview-source="Title">@(string.IsNullOrWhiteSpace(Model.Title) ? "Tour Preview" : Model.Title)</div>
+                        <div class="preview-subtitle" data-live-preview="subtitle" data-live-preview-source="Subtitle">@(string.IsNullOrWhiteSpace(Model.Subtitle) ? "Nhập thông tin để xem preview" : Model.Subtitle)</div>
+                    </div>
+                    <span class="soft-badge" data-live-preview="published-badge" data-live-preview-source="IsPublished">@(Model.IsPublished ? "Published" : "Draft")</span>
+                </div>
+            </div>
+            <div class="preview-body">
+                <div class="preview-stats">
+                    <div class="preview-stat">
+                        <div class="label">Anchor POI</div>
+                        <div class="value" data-live-preview="anchor-poi" data-live-preview-source="AnchorPoiId">@Model.AnchorPoiId</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Language</div>
+                        <div class="value" data-live-preview="language" data-live-preview-source="PrimaryLanguage">@(string.IsNullOrWhiteSpace(Model.PrimaryLanguage) ? "—" : Model.PrimaryLanguage)</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">POIs</div>
+                        <div class="value">@Model.Pois.Count</div>
+                    </div>
+                </div>
+
+                <div class="mini-map">
+                    <div class="mini-map-pin"></div>
+                </div>
+
+                <ul class="preview-list">
+                    <li><span>Location</span><strong data-live-preview="location" data-live-preview-source="Location">@(string.IsNullOrWhiteSpace(Model.Location) ? "—" : Model.Location)</strong></li>
+                    <li><span>Route assets</span><strong data-live-preview="route-assets">@Model.AudioAssets.Count audio · @Model.SpeechTexts.Count text</strong></li>
+                </ul>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary w-100">Lưu tour</button>
+                    <a asp-action="Index" class="btn btn-outline-light w-100">Hủy</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

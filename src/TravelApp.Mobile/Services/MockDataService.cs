@@ -30,6 +30,8 @@ public class MockDataService
                 Distance = "0 km",
                 Duration = "45 min",
                 Provider = "TravelApp",
+                Latitude = 10.7725,
+                Longitude = 106.6992,
                 Description = "Điểm khởi đầu của tour ẩm thực HCM. Chợ Bến Thành là một trong những chợ truyền thống nổi tiếng nhất Sài Gòn với đa dạng hàng hóa và đặc biệt là các quán ăn địa phương.",
                 SpeechText = "Điểm khởi đầu của tour ẩm thực HCM. Chợ Bến Thành là một trong những chợ truyền thống nổi tiếng nhất Sài Gòn với đa dạng hàng hóa và đặc biệt là các quán ăn địa phương.",
                 Credit = "TravelApp placeholder"
@@ -44,6 +46,8 @@ public class MockDataService
                 Distance = "0.9 km",
                 Duration = "30 min",
                 Provider = "TravelApp",
+                Latitude = 10.7660,
+                Longitude = 106.7090,
                 Description = "Quán phở nổi tiếng với nước dùng được ninh từ 12h, phục vụ phở bò ngon nhất Quận 4.",
                 SpeechText = "Quán phở nổi tiếng với nước dùng được ninh từ 12h, phục vụ phở bò ngon nhất Quận 4.",
                 Credit = "TravelApp placeholder"
@@ -58,6 +62,8 @@ public class MockDataService
                 Distance = "1.8 km",
                 Duration = "30 min",
                 Provider = "TravelApp",
+                Latitude = 10.7558,
+                Longitude = 106.7062,
                 Description = "Kết thúc tour tại bến Bạch Đằng. Thưởng thức các đặc sản Sài Gòn và tận hưởng không khí ven sông.",
                 SpeechText = "Kết thúc tour tại bến Bạch Đằng. Thưởng thức các đặc sản Sài Gòn và tận hưởng không khí ven sông.",
                 Credit = "TravelApp placeholder"
@@ -82,6 +88,8 @@ public class MockDataService
                 Distance = "0 km",
                 Duration = "45 min",
                 Provider = "TravelApp",
+                Latitude = 21.0294,
+                Longitude = 105.8352,
                 Description = "Điểm khởi đầu của tour ẩm thực Hà Nội. Chùa Một Cột là một di tích lịch sử quan trọng, nằm gần khu phố cổ Hà Nội.",
                 SpeechText = "Điểm khởi đầu của tour ẩm thực Hà Nội. Chùa Một Cột là một di tích lịch sử quan trọng, nằm gần khu phố cổ Hà Nội.",
                 Credit = "TravelApp placeholder"
@@ -96,6 +104,8 @@ public class MockDataService
                 Distance = "0.3 km",
                 Duration = "45 min",
                 Provider = "TravelApp",
+                Latitude = 21.0285,
+                Longitude = 105.8489,
                 Description = "Phố Hàng Xanh là một trong những phố cổ nổi tiếng của Hà Nội với các quán ăn truyền thống.",
                 SpeechText = "Phố Hàng Xanh là một trong những phố cổ nổi tiếng của Hà Nội với các quán ăn truyền thống.",
                 Credit = "TravelApp placeholder"
@@ -110,6 +120,8 @@ public class MockDataService
                 Distance = "0.8 km",
                 Duration = "30 min",
                 Provider = "TravelApp",
+                Latitude = 21.0273,
+                Longitude = 105.8506,
                 Description = "Kết thúc tour tại phố Hàng Dâu. Nơi đây nổi tiếng với các cửa hàng bán lụa truyền thống và các quán ăn địa phương.",
                 SpeechText = "Kết thúc tour tại phố Hàng Dâu. Nơi đây nổi tiếng với các cửa hàng bán lụa truyền thống và các quán ăn địa phương.",
                 Credit = "TravelApp placeholder"

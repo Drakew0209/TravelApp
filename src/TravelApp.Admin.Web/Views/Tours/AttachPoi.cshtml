@@ -1,0 +1,100 @@
+@model TravelApp.Admin.Web.Models.Tours.AttachPoiToToursViewModel
+
+@{
+    ViewData["Title"] = "Gán POI vào Tour";
+}
+
+<div class="dashboard-grid">
+    <div class="section-header">
+        <div>
+            <h1 class="section-title">Gán POI vào tour có sẵn</h1>
+            <p class="section-subtitle">Chọn một hoặc nhiều tour để thêm POI này vào route hiện tại.</p>
+        </div>
+        <div class="section-actions">
+            <span class="soft-badge">@Model.PoiTitle</span>
+        </div>
+    </div>
+
+    <form asp-action="AttachPoi" method="post" class="content-grid">
+        <input type="hidden" asp-for="PoiId" />
+        <input type="hidden" asp-for="PoiTitle" />
+        <input type="hidden" asp-for="PoiSubtitle" />
+        <input type="hidden" asp-for="PoiLocation" />
+
+        <div class="admin-card p-4">
+            <div class="section-header mb-3">
+                <div>
+                    <h2 class="section-title">POI đang chọn</h2>
+                    <p class="section-subtitle">@Model.PoiSubtitle</p>
+                </div>
+            </div>
+
+            <div class="preview-list">
+                <li><span>POI</span><strong>@Model.PoiTitle</strong></li>
+                <li><span>Location</span><strong>@(string.IsNullOrWhiteSpace(Model.PoiLocation) ? "—" : Model.PoiLocation)</strong></li>
+            </div>
+        </div>
+
+        <div class="admin-card p-4">
+            <div class="section-header mb-3">
+                <div>
+                    <h2 class="section-title">Chọn tour</h2>
+                    <p class="section-subtitle">Có thể gán POI này vào nhiều tour cùng lúc.</p>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                @for (var i = 0; i < Model.AvailableTours.Count; i++)
+                {
+                    var tour = Model.AvailableTours[i];
+                    <div class="col-12 col-lg-6">
+                        <div class="card admin-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                                    <div>
+                                        <h5 class="card-title mb-1">@tour.TourName</h5>
+                                        <div class="text-muted small">@tour.TourDescription</div>
+                                    </div>
+                                    <span class="soft-badge">@(tour.IsPublished ? "Published" : "Draft")</span>
+                                </div>
+
+                                <div class="preview-list mb-3">
+                                    <li><span>POIs</span><strong>@tour.PoiCount</strong></li>
+                                </div>
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="SelectedTourIds" value="@tour.TourId" @(tour.IsSelected ? "checked" : string.Empty) />
+                                    <label class="form-check-label">Thêm POI này vào tour</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="preview-card sticky-top" style="top: 1rem;">
+            <div class="preview-body">
+                <div class="preview-stats">
+                    <div class="preview-stat">
+                        <div class="label">Tour chọn</div>
+                        <div class="value">@Model.AvailableTours.Count(x => x.IsSelected)</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Tour có sẵn</div>
+                        <div class="value">@Model.AvailableTours.Count</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">POI</div>
+                        <div class="value">@Model.PoiId</div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary w-100">Lưu vào tour</button>
+                    <a asp-controller="Pois" asp-action="Index" class="btn btn-outline-light w-100">Hủy</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,135 @@
+@using TravelApp.Application.Dtos.Pois
+@model IReadOnlyList<PoiMobileDto>
+
+@{
+    ViewData["Title"] = "Quản lý POI";
+}
+
+@{
+    var featuredPoi = Model.FirstOrDefault();
+}
+
+<div class="dashboard-grid">
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <div class="section-header">
+        <div>
+            <h1 class="section-title">Quản lý POI</h1>
+            <p class="section-subtitle">Thêm, sửa, xóa POI và dùng ngay cho tour.</p>
+        </div>
+        <div class="section-actions">
+            <span class="soft-badge">@Model.Count POI</span>
+            <div class="poi-search">
+                <input type="search" class="form-control" placeholder="Tìm POI..." data-poi-search />
+            </div>
+            <a class="btn btn-primary" asp-action="Create">+ Tạo POI mới</a>
+        </div>
+    </div>
+
+    <div class="poi-grid">
+        <div class="panel-card poi-table-card" data-poi-index>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Location</th>
+                            <th>Lang</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var poi in Model)
+                        {
+                            <tr data-poi-row
+                                data-search-text="@($"{poi.Title} {poi.Subtitle} {poi.Category} {poi.Location} {poi.PrimaryLanguage}")"
+                                data-poi-title="@poi.Title"
+                                data-poi-subtitle="@poi.Subtitle"
+                                data-poi-image="@poi.ImageUrl"
+                                data-poi-category="@poi.Category"
+                                data-poi-language="@poi.PrimaryLanguage"
+                                data-poi-location="@poi.Location"
+                                data-poi-lat="@poi.Latitude"
+                                data-poi-lng="@poi.Longitude"
+                                data-poi-radius="@poi.GeofenceRadiusMeters"
+                                data-poi-speech="@poi.SpeechText"
+                                data-poi-speech-lang="@poi.SpeechTextLanguageCode"
+                                data-poi-id="@poi.Id">
+                                <td>
+                                    <div class="fw-semibold">@poi.Title</div>
+                                    <div class="small text-muted text-truncate" style="max-width: 280px;">@poi.Subtitle</div>
+                                </td>
+                                <td>@poi.Category</td>
+                                <td>@poi.Location</td>
+                                <td>@poi.PrimaryLanguage</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+                                        <a class="btn btn-outline-light btn-sm" asp-controller="Tours" asp-action="AttachPoi" asp-route-poiId="@poi.Id">Dùng cho Tour</a>
+                                        <a class="btn btn-outline-light btn-sm" asp-controller="Tours" asp-action="AttachPoi" asp-route-poiId="@poi.Id">Gắn vào Tour hiện có</a>
+                                        <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@poi.Id">Edit</a>
+                                    @if (poi.IsUsedInTour)
+                                    {
+                                        <button type="button" class="btn btn-outline-danger btn-sm" disabled>Đang dùng trong Tour</button>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@poi.Id" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Xóa POI này?');">Delete</button>
+                                        </form>
+                                    }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="preview-card poi-feature-card" data-poi-feature-card>
+            <div class="preview-hero">
+                <img src="@(string.IsNullOrWhiteSpace(featuredPoi?.ImageUrl) ? "https://placehold.co/800x600/png?text=POI+Preview" : featuredPoi!.ImageUrl)" alt="Featured POI" data-poi-preview="image" />
+                <div class="preview-overlay"></div>
+                <div class="preview-meta">
+                    <div>
+                        <div class="preview-title" data-poi-preview="title">@(featuredPoi?.Title ?? "Chưa có POI")</div>
+                        <div class="preview-subtitle" data-poi-preview="subtitle">@(featuredPoi?.Subtitle ?? "Tạo POI đầu tiên để xem preview")</div>
+                    </div>
+                    <span class="soft-badge" data-poi-preview="badge">Featured</span>
+                </div>
+            </div>
+            <div class="poi-feature-footer">
+                <div class="preview-stats">
+                    <div class="preview-stat">
+                        <div class="label">Category</div>
+                        <div class="value" data-poi-preview="category">@(featuredPoi?.Category ?? "—")</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Language</div>
+                        <div class="value" data-poi-preview="language">@(featuredPoi?.PrimaryLanguage ?? "—")</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Radius</div>
+                        <div class="value" data-poi-preview="radius">@(featuredPoi is null ? "—" : $"{featuredPoi.GeofenceRadiusMeters:0} m")</div>
+                    </div>
+                </div>
+
+                <div class="mini-map mt-3">
+                    <div class="mini-map-pin"></div>
+                </div>
+
+                <ul class="preview-list">
+                    <li><span>Location</span><strong data-poi-preview="location">@(featuredPoi?.Location ?? "—")</strong></li>
+                    <li><span>Lat / Lng</span><strong data-poi-preview="latlng">@(featuredPoi is null ? "—" : $"{featuredPoi.Latitude:0.0000}, {featuredPoi.Longitude:0.0000}")</strong></li>
+                    <li><span>Speech</span><strong data-poi-preview="speech">@(featuredPoi?.SpeechText ?? "—")</strong></li>
+                    <li><span>Speech lang</span><strong data-poi-preview="speech-lang">@(featuredPoi?.SpeechTextLanguageCode ?? "—")</strong></li>
+                </ul>
+                <div class="poi-no-results mt-3" data-poi-no-results hidden>Không có POI nào khớp bộ lọc.</div>
+            </div>
+        </div>
+    </div>
+</div>

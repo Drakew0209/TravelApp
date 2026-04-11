@@ -1,0 +1,118 @@
+@model IReadOnlyList<TourAdminDto>
+
+@{
+    ViewData["Title"] = "Tours";
+}
+
+<div class="dashboard-grid">
+    <div class="section-header">
+        <div>
+            <h1 class="section-title">Quản lý Tour</h1>
+            <p class="section-subtitle">Danh sách tour, trạng thái phát hành và hành động chỉnh sửa.</p>
+        </div>
+        <div class="section-actions">
+            <span class="soft-badge">@Model.Count tour</span>
+            <a class="btn btn-primary" asp-action="Create">Tạo tour mới</a>
+        </div>
+    </div>
+
+    <div class="poi-grid">
+        <div class="d-grid gap-3">
+            @if (Model.Count == 0)
+            {
+                <div class="admin-card p-4">
+                    <div class="poi-no-results" style="height: 100%;">
+                        <h5 class="mb-2">Chưa có tour nào</h5>
+                        <p class="mb-0 text-muted">Hệ thống đang không có dữ liệu tour. Hãy tạo tour đầu tiên hoặc kiểm tra seed database.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @foreach (var item in Model)
+                {
+                    <div class="card admin-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <div class="soft-badge mb-2">Tour #@item.Id</div>
+                                    <h5 class="card-title mb-1">@item.Name</h5>
+                                    <div class="text-muted small">@item.Title</div>
+                                </div>
+                                <span class="soft-badge">@(item.IsPublished ? "Published" : "Draft")</span>
+                            </div>
+
+                            <p class="mt-3 mb-3">@item.Description</p>
+
+                            <div class="preview-stats mb-3">
+                                <div class="preview-stat">
+                                    <div class="label">Anchor POI</div>
+                                    <div class="value">@item.AnchorPoiId</div>
+                                </div>
+                                <div class="preview-stat">
+                                    <div class="label">Language</div>
+                                    <div class="value">@item.PrimaryLanguage</div>
+                                </div>
+                                <div class="preview-stat">
+                                    <div class="label">POIs</div>
+                                    <div class="value">@item.Pois.Count</div>
+                                </div>
+                            </div>
+
+                            <div class="mini-map mb-3" style="min-height: 120px;">
+                                <div class="mini-map-pin"></div>
+                            </div>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this tour?');">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="preview-card">
+            <div class="preview-hero">
+                <img src="@(string.IsNullOrWhiteSpace(Model.FirstOrDefault()?.CoverImageUrl) ? "https://placehold.co/800x600/png?text=Tour+Index" : Model.FirstOrDefault()!.CoverImageUrl)" alt="Featured tour" />
+                <div class="preview-overlay"></div>
+                <div class="preview-meta">
+                    <div>
+                        <div class="preview-title">@(Model.FirstOrDefault()?.Name ?? "No tours")</div>
+                        <div class="preview-subtitle">@(Model.FirstOrDefault()?.Subtitle ?? "Tạo tour đầu tiên để xem preview")</div>
+                    </div>
+                    <span class="soft-badge">Index</span>
+                </div>
+            </div>
+            <div class="preview-body">
+                <div class="preview-stats">
+                    <div class="preview-stat">
+                        <div class="label">Total tours</div>
+                        <div class="value">@Model.Count</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Published</div>
+                        <div class="value">@Model.Count(x => x.IsPublished)</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Draft</div>
+                        <div class="value">@Model.Count(x => !x.IsPublished)</div>
+                    </div>
+                </div>
+
+                <div class="mini-map mt-3">
+                    <div class="mini-map-pin"></div>
+                </div>
+
+                <ul class="preview-list">
+                    <li><span>Anchor POI</span><strong>@(Model.FirstOrDefault()?.AnchorPoiId.ToString() ?? "—")</strong></li>
+                    <li><span>Language</span><strong>@(Model.FirstOrDefault()?.PrimaryLanguage ?? "—")</strong></li>
+                    <li><span>Assets</span><strong>@(Model.FirstOrDefault() is null ? "—" : $"{Model.First().AudioAssets.Count} audio · {Model.First().SpeechTexts.Count} text")</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

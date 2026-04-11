@@ -67,6 +67,43 @@ public class TourQueryService : ITourQueryService
         };
     }
 
+    public async Task<IReadOnlyList<TourRouteDto>> GetAllPublishedAsync(string? languageCode, CancellationToken cancellationToken = default)
+    {
+        var normalizedLanguage = NormalizeLanguageCode(languageCode);
+
+        var tours = await _dbContext.Tours
+            .AsNoTracking()
+            .Where(x => x.IsPublished)
+            .Include(x => x.TourPois)
+                .ThenInclude(x => x.Poi)
+                    .ThenInclude(x => x.Localizations)
+            .Include(x => x.TourPois)
+                .ThenInclude(x => x.Poi)
+                    .ThenInclude(x => x.AudioAssets)
+            .OrderBy(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        return tours.Select(tour => new TourRouteDto
+        {
+            Id = tour.Id,
+            AnchorPoiId = tour.AnchorPoiId,
+            Name = tour.Name,
+            Description = tour.Description,
+            CoverImageUrl = NormalizeCoverImageUrl(tour.CoverImageUrl, tour.Name),
+            PrimaryLanguage = NormalizeLanguageCode(tour.PrimaryLanguage),
+            TotalDistanceMeters = tour.TourPois.Sum(x => x.DistanceFromPreviousMeters ?? 0),
+            Waypoints = tour.TourPois
+                .OrderBy(x => x.SortOrder)
+                .Select(x => new TourRouteWaypointDto
+                {
+                    SortOrder = x.SortOrder,
+                    DistanceFromPreviousMeters = x.DistanceFromPreviousMeters,
+                    Poi = MapPoi(x.Poi, normalizedLanguage)
+                })
+                .ToList()
+        }).ToList();
+    }
+
     private static PoiMobileDto MapPoi(TravelApp.Domain.Entities.Poi poi, string languageCode)
     {
         var primaryLanguage = NormalizeLanguageCode(poi.PrimaryLanguage);
@@ -90,6 +127,7 @@ public class TourQueryService : ITourQueryService
             GeofenceRadiusMeters = poi.GeofenceRadiusMeters,
             Category = poi.Category ?? string.Empty,
             SpeechText = poi.SpeechText,
+            UpdatedAtUtc = poi.UpdatedAtUtc ?? DateTimeOffset.UtcNow,
             AudioAssets = poi.AudioAssets
                 .OrderByDescending(x => string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(x => string.Equals(x.LanguageCode, primaryLanguage, StringComparison.OrdinalIgnoreCase))

@@ -76,7 +76,11 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
     {
         _audioPlayerService = audioPlayerService;
 
-        BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        BackCommand = new Command(async () =>
+        {
+            await _audioPlayerService.StopAsync();
+            await Shell.Current.GoToAsync("..");
+        });
         ActionCommand = new Command(async () =>
         {
             if (IsPlaying)
@@ -85,6 +89,7 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
                 return;
             }
 
+            await _audioPlayerService.StopAsync();
             await Shell.Current.GoToAsync("..");
         });
 
@@ -102,6 +107,11 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
         IsPlaying = isPlaying;
         PoiTitle = isPlaying ? (string.IsNullOrWhiteSpace(poiTitle) ? "Địa điểm hiện tại" : poiTitle) : "Chưa phát audio";
         LanguageCode = isPlaying ? (string.IsNullOrWhiteSpace(languageCode) ? "--" : languageCode) : string.Empty;
+    }
+
+    public Task StopAsync()
+    {
+        return _audioPlayerService.StopAsync();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

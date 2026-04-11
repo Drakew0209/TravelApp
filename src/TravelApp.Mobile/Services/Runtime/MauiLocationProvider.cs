@@ -18,17 +18,39 @@ public class MauiLocationProvider : ILocationProvider
     {
         try
         {
-            var lastKnown = await Geolocation.Default.GetLastKnownLocationAsync();
-            if (lastKnown is not null)
+            var permissionStatus = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+            if (permissionStatus != PermissionStatus.Granted)
             {
-                return new LocationSample(lastKnown.Latitude, lastKnown.Longitude, DateTimeOffset.UtcNow);
+                permissionStatus = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
             }
 
-            var locationRequest = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(5));
-            var location = await Geolocation.Default.GetLocationAsync(locationRequest, cancellationToken);
+            if (permissionStatus != PermissionStatus.Granted)
+            {
+                _logger.LogDebug("GPS: location permission was not granted.");
+                return null;
+            }
+
+            var bestRequest = new GeolocationRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(15));
+            var location = await Geolocation.Default.GetLocationAsync(bestRequest, cancellationToken);
+
             if (location is null)
             {
-                _logger.LogDebug("GPS: no location available from platform provider.");
+                var retryRequest = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(10));
+                location = await Geolocation.Default.GetLocationAsync(retryRequest, cancellationToken);
+            }
+
+            if (location is null)
+            {
+                var lastKnown = await Geolocation.Default.GetLastKnownLocationAsync();
+                if (lastKnown is not null)
+                {
+                    return new LocationSample(lastKnown.Latitude, lastKnown.Longitude, DateTimeOffset.UtcNow);
+                }
+            }
+
+            if (location is null)
+            {
+                _logger.LogDebug("GPS: no location available from platform provider. Make sure OS location services are enabled.");
                 return null;
             }
 

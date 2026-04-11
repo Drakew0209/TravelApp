@@ -16,11 +16,13 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
     private string _statusText = "Đang lấy route...";
     private int? _selectedPoiId;
     private int? _anchorPoiId;
+    private string? _loadedLanguageCode;
     private bool _isLoading;
 
     public ObservableCollection<TourMapWaypoint> Waypoints { get; } = [];
 
     public TourMapWaypoint? SelectedWaypoint { get; private set; }
+    public LocationSample? CurrentLocation { get; private set; }
     public TourRouteDto? Tour { get; private set; }
     public bool HasActiveWaypoint => SelectedWaypoint is not null;
     public string CurrentWaypointTitle => SelectedWaypoint?.Title ?? "Chưa có điểm đang phát";
@@ -78,7 +80,11 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
         _tourRoutePlaybackService = tourRoutePlaybackService;
         _tourRoutePlaybackService.ActiveWaypointChanged += OnActiveWaypointChanged;
 
-        BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        BackCommand = new Command(async () =>
+        {
+            await _tourRoutePlaybackService.StopAsync();
+            await Shell.Current.GoToAsync("..");
+        });
         SelectWaypointCommand = new Command<TourMapWaypoint>(async waypoint => await SelectWaypointAsync(waypoint));
         OpenPoiCommand = new Command<TourMapWaypoint>(async waypoint =>
         {
@@ -87,7 +93,7 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
                 return;
             }
 
-            await SelectWaypointAsync(waypoint);
+            await _tourRoutePlaybackService.StopAsync();
 
             await Shell.Current.GoToAsync($"TourDetailPage?tourId={waypoint.PoiId}");
         });
@@ -96,7 +102,9 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
 
     public async Task LoadAsync(int anchorPoiId, int? preferredPoiId = null, string? languageCode = null, CancellationToken cancellationToken = default)
     {
-        if (_anchorPoiId == anchorPoiId && Waypoints.Count > 0)
+        var normalizedLanguage = string.IsNullOrWhiteSpace(languageCode) ? UserProfileService.PreferredLanguage : languageCode.Trim().ToLowerInvariant();
+
+        if (_anchorPoiId == anchorPoiId && Waypoints.Count > 0 && string.Equals(_loadedLanguageCode, normalizedLanguage, StringComparison.OrdinalIgnoreCase))
         {
             if (preferredPoiId.HasValue)
             {
@@ -115,14 +123,16 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
-            var route = await _tourRouteCatalogService.GetRouteAsync(anchorPoiId, languageCode ?? UserProfileService.PreferredLanguage, cancellationToken);
+            var route = await _tourRouteCatalogService.GetRouteAsync(anchorPoiId, normalizedLanguage, cancellationToken);
             if (route is null)
             {
                 Tour = null;
                 Waypoints.Clear();
                 SelectedWaypoint = null;
+                CurrentLocation = null;
                 _selectedPoiId = null;
                 _anchorPoiId = null;
+                _loadedLanguageCode = null;
                 StatusText = "Không tìm thấy dữ liệu route của tour.";
                 OnPropertyChanged(nameof(Tour));
                 RouteChanged?.Invoke(this, EventArgs.Empty);
@@ -131,6 +141,8 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
 
             Tour = route;
             _anchorPoiId = anchorPoiId;
+            _loadedLanguageCode = normalizedLanguage;
+            CurrentLocation = null;
 
             Waypoints.Clear();
             foreach (var (waypoint, index) in route.Waypoints.Select((x, i) => (x, i)))
@@ -165,8 +177,10 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
             Tour = null;
             Waypoints.Clear();
             SelectedWaypoint = null;
+            CurrentLocation = null;
             _selectedPoiId = null;
             _anchorPoiId = null;
+            _loadedLanguageCode = null;
             StatusText = $"Lỗi tải tour: {ex.Message}";
             OnPropertyChanged(nameof(Tour));
             RouteChanged?.Invoke(this, EventArgs.Empty);
@@ -193,6 +207,12 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnActiveWaypointChanged(object? sender, TourRoutePlaybackChangedEventArgs e)
     {
+        if (e.UserLocation is not null)
+        {
+            CurrentLocation = e.UserLocation;
+            OnPropertyChanged(nameof(CurrentLocation));
+        }
+
         var waypoint = e.Waypoint is null
             ? null
             : Waypoints.FirstOrDefault(x => x.PoiId == e.Waypoint.Poi.Id);

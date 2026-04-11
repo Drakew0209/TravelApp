@@ -1,0 +1,153 @@
+@model TravelApp.Admin.Web.Models.Pois.PoiEditorViewModel
+
+@{
+    ViewData["Title"] = "Chỉnh sửa POI";
+}
+
+<div class="dashboard-grid">
+    <div class="section-header">
+        <div>
+            <h1 class="section-title">Chỉnh sửa POI</h1>
+            <p class="section-subtitle">Thay đổi sẽ được đồng bộ ngay sang danh sách Tour.</p>
+        </div>
+        <div class="section-actions">
+            <span class="soft-badge">POI • Edit</span>
+        </div>
+    </div>
+
+    <form asp-action="Edit" method="post" class="content-grid" data-live-preview-form>
+        <input asp-for="Id" type="hidden" />
+        <div class="d-grid gap-4">
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Thông tin cơ bản</h2>
+                        <p class="section-subtitle">Tên hiển thị, mô tả và ngôn ngữ.</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Title" class="form-label">Title</label>
+                        <input asp-for="Title" class="form-control" data-live-preview-input="Title" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Subtitle" class="form-label">Subtitle</label>
+                        <input asp-for="Subtitle" class="form-control" data-live-preview-input="Subtitle" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" rows="4" class="form-control"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Category" class="form-label">Category</label>
+                        <input asp-for="Category" class="form-control" data-live-preview-input="Category" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="PrimaryLanguage" class="form-label">Primary language</label>
+                        <input asp-for="PrimaryLanguage" class="form-control" data-live-preview-input="PrimaryLanguage" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Vị trí & hiển thị</h2>
+                        <p class="section-subtitle">Dùng cho map, geofence và hình ảnh.</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label asp-for="Location" class="form-label">Location</label>
+                        <input asp-for="Location" class="form-control" data-live-preview-input="Location" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="ImageUrl" class="form-label">Image URL</label>
+                        <input asp-for="ImageUrl" class="form-control" data-live-preview-input="ImageUrl" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Latitude" class="form-label">Latitude</label>
+                        <input asp-for="Latitude" class="form-control" data-live-preview-input="Latitude" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Longitude" class="form-label">Longitude</label>
+                        <input asp-for="Longitude" class="form-control" data-live-preview-input="Longitude" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="GeofenceRadiusMeters" class="form-label">Geofence radius</label>
+                        <input asp-for="GeofenceRadiusMeters" class="form-control" data-live-preview-input="GeofenceRadiusMeters" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Speech</h2>
+                        <p class="section-subtitle">Nội dung đọc tự động và mã ngôn ngữ.</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="SpeechTextLanguageCode" class="form-label">Speech text language</label>
+                        <input asp-for="SpeechTextLanguageCode" class="form-control" data-live-preview-input="SpeechTextLanguageCode" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="SpeechText" class="form-label">Speech text</label>
+                        <textarea asp-for="SpeechText" rows="3" class="form-control" data-live-preview-input="SpeechText"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-card sticky-top" style="top: 1rem;">
+            <div class="preview-hero">
+                <img data-live-preview="image" data-live-preview-source="ImageUrl" src="@(string.IsNullOrWhiteSpace(Model.ImageUrl) ? "https://placehold.co/800x600/png?text=POI+Preview" : Model.ImageUrl)" alt="POI preview" />
+                <div class="preview-overlay"></div>
+                <div class="preview-meta">
+                    <div>
+                        <div class="preview-title" data-live-preview="title" data-live-preview-source="Title">@(string.IsNullOrWhiteSpace(Model.Title) ? "POI Preview" : Model.Title)</div>
+                        <div class="preview-subtitle" data-live-preview="subtitle" data-live-preview-source="Subtitle">@(string.IsNullOrWhiteSpace(Model.Subtitle) ? "Nhập thông tin để xem preview" : Model.Subtitle)</div>
+                    </div>
+                    <span class="soft-badge">Preview</span>
+                </div>
+            </div>
+            <div class="preview-body">
+                <div class="preview-stats">
+                    <div class="preview-stat">
+                        <div class="label">Category</div>
+                        <div class="value" data-live-preview="category" data-live-preview-source="Category">@(string.IsNullOrWhiteSpace(Model.Category) ? "—" : Model.Category)</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Language</div>
+                        <div class="value" data-live-preview="language" data-live-preview-source="PrimaryLanguage">@(string.IsNullOrWhiteSpace(Model.PrimaryLanguage) ? "—" : Model.PrimaryLanguage)</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="label">Radius</div>
+                        <div class="value" data-live-preview="radius" data-live-preview-source="GeofenceRadiusMeters" data-live-preview-format="meters">@($"{Model.GeofenceRadiusMeters:0} m")</div>
+                    </div>
+                </div>
+
+                <div class="mini-map">
+                    <div class="mini-map-pin"></div>
+                </div>
+
+                <ul class="preview-list">
+                    <li><span>Location</span><strong data-live-preview="location" data-live-preview-source="Location">@(string.IsNullOrWhiteSpace(Model.Location) ? "—" : Model.Location)</strong></li>
+                    <li><span>Lat / Lng</span><strong data-live-preview="latlng" data-live-preview-format="latlng">@($"{Model.Latitude:0.0000}, {Model.Longitude:0.0000}")</strong></li>
+                    <li><span>Speech lang</span><strong data-live-preview="speech-lang" data-live-preview-source="SpeechTextLanguageCode">@(string.IsNullOrWhiteSpace(Model.SpeechTextLanguageCode) ? "—" : Model.SpeechTextLanguageCode)</strong></li>
+                </ul>
+
+                <div class="preview-speech-card mt-3">
+                    <div class="label mb-1">Speech text</div>
+                    <div class="preview-speech" data-live-preview="speech-text" data-live-preview-source="SpeechText">@(string.IsNullOrWhiteSpace(Model.SpeechText) ? "Nội dung speech sẽ hiển thị ở đây" : Model.SpeechText)</div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary w-100">Cập nhật POI</button>
+                    <a asp-action="Index" class="btn btn-outline-light w-100">Hủy</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

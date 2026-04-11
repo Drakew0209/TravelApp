@@ -27,8 +27,8 @@ public static class ProgramStartupHelpers
 
         var seedTours = new[]
         {
-            new { Id = 1, AnchorPoiId = 1, Name = "HCM Food Tour", Description = "Tour ẩm thực Sài Gòn với các điểm dừng được sắp xếp theo lộ trình thật.", CoverImageUrl = HcmTourImageUrl, PrimaryLanguage = "vi" },
-            new { Id = 2, AnchorPoiId = 4, Name = "Hanoi Food Tour", Description = "Tour ẩm thực Hà Nội với các mốc waypoint, bản đồ và audio tự động.", CoverImageUrl = HanoiTourImageUrl, PrimaryLanguage = "vi" },
+            new { Id = 1, AnchorPoiId = 1, Name = "HCM Food Tour", Description = "Tour ẩm thực Sài Gòn với các điểm dừng được sắp xếp theo lộ trình thật.", CoverImageUrl = HcmTourImageUrl, PrimaryLanguage = "vi", PoiIds = new[] { 1, 2, 3 } },
+            new { Id = 2, AnchorPoiId = 4, Name = "Hanoi Food Tour", Description = "Tour ẩm thực Hà Nội với các mốc waypoint, bản đồ và audio tự động.", CoverImageUrl = HanoiTourImageUrl, PrimaryLanguage = "vi", PoiIds = new[] { 4, 5, 6 } },
         };
 
         foreach (var seedPoi in seedPois)
@@ -36,6 +36,15 @@ public static class ProgramStartupHelpers
             var poi = await dbContext.Pois.FirstOrDefaultAsync(x => x.Id == seedPoi.Id);
             if (poi is null)
             {
+                await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                    IF NOT EXISTS (SELECT 1 FROM [POI] WHERE [Id] = {seedPoi.Id})
+                    BEGIN
+                        SET IDENTITY_INSERT [POI] ON;
+                        INSERT INTO [POI] ([Id], [Title], [Subtitle], [Description], [Category], [Location], [ImageUrl], [Latitude], [Longitude], [GeofenceRadiusMeters], [Duration], [Provider], [Credit], [PrimaryLanguage], [CreatedAtUtc], [UpdatedAtUtc])
+                        VALUES ({seedPoi.Id}, {seedPoi.Title}, {seedPoi.Subtitle}, {seedPoi.Description}, {seedPoi.Category}, {seedPoi.Location}, {seedPoi.ImageUrl}, {seedPoi.Latitude}, {seedPoi.Longitude}, {seedPoi.GeofenceRadiusMeters}, {seedPoi.Duration}, {seedPoi.Provider}, {seedPoi.Credit}, {seedPoi.PrimaryLanguage}, {DateTimeOffset.UtcNow}, NULL);
+                        SET IDENTITY_INSERT [POI] OFF;
+                    END
+                    """);
                 continue;
             }
 
@@ -52,14 +61,31 @@ public static class ProgramStartupHelpers
             poi.Provider = seedPoi.Provider;
             poi.Credit = seedPoi.Credit;
             poi.PrimaryLanguage = seedPoi.PrimaryLanguage;
-            poi.SpeechText = seedPoi.SpeechText;
+            if (!string.IsNullOrWhiteSpace(seedPoi.SpeechText) && string.IsNullOrWhiteSpace(poi.SpeechText))
+            {
+                poi.SpeechText = seedPoi.SpeechText;
+            }
         }
+
+        await dbContext.SaveChangesAsync();
 
         foreach (var seedTour in seedTours)
         {
             var tour = await dbContext.Tours.FirstOrDefaultAsync(x => x.Id == seedTour.Id);
             if (tour is null)
             {
+                tour = new Tour
+                {
+                    AnchorPoiId = seedTour.AnchorPoiId,
+                    Name = seedTour.Name,
+                    Description = seedTour.Description,
+                    CoverImageUrl = seedTour.CoverImageUrl,
+                    PrimaryLanguage = seedTour.PrimaryLanguage,
+                    IsPublished = true,
+                    CreatedAtUtc = DateTimeOffset.UtcNow
+                };
+
+                dbContext.Tours.Add(tour);
                 continue;
             }
 
@@ -71,6 +97,38 @@ public static class ProgramStartupHelpers
             tour.IsPublished = true;
             tour.UpdatedAtUtc = DateTimeOffset.UtcNow;
         }
+
+        await dbContext.SaveChangesAsync();
+
+        foreach (var seedTour in seedTours)
+        {
+            var tour = await dbContext.Tours.FirstOrDefaultAsync(x => x.Name == seedTour.Name);
+            if (tour is null || await dbContext.TourPois.AnyAsync(x => x.TourId == tour.Id))
+            {
+                continue;
+            }
+
+            var sortOrder = 1;
+            foreach (var poiId in seedTour.PoiIds)
+            {
+                if (!await dbContext.Pois.AnyAsync(x => x.Id == poiId))
+                {
+                    continue;
+                }
+
+                dbContext.TourPois.Add(new TourPoi
+                {
+                    TourId = tour.Id,
+                    PoiId = poiId,
+                    SortOrder = sortOrder,
+                    DistanceFromPreviousMeters = sortOrder == 1 ? 0 : (sortOrder == 2 ? 900 : 1100)
+                });
+
+                sortOrder++;
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
 
         var existingPoiIds = await dbContext.Pois
             .AsNoTracking()

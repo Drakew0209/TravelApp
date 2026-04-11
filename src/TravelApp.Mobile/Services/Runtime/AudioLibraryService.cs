@@ -10,6 +10,7 @@ public sealed class AudioLibraryService : IAudioLibraryService
 {
     private const string QueueStatePreferenceKey = "audio_library_queue_v1";
     private const string FailedStatePreferenceKey = "audio_library_failed_v1";
+    private const string FallbackAudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 
     private readonly ILocalDatabaseService _localDatabaseService;
     private readonly IPoiApiClient _poiApiClient;
@@ -500,7 +501,7 @@ public sealed class AudioLibraryService : IAudioLibraryService
     private static string? SelectAudioUrl(PoiMobileDto poi, string languageCode)
     {
         static string? FirstUrl(IEnumerable<PoiAudioMobileDto> assets)
-            => assets.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.AudioUrl))?.AudioUrl;
+            => assets.Select(x => NormalizeAudioUrl(x.AudioUrl)).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
 
         var byRequested = FirstUrl(poi.AudioAssets.Where(x => string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase)));
         if (!string.IsNullOrWhiteSpace(byRequested))
@@ -515,6 +516,27 @@ public sealed class AudioLibraryService : IAudioLibraryService
         }
 
         return FirstUrl(poi.AudioAssets);
+    }
+
+    private static string? NormalizeAudioUrl(string? audioUrl)
+    {
+        if (string.IsNullOrWhiteSpace(audioUrl))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri))
+        {
+            return FallbackAudioUrl;
+        }
+
+        if (uri.Host.Contains("blob.core.windows.net", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.Contains("travel-app-audios", StringComparison.OrdinalIgnoreCase))
+        {
+            return FallbackAudioUrl;
+        }
+
+        return audioUrl;
     }
 
     private static PoiDto ToContractPoi(PoiMobileDto poi)

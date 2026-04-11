@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TravelApp.Application.Abstractions.Pois;
 using TravelApp.Application.Dtos.Pois;
@@ -103,6 +104,8 @@ public class PoiQueryService : IPoiQueryService
             };
         }
 
+        var usedPoiIds = await GetUsedPoiIdsAsync(cancellationToken);
+
         var pois = await _dbContext.Pois
             .AsNoTracking()
             .Where(x => pagedPoiIds.Contains(x.Id))
@@ -113,7 +116,7 @@ public class PoiQueryService : IPoiQueryService
         var orderMap = pagedPoiIds.Select((id, index) => new { id, index }).ToDictionary(x => x.id, x => x.index);
 
         var items = pois
-            .Select(x => MapToMobileDto(x, languageCode, distanceByPoiId))
+            .Select(x => MapToMobileDto(x, languageCode, distanceByPoiId, usedPoiIds))
             .OrderBy(x => orderMap[x.Id])
             .ToList();
 
@@ -128,13 +131,15 @@ public class PoiQueryService : IPoiQueryService
 
     public async Task<PoiMobileDto?> GetByIdAsync(int id, string? languageCode, CancellationToken cancellationToken = default)
     {
+        var usedPoiIds = await GetUsedPoiIdsAsync(cancellationToken);
+
         var poi = await _dbContext.Pois
             .AsNoTracking()
             .Include(x => x.Localizations)
             .Include(x => x.AudioAssets)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-        return poi is null ? null : MapToMobileDto(poi, languageCode);
+        return poi is null ? null : MapToMobileDto(poi, languageCode, null, usedPoiIds);
     }
 
     public async Task<PoiMobileDto> CreateAsync(UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
@@ -175,18 +180,28 @@ public class PoiQueryService : IPoiQueryService
             return false;
         }
 
+        if (await _dbContext.Tours.AnyAsync(x => x.AnchorPoiId == id, cancellationToken) ||
+            await _dbContext.TourPois.AnyAsync(x => x.PoiId == id, cancellationToken))
+        {
+            throw new InvalidOperationException("POI is used in a tour and cannot be deleted.");
+        }
+
         _dbContext.Pois.Remove(poi);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    private static PoiMobileDto MapToMobileDto(Poi poi, string? requestedLanguageCode, IReadOnlyDictionary<int, double>? distanceByPoiId = null)
+    private static PoiMobileDto MapToMobileDto(Poi poi, string? requestedLanguageCode, IReadOnlyDictionary<int, double>? distanceByPoiId = null, ISet<int>? usedPoiIds = null)
     {
         var requestedLanguage = NormalizeLanguageCode(requestedLanguageCode);
         var primaryLanguage = NormalizeLanguageCode(poi.PrimaryLanguage);
 
         var localization = ResolveLocalization(poi, requestedLanguage, primaryLanguage);
         var effectiveLanguage = localization?.LanguageCode ?? primaryLanguage;
+        var speechTexts = DeserializeSpeechTexts(poi.SpeechTextsJson);
+        var preferredSpeechLanguage = NormalizeLanguageCode(poi.SpeechTextLanguageCode);
+        var speechLanguage = string.IsNullOrWhiteSpace(preferredSpeechLanguage) ? requestedLanguage : preferredSpeechLanguage;
+        var speech = ResolveSpeechText(speechTexts, speechLanguage, primaryLanguage, poi.SpeechText, poi.Description);
 
         var dto = new PoiMobileDto
         {
@@ -203,7 +218,10 @@ public class PoiQueryService : IPoiQueryService
             DistanceMeters = distanceByPoiId is not null && distanceByPoiId.TryGetValue(poi.Id, out var distance) ? distance : null,
             GeofenceRadiusMeters = poi.GeofenceRadiusMeters,
             Category = poi.Category ?? string.Empty,
-            SpeechText = poi.SpeechText,
+            SpeechText = speech.Text,
+            SpeechTextLanguageCode = string.IsNullOrWhiteSpace(preferredSpeechLanguage) ? speech.LanguageCode : preferredSpeechLanguage,
+            UpdatedAtUtc = poi.UpdatedAtUtc ?? DateTimeOffset.UtcNow,
+            IsUsedInTour = usedPoiIds?.Contains(poi.Id) ?? false,
             AudioAssets = poi.AudioAssets
                 .OrderByDescending(x => string.Equals(x.LanguageCode, requestedLanguage, StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(x => string.Equals(x.LanguageCode, primaryLanguage, StringComparison.OrdinalIgnoreCase))
@@ -215,10 +233,24 @@ public class PoiQueryService : IPoiQueryService
                     Transcript = x.Transcript,
                     IsGenerated = x.IsGenerated
                 })
+                .ToList(),
+            SpeechTexts = speechTexts
+                .Select(x => new PoiSpeechTextMobileDto { LanguageCode = x.LanguageCode, Text = x.Text })
                 .ToList()
         };
 
         return dto;
+    }
+
+    private async Task<HashSet<int>> GetUsedPoiIdsAsync(CancellationToken cancellationToken)
+    {
+        var anchorPoiIds = _dbContext.Tours.AsNoTracking().Select(x => x.AnchorPoiId);
+        var tourPoiIds = _dbContext.TourPois.AsNoTracking().Select(x => x.PoiId);
+
+        return await anchorPoiIds
+            .Concat(tourPoiIds)
+            .Distinct()
+            .ToHashSetAsync(cancellationToken);
     }
 
     private static bool HasGeoFilter(PoiQueryRequestDto request)
@@ -273,7 +305,10 @@ public class PoiQueryService : IPoiQueryService
         poi.Longitude = request.Longitude;
         poi.GeofenceRadiusMeters = request.GeofenceRadiusMeters;
         poi.PrimaryLanguage = NormalizeLanguageCode(request.PrimaryLanguage);
-        poi.SpeechText = request.SpeechText?.Trim();
+        var speechTexts = NormalizeSpeechTexts(request.SpeechTexts, request.SpeechText, request.SpeechTextLanguageCode, request.PrimaryLanguage);
+        poi.SpeechTextsJson = JsonSerializer.Serialize(speechTexts);
+        poi.SpeechText = ResolveLegacySpeechText(speechTexts, poi.PrimaryLanguage, request.Description);
+        poi.SpeechTextLanguageCode = NormalizeLanguageCode(request.SpeechTextLanguageCode ?? request.PrimaryLanguage);
 
         poi.Localizations.Clear();
         foreach (var localization in request.Localizations)
@@ -299,5 +334,102 @@ public class PoiQueryService : IPoiQueryService
                 CreatedAtUtc = DateTimeOffset.UtcNow
             });
         }
+    }
+
+    private static List<PoiSpeechTextMobileDto> DeserializeSpeechTexts(string? json)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(json)
+                ? []
+                : JsonSerializer.Deserialize<List<PoiSpeechTextMobileDto>>(json) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static (string Text, string LanguageCode) ResolveSpeechText(
+        IReadOnlyList<PoiSpeechTextMobileDto> speechTexts,
+        string requestedLanguage,
+        string primaryLanguage,
+        string? legacySpeechText,
+        string? fallbackDescription)
+    {
+        var selected = speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), requestedLanguage, StringComparison.OrdinalIgnoreCase))
+                       ?? speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), "vi", StringComparison.OrdinalIgnoreCase))
+                       ?? speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), primaryLanguage, StringComparison.OrdinalIgnoreCase))
+                       ?? speechTexts.FirstOrDefault();
+
+        if (selected is not null && !string.IsNullOrWhiteSpace(selected.Text))
+        {
+            return (selected.Text, NormalizeLanguageCode(selected.LanguageCode));
+        }
+
+        if (!string.IsNullOrWhiteSpace(legacySpeechText))
+        {
+            return (legacySpeechText!, primaryLanguage);
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackDescription))
+        {
+            return (fallbackDescription!, primaryLanguage);
+        }
+
+        return (string.Empty, primaryLanguage);
+    }
+
+    private static List<PoiSpeechTextMobileDto> NormalizeSpeechTexts(IReadOnlyList<UpsertPoiSpeechTextDto>? speechTexts, string? legacySpeechText, string? legacySpeechLanguageCode, string? primaryLanguage)
+    {
+        var normalized = speechTexts?
+            .Where(x => !string.IsNullOrWhiteSpace(x.Text))
+            .Select(x => new PoiSpeechTextMobileDto
+            {
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
+                Text = x.Text.Trim()
+            })
+            .GroupBy(x => x.LanguageCode, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.Last())
+            .ToList() ?? [];
+
+        if (normalized.Count > 0)
+        {
+            return normalized;
+        }
+
+        if (!string.IsNullOrWhiteSpace(legacySpeechText))
+        {
+            return [new PoiSpeechTextMobileDto
+            {
+                LanguageCode = NormalizeLanguageCode(legacySpeechLanguageCode ?? primaryLanguage),
+                Text = legacySpeechText.Trim()
+            }];
+        }
+
+        return [];
+    }
+
+    private static string ResolveLegacySpeechText(IReadOnlyList<PoiSpeechTextMobileDto> speechTexts, string primaryLanguage, string? fallbackDescription)
+    {
+        var byPrimary = speechTexts.FirstOrDefault(x => string.Equals(x.LanguageCode, primaryLanguage, StringComparison.OrdinalIgnoreCase));
+        if (byPrimary is not null && !string.IsNullOrWhiteSpace(byPrimary.Text))
+        {
+            return byPrimary.Text;
+        }
+
+        var vietnamese = speechTexts.FirstOrDefault(x => string.Equals(x.LanguageCode, "vi", StringComparison.OrdinalIgnoreCase));
+        if (vietnamese is not null && !string.IsNullOrWhiteSpace(vietnamese.Text))
+        {
+            return vietnamese.Text;
+        }
+
+        var first = speechTexts.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Text));
+        if (first is not null)
+        {
+            return first.Text;
+        }
+
+        return fallbackDescription ?? string.Empty;
     }
 }

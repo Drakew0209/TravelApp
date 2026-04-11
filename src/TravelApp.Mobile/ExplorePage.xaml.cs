@@ -1,7 +1,10 @@
+using System.Collections.Specialized;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TravelApp.Models;
+using TravelApp.Models.Runtime;
 using TravelApp.Services.Abstractions;
 using TravelApp.ViewModels;
 
@@ -12,8 +15,13 @@ public partial class ExplorePage : ContentPage
     private readonly ExploreViewModel _viewModel;
     private readonly ITravelBootstrapService _travelBootstrapService;
     private readonly IAudioPlayerService _audioPlayerService;
+    private readonly ILocationPollingService _locationPollingService;
     private readonly ILogger<ExplorePage> _logger;
+    private Microsoft.Maui.Controls.Maps.Map? _map;
     private IDispatcherTimer? _audioStatusTimer;
+    private bool _explorePinsAttached;
+    private int? _selectedExplorePoiId;
+    private LocationSample? _currentLocation;
 
     public ExplorePage()
     {
@@ -22,7 +30,10 @@ public partial class ExplorePage : ContentPage
         BindingContext = _viewModel;
         _travelBootstrapService = MauiProgram.Services.GetRequiredService<ITravelBootstrapService>();
         _audioPlayerService = MauiProgram.Services.GetRequiredService<IAudioPlayerService>();
+        _locationPollingService = MauiProgram.Services.GetRequiredService<ILocationPollingService>();
         _logger = MauiProgram.Services.GetRequiredService<ILogger<ExplorePage>>();
+        AttachExplorePinsObservers();
+        _locationPollingService.OnLocationUpdated += OnLocationUpdated;
         InitializeMap();
         UpdateAudioStatus();
     }
@@ -32,6 +43,7 @@ public partial class ExplorePage : ContentPage
         base.OnAppearing();
         _viewModel.ResetBottomTabToExplore();
         StartAudioStatusTimer();
+        _ = _viewModel.RefreshAsync();
         _ = StartRuntimeAsync();
     }
 
@@ -39,6 +51,8 @@ public partial class ExplorePage : ContentPage
     {
         base.OnDisappearing();
         StopAudioStatusTimer();
+        DetachExplorePinsObservers();
+        _locationPollingService.OnLocationUpdated -= OnLocationUpdated;
         _ = StopRuntimeAsync();
     }
 
@@ -66,8 +80,7 @@ public partial class ExplorePage : ContentPage
         }
 #endif
 
-        InitializeMapInContainer("ExploreMapContainer", showUser: false, radiusKm: 1);
-        InitializeMapInContainer("DiscoverMapContainer", showUser: true, radiusKm: 1.2);
+        InitializeMapInContainer("ExploreMapContainer", showUser: true, radiusKm: 1);
     }
 
     private void InitializeMapInContainer(string containerName, bool showUser, double radiusKm)
@@ -88,17 +101,156 @@ public partial class ExplorePage : ContentPage
 
         mapContainer.Children.Clear();
         mapContainer.Children.Add(map);
+        _map = map;
 
         var hoChiMinhCity = new Location(10.7769, 106.7009);
         map.MoveToRegion(MapSpan.FromCenterAndRadius(hoChiMinhCity, Distance.FromKilometers(radiusKm)));
 
-        map.Pins.Add(new Pin
+        if (string.Equals(containerName, "ExploreMapContainer", StringComparison.OrdinalIgnoreCase))
         {
-            Label = "Ho Chi Minh City",
-            Address = "District 1",
-            Type = PinType.Place,
-            Location = hoChiMinhCity
-        });
+            RenderExplorePins();
+        }
+    }
+
+    private void AttachExplorePinsObservers()
+    {
+        if (_explorePinsAttached)
+        {
+            return;
+        }
+
+        _viewModel.ForYouItems.CollectionChanged += OnExplorePoisChanged;
+        _viewModel.EditorsChoiceItems.CollectionChanged += OnExplorePoisChanged;
+        _explorePinsAttached = true;
+    }
+
+    private void DetachExplorePinsObservers()
+    {
+        if (!_explorePinsAttached)
+        {
+            return;
+        }
+
+        _viewModel.ForYouItems.CollectionChanged -= OnExplorePoisChanged;
+        _viewModel.EditorsChoiceItems.CollectionChanged -= OnExplorePoisChanged;
+        _explorePinsAttached = false;
+    }
+
+    private void OnExplorePoisChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        _ = MainThread.InvokeOnMainThreadAsync(RenderExplorePins);
+    }
+
+    private void RenderExplorePins()
+    {
+        if (_map is null)
+        {
+            return;
+        }
+
+        var pois = _viewModel.ForYouItems
+            .Concat(_viewModel.EditorsChoiceItems)
+            .DistinctBy(x => x.Id)
+            .Where(HasValidCoordinates)
+            .ToList();
+        var userLocation = _currentLocation;
+        var points = new List<Location>();
+
+        if (pois.Count == 0 && userLocation is null)
+        {
+            return;
+        }
+
+        _map.Pins.Clear();
+
+        if (userLocation is not null)
+        {
+            var location = new Location(userLocation.Latitude, userLocation.Longitude);
+            points.Add(location);
+
+            _map.Pins.Add(new Pin
+            {
+                Label = "📍 Vị trí của bạn",
+                Address = "Your current location",
+                Location = location,
+                Type = PinType.Place
+            });
+        }
+
+        foreach (var poi in pois)
+        {
+            var pin = new Pin
+            {
+                Label = _selectedExplorePoiId == poi.Id ? $"★ {poi.Title}" : poi.Title,
+                Address = poi.Location,
+                Type = _selectedExplorePoiId == poi.Id ? PinType.SavedPin : PinType.Place,
+                Location = new Location(poi.Latitude, poi.Longitude)
+            };
+
+            points.Add(pin.Location);
+
+            points.Add(pin.Location);
+
+            pin.MarkerClicked += async (_, args) =>
+            {
+                _selectedExplorePoiId = poi.Id;
+                RenderExplorePins();
+                args.HideInfoWindow = true;
+                await AnimateToPoiAsync(poi.Latitude, poi.Longitude);
+                await Task.Delay(120);
+
+                if (_viewModel.OpenTourDetailCommand is Command<PoiModel> command)
+                {
+                    command.Execute(poi);
+                }
+            };
+
+            _map.Pins.Add(pin);
+        }
+
+        MoveMapToFitPoints(points);
+    }
+
+    private void MoveMapToFitPoints(IReadOnlyList<Location> points)
+    {
+        if (_map is null || points.Count == 0)
+        {
+            return;
+        }
+
+        var minLat = points.Min(x => x.Latitude);
+        var maxLat = points.Max(x => x.Latitude);
+        var minLng = points.Min(x => x.Longitude);
+        var maxLng = points.Max(x => x.Longitude);
+
+        var center = new Location((minLat + maxLat) / 2d, (minLng + maxLng) / 2d);
+        var latSpanKm = Math.Max(0.8, (maxLat - minLat) * 111.32 * 1.35);
+        var lngSpanKm = Math.Max(0.8, (maxLng - minLng) * 111.32 * 1.35);
+        var radiusKm = Math.Max(latSpanKm, lngSpanKm) / 2d;
+
+        _map.MoveToRegion(MapSpan.FromCenterAndRadius(center, Distance.FromKilometers(Math.Min(5d, Math.Max(0.9d, radiusKm)))));
+    }
+
+    private void OnLocationUpdated(LocationSample sample)
+    {
+        _currentLocation = sample;
+        MainThread.BeginInvokeOnMainThread(RenderExplorePins);
+    }
+
+    private Task AnimateToPoiAsync(double latitude, double longitude)
+    {
+        if (_map is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        _map.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(latitude, longitude), Distance.FromMeters(420)));
+        return Task.CompletedTask;
+    }
+
+    private static bool HasValidCoordinates(PoiModel poi)
+    {
+        return poi.Latitude != 0d || poi.Longitude != 0d;
     }
 
     private async Task StartRuntimeAsync()

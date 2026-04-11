@@ -4,6 +4,8 @@ public record PoiLocalizationDto(string LanguageCode, string Title, string? Subt
 
 public record PoiAudioDto(string LanguageCode, string? AudioUrl, string? Transcript, bool IsGenerated = false);
 
+public record PoiSpeechTextDto(string LanguageCode, string Text);
+
 public class PoiDto
 {
     public int Id { get; set; }
@@ -22,8 +24,10 @@ public class PoiDto
     public string? Category { get; set; }
     public string? PrimaryLanguage { get; set; }
     public string? SpeechText { get; set; }
+    public string? SpeechTextLanguageCode { get; set; }
     public IReadOnlyList<PoiLocalizationDto> Localizations { get; set; } = [];
     public IReadOnlyList<PoiAudioDto> AudioAssets { get; set; } = [];
+    public IReadOnlyList<PoiSpeechTextDto> SpeechTexts { get; set; } = [];
 }
 
 public record NearbyPoiQueryDto(double Latitude, double Longitude, double RadiusMeters = 500);
@@ -43,5 +47,7 @@ public record UpsertPoiRequestDto(
     string? Provider,
     string? Credit,
     string? SpeechText,
+    string? SpeechTextLanguageCode,
     IReadOnlyList<PoiLocalizationDto>? Localizations,
-    IReadOnlyList<PoiAudioDto>? AudioAssets);
+    IReadOnlyList<PoiAudioDto>? AudioAssets,
+    IReadOnlyList<PoiSpeechTextDto>? SpeechTexts);

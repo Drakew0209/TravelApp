@@ -16,7 +16,7 @@ public class ProfileViewModel : INotifyPropertyChanged
     public bool IsLoggedIn => AuthStateService.IsLoggedIn;
 
     public string GreetingTitle => IsLoggedIn ? $"Hi, {UserProfileService.FullName}" : "Welcome to TravelApp";
-    public string GreetingSubtitle => IsLoggedIn ? UserProfileService.Email : "Sign in to manage purchases, bookmarks and downloads.";
+    public string GreetingSubtitle => IsLoggedIn ? UserProfileService.Email : "Sign in to manage downloads, bookmarks and your profile.";
     public string PrimaryActionText => IsLoggedIn ? "Sign Out" : "Sign In";
 
     public bool ShowAccountSection => IsLoggedIn;

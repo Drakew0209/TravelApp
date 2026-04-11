@@ -134,6 +134,8 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
 
                 foreach (var poi in pois)
                 {
+                    var (lat, lng) = ParseLocationCoordinates(poi);
+
                     // Add to data collection
                     PoisData.Add(new PoiModel
                     {
@@ -142,6 +144,8 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
                         Subtitle = poi.Subtitle,
                         ImageUrl = poi.ImageUrl,
                         Location = poi.Location,
+                        Latitude = lat,
+                        Longitude = lng,
                         Distance = CalculateDistance(poi),
                         Duration = poi.Duration ?? "30 min",
                         Description = poi.Description,
@@ -149,9 +153,6 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
                         Credit = poi.Credit
                     });
 
-                    // Parse location to get coordinates (dummy coordinates for now)
-                    var (lat, lng) = ParseLocationCoordinates(poi);
-                    
                     // Add to map pins
                     PoiPins.Add(new MapPinItem
                     {
@@ -181,6 +182,11 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
 
     private (double lat, double lng) ParseLocationCoordinates(Models.Contracts.PoiDto poi)
     {
+        if (poi.Latitude != 0 || poi.Longitude != 0)
+        {
+            return (poi.Latitude, poi.Longitude);
+        }
+
         // Default HCM + Hanoi area coordinates based on location name
         if (poi.Location.Contains("HCM") || poi.Location.Contains("TPHCM") || poi.Location.Contains("Sài Gòn"))
         {

@@ -13,7 +13,7 @@ public class ExploreViewModel : INotifyPropertyChanged
 {
     private bool _isMenuOpen;
     private bool _isLoggedIn;
-    private readonly IPoiApiClient _poiApiClient;
+    private readonly ITourRouteCatalogService _tourRouteCatalogService;
     private readonly IAudioLibraryService _audioLibraryService;
     private readonly IBookmarkHistoryService _bookmarkHistoryService;
     private int _offlineDownloadsCount;
@@ -79,12 +79,18 @@ public class ExploreViewModel : INotifyPropertyChanged
         RaiseBottomTabChanged();
     }
 
+    public async Task RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        await LoadPoisAsync(cancellationToken);
+        await RefreshOfflineDownloadsCountAsync();
+    }
+
     public ExploreViewModel(
-        IPoiApiClient poiApiClient,
+        ITourRouteCatalogService tourRouteCatalogService,
         IAudioLibraryService audioLibraryService,
         IBookmarkHistoryService bookmarkHistoryService)
     {
-        _poiApiClient = poiApiClient;
+        _tourRouteCatalogService = tourRouteCatalogService;
         _audioLibraryService = audioLibraryService;
         _bookmarkHistoryService = bookmarkHistoryService;
         IsLoggedIn = AuthStateService.IsLoggedIn;
@@ -160,8 +166,7 @@ public class ExploreViewModel : INotifyPropertyChanged
             await Shell.Current.GoToAsync($"TourDetailPage?tourId={item.Id}");
         });
 
-        _ = LoadPoisAsync();
-        _ = RefreshOfflineDownloadsCountAsync();
+        _ = RefreshAsync();
     }
 
     private async Task SelectBottomTabAsync(string? tab)
@@ -211,23 +216,20 @@ public class ExploreViewModel : INotifyPropertyChanged
         MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(PurchasesMenuText)));
     }
 
-    private async Task LoadPoisAsync()
+    private async Task LoadPoisAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             var language = UserProfileService.PreferredLanguage;
-            var pois = await _poiApiClient.GetAllAsync(language);
+            var routes = await _tourRouteCatalogService.GetAllRoutesAsync(language, cancellationToken);
+            var mapped = routes
+                .SelectMany(route => route.Waypoints.Select(waypoint => MapPoi(waypoint.Poi, route.Name)))
+                .GroupBy(x => x.Id)
+                .Select(g => g.First())
+                .ToList();
 
-            var localById = MockDataService.GetAllTourData().ToDictionary(x => x.Id);
-            var mapped = pois.Select(MapPoi).Select(item => localById.TryGetValue(item.Id, out var local) ? local : item).ToList();
             var forYou = mapped.Take(3).ToList();
-            var editors = mapped.Skip(3).Take(3).ToList();
-
-            if (forYou.Count == 0 && editors.Count == 0)
-            {
-                forYou = MockDataService.GetForYouData();
-                editors = MockDataService.GetEditorsChoiceData();
-            }
+            var editors = mapped.Skip(3).ToList();
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -249,21 +251,13 @@ public class ExploreViewModel : INotifyPropertyChanged
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 ForYouItems.Clear();
-                foreach (var item in MockDataService.GetForYouData())
-                {
-                    ForYouItems.Add(item);
-                }
-
                 EditorsChoiceItems.Clear();
-                foreach (var item in MockDataService.GetEditorsChoiceData())
-                {
-                    EditorsChoiceItems.Add(item);
-                }
+
             });
         }
     }
 
-    private static PoiModel MapPoi(PoiDto dto)
+    private static PoiModel MapPoi(PoiMobileDto dto, string? tourName)
     {
         return new PoiModel
         {
@@ -272,11 +266,14 @@ public class ExploreViewModel : INotifyPropertyChanged
             Subtitle = dto.Subtitle,
             ImageUrl = dto.ImageUrl,
             Location = dto.Location,
-            Distance = dto.Distance,
-            Duration = dto.Duration,
+            Latitude = dto.Latitude,
+            Longitude = dto.Longitude,
+            Distance = dto.DistanceMeters.HasValue ? $"{dto.DistanceMeters.Value:F0} m" : string.Empty,
+            Duration = string.Empty,
             Description = dto.Description,
-            Provider = dto.Provider,
-            Credit = dto.Credit
+            Provider = string.Empty,
+            Credit = string.IsNullOrWhiteSpace(tourName) ? string.Empty : tourName,
+            SpeechText = dto.SpeechText
         };
     }
 

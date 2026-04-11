@@ -19,38 +19,176 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
         _tourRouteCacheService = tourRouteCacheService;
     }
 
-    public async Task<TourRouteDto?> GetRouteAsync(int anchorPoiId, string? languageCode = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TourRouteDto>> GetAllRoutesAsync(string? languageCode = null, CancellationToken cancellationToken = default)
     {
         var normalizedLanguage = NormalizeLanguageCode(languageCode);
-        TourRouteDto? route = null;
-
-        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+        var onlineRoutes = await TryGetOnlineRoutesAsync(normalizedLanguage, cancellationToken);
+        if (onlineRoutes.Count > 0)
         {
-            try
-            {
-                route = await _tourApiClient.GetByAnchorPoiIdAsync(anchorPoiId, normalizedLanguage, cancellationToken);
-                if (route is not null && IsAcceptableRoute(route))
-                {
-                    route = await MergeLocalPoiOverridesAsync(route, normalizedLanguage, cancellationToken);
-                    await _localDatabaseService.SavePoisAsync(route.Waypoints.Select(x => x.Poi), cancellationToken);
-                    await _tourRouteCacheService.SaveAsync(route, cancellationToken);
-                    return route;
-                }
-            }
-            catch
-            {
-            }
+            return onlineRoutes;
         }
 
-        route = await _tourRouteCacheService.GetAsync(anchorPoiId, normalizedLanguage, cancellationToken);
-        var cached = route;
-        if (cached is not null && cached.Waypoints.Count > 0)
+        var cachedRoutes = await _tourRouteCacheService.GetAllAsync(normalizedLanguage, cancellationToken);
+        if (cachedRoutes.Count > 0)
         {
-            return await MergeLocalPoiOverridesAsync(cached, normalizedLanguage, cancellationToken);
+            return await MergeLocalPoiOverridesAsync(cachedRoutes.ToList(), normalizedLanguage, cancellationToken);
         }
 
-        route = BuildLocalFallbackRoute(anchorPoiId, normalizedLanguage);
-        return route is null ? null : await MergeLocalPoiOverridesAsync(route, normalizedLanguage, cancellationToken);
+        return [];
+    }
+
+    public async Task<TourRouteDto?> GetRouteAsync(int poiId, string? languageCode = null, CancellationToken cancellationToken = default)
+    {
+        var normalizedLanguage = NormalizeLanguageCode(languageCode);
+        var routes = await GetAllRoutesAsync(normalizedLanguage, cancellationToken);
+        var route = routes.FirstOrDefault(x => x.AnchorPoiId == poiId || x.Waypoints.Any(w => w.Poi.Id == poiId));
+        return route is not null ? route : await _tourRouteCacheService.GetAsync(poiId, normalizedLanguage, cancellationToken);
+    }
+
+    public async Task<PoiDto?> ResolvePoiAsync(int poiId, string? languageCode = null, CancellationToken cancellationToken = default)
+    {
+        var normalizedLanguage = NormalizeLanguageCode(languageCode);
+        var routes = await GetAllRoutesAsync(normalizedLanguage, cancellationToken);
+        var routePoi = routes
+            .SelectMany(x => x.Waypoints)
+            .Select(x => x.Poi)
+            .FirstOrDefault(x => x.Id == poiId);
+
+        if (routePoi is not null)
+        {
+            return new PoiDto
+            {
+                Id = routePoi.Id,
+                Title = routePoi.Title,
+                Subtitle = routePoi.Subtitle,
+                ImageUrl = routePoi.ImageUrl,
+                Location = routePoi.Location,
+                Latitude = routePoi.Latitude,
+                Longitude = routePoi.Longitude,
+                GeofenceRadiusMeters = routePoi.GeofenceRadiusMeters,
+                Distance = routePoi.DistanceMeters.HasValue ? $"{routePoi.DistanceMeters.Value:F0} m" : string.Empty,
+                Duration = string.Empty,
+                Description = routePoi.Description,
+                Provider = string.Empty,
+                Credit = string.Empty,
+                Category = routePoi.Category,
+                PrimaryLanguage = routePoi.PrimaryLanguage,
+                SpeechText = routePoi.SpeechText,
+                SpeechTextLanguageCode = routePoi.SpeechTextLanguageCode,
+                Localizations = [],
+                AudioAssets = routePoi.AudioAssets.Select(x => new PoiAudioDto(x.LanguageCode, x.AudioUrl, x.Transcript, x.IsGenerated)).ToList(),
+                SpeechTexts = routePoi.SpeechTexts.Select(x => new PoiSpeechTextDto(x.LanguageCode, x.Text)).ToList()
+            };
+        }
+
+        var localPois = await _localDatabaseService.GetPoisAsync(normalizedLanguage, cancellationToken: cancellationToken);
+        var localPoi = localPois.FirstOrDefault(x => x.Id == poiId);
+        if (localPoi is null)
+        {
+            return null;
+        }
+
+        return new PoiDto
+        {
+            Id = localPoi.Id,
+            Title = localPoi.Title,
+            Subtitle = localPoi.Subtitle,
+            Description = localPoi.Description,
+            PrimaryLanguage = string.IsNullOrWhiteSpace(localPoi.PrimaryLanguage) ? normalizedLanguage : localPoi.PrimaryLanguage,
+            ImageUrl = localPoi.ImageUrl,
+            Location = localPoi.Location,
+            Latitude = localPoi.Latitude,
+            Longitude = localPoi.Longitude,
+            GeofenceRadiusMeters = localPoi.GeofenceRadiusMeters,
+            Distance = string.Empty,
+            Duration = string.Empty,
+            Category = localPoi.Category,
+            SpeechText = localPoi.SpeechText,
+            SpeechTextLanguageCode = localPoi.SpeechTextLanguageCode,
+            Localizations = [],
+            AudioAssets = localPoi.AudioAssets.Select(x => new PoiAudioDto(x.LanguageCode, x.AudioUrl, x.Transcript, x.IsGenerated)).ToList(),
+            SpeechTexts = localPoi.SpeechTexts.Select(x => new PoiSpeechTextDto(x.LanguageCode, x.Text)).ToList()
+        };
+    }
+
+    private async Task<List<TourRouteDto>> TryGetOnlineRoutesAsync(string languageCode, CancellationToken cancellationToken)
+    {
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            return [];
+        }
+
+        try
+        {
+            var routes = (await _tourApiClient.GetAllAsync(languageCode, cancellationToken)).ToList();
+            if (routes.Count == 0)
+            {
+                return [];
+            }
+
+            routes = await MergeLocalPoiOverridesAsync(routes, languageCode, cancellationToken);
+            foreach (var route in routes)
+            {
+                await _tourRouteCacheService.SaveAsync(route, cancellationToken);
+            }
+
+            return routes;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private async Task<List<TourRouteDto>> MergeLocalPoiOverridesAsync(List<TourRouteDto> routes, string languageCode, CancellationToken cancellationToken)
+    {
+        var localPois = await _localDatabaseService.GetPoisAsync(languageCode, cancellationToken: cancellationToken);
+        var localById = localPois.ToDictionary(x => x.Id);
+
+        foreach (var route in routes)
+        {
+            route.CoverImageUrl = NormalizeCoverImageUrl(route.CoverImageUrl, route.Name);
+            route.Waypoints = route.Waypoints.Select(waypoint => MergeWaypoint(waypoint, localById)).ToList();
+        }
+
+        return routes;
+    }
+
+    private static TourRouteWaypointDto MergeWaypoint(TourRouteWaypointDto waypoint, IReadOnlyDictionary<int, PoiMobileDto> localById)
+    {
+        if (!localById.TryGetValue(waypoint.Poi.Id, out var localPoi))
+        {
+            return waypoint;
+        }
+
+        if (localPoi.UpdatedAtUtc <= waypoint.Poi.UpdatedAtUtc)
+        {
+            return waypoint;
+        }
+
+        waypoint.Poi = new PoiMobileDto
+        {
+            Id = waypoint.Poi.Id,
+            Title = localPoi.Title,
+            Subtitle = localPoi.Subtitle,
+            Description = localPoi.Description,
+            LanguageCode = localPoi.LanguageCode,
+            PrimaryLanguage = string.IsNullOrWhiteSpace(localPoi.PrimaryLanguage) ? waypoint.Poi.PrimaryLanguage : localPoi.PrimaryLanguage,
+            ImageUrl = localPoi.ImageUrl,
+            Location = localPoi.Location,
+            Latitude = localPoi.Latitude,
+            Longitude = localPoi.Longitude,
+            DistanceMeters = waypoint.Poi.DistanceMeters,
+            GeofenceRadiusMeters = localPoi.GeofenceRadiusMeters,
+            Category = localPoi.Category,
+            SpeechText = localPoi.SpeechText,
+            SpeechTextLanguageCode = localPoi.SpeechTextLanguageCode,
+            UpdatedAtUtc = localPoi.UpdatedAtUtc,
+            AudioAssets = localPoi.AudioAssets,
+            SpeechTexts = localPoi.SpeechTexts,
+        };
+
+        return waypoint;
     }
 
     private static string NormalizeLanguageCode(string? languageCode)
@@ -58,111 +196,9 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
         return string.IsNullOrWhiteSpace(languageCode) ? "en" : languageCode.Trim().ToLowerInvariant();
     }
 
-    private static bool IsAcceptableRoute(TourRouteDto? route)
-    {
-        if (route is null || route.Waypoints.Count < 2)
-        {
-            return false;
-        }
-
-        return !route.Waypoints.Any(x =>
-            x.Poi.Title.Contains("Central Park", StringComparison.OrdinalIgnoreCase) ||
-            x.Poi.Location.Contains("New York", StringComparison.OrdinalIgnoreCase) ||
-            x.Poi.Location.Contains("USA", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static TourRouteDto? BuildLocalFallbackRoute(int anchorPoiId, string languageCode)
-    {
-        return anchorPoiId switch
-        {
-            1 or 2 or 3 => new TourRouteDto
-            {
-                Id = 1,
-                AnchorPoiId = 1,
-                Name = "HCM Food Tour",
-                Description = "Tour ẩm thực Sài Gòn với các điểm dừng được sắp xếp theo lộ trình thật.",
-                CoverImageUrl = "https://placehold.co/1200x800/png?text=HCM+Food+Tour",
-                PrimaryLanguage = languageCode,
-                TotalDistanceMeters = 2000,
-                Waypoints =
-                [
-                    CreateWaypoint(1, 1, "Chợ Bến Thành", "Chợ Bến Thành, Quận 1, TPHCM", 10.7725, 106.6992, 0, "Điểm khởi đầu của tour ẩm thực HCM. Chợ Bến Thành là một trong những chợ truyền thống nổi tiếng nhất Sài Gòn với đa dạng hàng hóa và đặc biệt là các quán ăn địa phương."),
-                    CreateWaypoint(2, 2, "Phở Vĩnh Khánh", "Phố Vĩnh Khánh, Quận 4, TPHCM", 10.7660, 106.7090, 900, "Quán phở nổi tiếng với nước dùng được ninh từ 12h, phục vụ phở bò ngon nhất Quận 4. Được nhiều du khách lựa chọn trong tour ẩm thực."),
-                    CreateWaypoint(3, 3, "Bến Bạch Đằng", "Bến Bạch Đằng, Quận 1, TPHCM", 10.7558, 106.7062, 1100, "Kết thúc tour tại bến Bạch Đằng. Thưởng thức các đặc sản Sài Gòn và tận hưởng không khí ven sông.")
-                ]
-            },
-            4 or 5 or 6 => new TourRouteDto
-            {
-                Id = 2,
-                AnchorPoiId = 4,
-                Name = "Hanoi Food Tour",
-                Description = "Tour ẩm thực Hà Nội với các mốc waypoint, bản đồ và audio tự động.",
-                CoverImageUrl = "https://placehold.co/1200x800/png?text=Hanoi+Food+Tour",
-                PrimaryLanguage = languageCode,
-                TotalDistanceMeters = 800,
-                Waypoints =
-                [
-                    CreateWaypoint(4, 4, "Chùa Một Cột", "Chùa Một Cột, Quận Ba Đình, Hà Nội", 21.0294, 105.8352, 0, "Điểm khởi đầu của tour ẩm thực Hà Nội. Chùa Một Cột là một di tích lịch sử quan trọng, nằm gần khu phố cổ Hà Nội."),
-                    CreateWaypoint(5, 5, "Phố Hàng Xanh", "Phố Hàng Xanh, Quận Hoàn Kiếm, Hà Nội", 21.0285, 105.8489, 300, "Phố Hàng Xanh là một trong những phố cổ nổi tiếng của Hà Nội với các quán ăn truyền thống.") ,
-                    CreateWaypoint(6, 6, "Phố Hàng Dâu", "Phố Hàng Dâu, Quận Hoàn Kiếm, Hà Nội", 21.0273, 105.8506, 500, "Kết thúc tour tại phố Hàng Dâu. Nơi đây nổi tiếng với các cửa hàng bán lụa truyền thống và các quán ăn địa phương.")
-                ]
-            },
-            _ => null
-        };
-    }
-
-    private static TourRouteWaypointDto CreateWaypoint(int poiId, int sortOrder, string title, string location, double latitude, double longitude, double distanceMeters, string description)
-    {
-        return new TourRouteWaypointDto
-        {
-            SortOrder = sortOrder,
-            DistanceFromPreviousMeters = distanceMeters,
-            Poi = new PoiMobileDto
-            {
-                Id = poiId,
-                Title = title,
-                Subtitle = description,
-                Description = description,
-                SpeechText = description,
-                LanguageCode = "vi",
-                PrimaryLanguage = "vi",
-                ImageUrl = string.Empty,
-                Location = location,
-                Latitude = latitude,
-                Longitude = longitude,
-                GeofenceRadiusMeters = 150,
-                Category = "Food Tour",
-            }
-        };
-    }
-
-    private async Task<TourRouteDto> MergeLocalPoiOverridesAsync(TourRouteDto route, string languageCode, CancellationToken cancellationToken)
-    {
-        var localPois = await _localDatabaseService.GetPoisAsync(languageCode, cancellationToken: cancellationToken);
-        var localById = localPois.ToDictionary(x => x.Id);
-
-        route.Waypoints = route.Waypoints
-            .Select(waypoint =>
-            {
-                if (!localById.TryGetValue(waypoint.Poi.Id, out var localPoi))
-                {
-                    return waypoint;
-                }
-
-                waypoint.Poi = localPoi;
-                return waypoint;
-            })
-            .ToList();
-
-        route.CoverImageUrl = NormalizeCoverImageUrl(route.CoverImageUrl, route.Name);
-
-        return route;
-    }
-
     private static string NormalizeCoverImageUrl(string? coverImageUrl, string tourName)
     {
-        if (!string.IsNullOrWhiteSpace(coverImageUrl)
-            && !coverImageUrl.Contains("unsplash.com", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(coverImageUrl) && !coverImageUrl.Contains("unsplash.com", StringComparison.OrdinalIgnoreCase))
         {
             return coverImageUrl;
         }

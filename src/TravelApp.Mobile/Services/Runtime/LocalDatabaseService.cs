@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SQLite;
 using TravelApp.Models.Contracts;
 using TravelApp.Services.Abstractions;
@@ -45,6 +46,10 @@ public class LocalDatabaseService : ILocalDatabaseService
                 IsGenerated = x.IsGenerated
             }).ToList();
 
+            var speechTexts = DeserializeSpeechTexts(poi.SpeechTextsJson);
+            var preferredSpeechLanguage = NormalizeLanguage(poi.SpeechTextLanguageCode);
+            var effectiveSpeech = ResolveSpeechText(speechTexts, string.IsNullOrWhiteSpace(preferredSpeechLanguage) ? requestedLanguage : preferredSpeechLanguage, poi.PrimaryLanguage, poi.SpeechText, poi.Description);
+
             return new PoiMobileDto
             {
                 Id = poi.Id,
@@ -59,8 +64,11 @@ public class LocalDatabaseService : ILocalDatabaseService
                 Longitude = poi.Longitude,
                 GeofenceRadiusMeters = poi.GeofenceRadiusMeters,
                 Category = poi.Category,
-                SpeechText = poi.SpeechText,
-                AudioAssets = poiAudios
+                UpdatedAtUtc = poi.UpdatedAtUtc,
+                SpeechText = effectiveSpeech.Text,
+                SpeechTextLanguageCode = effectiveSpeech.LanguageCode,
+                AudioAssets = poiAudios,
+                SpeechTexts = speechTexts
             };
         }).ToList();
 
@@ -107,6 +115,8 @@ public class LocalDatabaseService : ILocalDatabaseService
                     Subtitle = poi.Subtitle,
                     Description = poi.Description,
                     SpeechText = poi.SpeechText,
+                    SpeechTextsJson = SerializeSpeechTexts((poi.SpeechTexts?.Count ?? 0) > 0 ? poi.SpeechTexts : CreateSpeechTextsFromLegacy(poi)),
+                    SpeechTextLanguageCode = NormalizeLanguage(poi.SpeechTextLanguageCode),
                     PrimaryLanguage = NormalizeLanguage(poi.PrimaryLanguage),
                     ImageUrl = poi.ImageUrl,
                     Location = poi.Location,
@@ -114,7 +124,7 @@ public class LocalDatabaseService : ILocalDatabaseService
                     Longitude = poi.Longitude,
                     GeofenceRadiusMeters = poi.GeofenceRadiusMeters,
                     Category = poi.Category,
-                    UpdatedAtUtc = DateTimeOffset.UtcNow
+                    UpdatedAtUtc = poi.UpdatedAtUtc == default ? DateTimeOffset.UtcNow : poi.UpdatedAtUtc
                 });
 
                 await db.ExecuteAsync("DELETE FROM LocalPoiLocalization WHERE PoiId = ?", poi.Id);
@@ -139,6 +149,22 @@ public class LocalDatabaseService : ILocalDatabaseService
                         Transcript = audio.Transcript,
                         IsGenerated = audio.IsGenerated,
                         LocalFilePath = null,
+                        UpdatedAtUtc = DateTimeOffset.UtcNow
+                    });
+                }
+
+                var speechTexts = poi.SpeechTexts?.Count > 0
+                    ? poi.SpeechTexts
+                    : CreateSpeechTextsFromLegacy(poi);
+
+                await db.ExecuteAsync("DELETE FROM LocalPoiSpeechText WHERE PoiId = ?", poi.Id);
+                foreach (var speechText in speechTexts)
+                {
+                    await db.InsertOrReplaceAsync(new LocalPoiSpeechTextEntity
+                    {
+                        PoiId = poi.Id,
+                        LanguageCode = NormalizeLanguage(speechText.LanguageCode),
+                        Text = speechText.Text ?? string.Empty,
                         UpdatedAtUtc = DateTimeOffset.UtcNow
                     });
                 }
@@ -233,8 +259,11 @@ public class LocalDatabaseService : ILocalDatabaseService
             await connection.CreateTableAsync<LocalPoiEntity>();
             await connection.CreateTableAsync<LocalPoiLocalizationEntity>();
             await connection.CreateTableAsync<LocalPoiAudioMetadataEntity>();
+            await connection.CreateTableAsync<LocalPoiSpeechTextEntity>();
 
             await EnsurePoiSpeechTextColumnAsync(connection);
+            await EnsurePoiSpeechTextsColumnAsync(connection);
+            await EnsurePoiSpeechTextLanguageCodeColumnAsync(connection);
 
             _database = connection;
         }
@@ -288,6 +317,8 @@ public class LocalDatabaseService : ILocalDatabaseService
         public string Subtitle { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? SpeechText { get; set; }
+        public string? SpeechTextsJson { get; set; }
+        public string? SpeechTextLanguageCode { get; set; }
         public string PrimaryLanguage { get; set; } = "en";
         public string ImageUrl { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
@@ -295,6 +326,22 @@ public class LocalDatabaseService : ILocalDatabaseService
         public double Longitude { get; set; }
         public double GeofenceRadiusMeters { get; set; }
         public string Category { get; set; } = string.Empty;
+        public DateTimeOffset UpdatedAtUtc { get; set; }
+    }
+
+    [Table("LocalPoiSpeechText")]
+    private sealed class LocalPoiSpeechTextEntity
+    {
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
+
+        [Indexed]
+        public int PoiId { get; set; }
+
+        [Indexed]
+        public string LanguageCode { get; set; } = "en";
+
+        public string Text { get; set; } = string.Empty;
         public DateTimeOffset UpdatedAtUtc { get; set; }
     }
 
@@ -344,6 +391,92 @@ public class LocalDatabaseService : ILocalDatabaseService
         }
 
         await connection.ExecuteAsync("ALTER TABLE LocalPoi ADD COLUMN SpeechText TEXT NULL");
+    }
+
+    private static async Task EnsurePoiSpeechTextsColumnAsync(SQLiteAsyncConnection connection)
+    {
+        var columns = await connection.QueryAsync<TableInfoRow>("PRAGMA table_info(LocalPoi)");
+        if (columns.Any(x => string.Equals(x.Name, "SpeechTextsJson", StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        await connection.ExecuteAsync("ALTER TABLE LocalPoi ADD COLUMN SpeechTextsJson TEXT NULL");
+    }
+
+    private static async Task EnsurePoiSpeechTextLanguageCodeColumnAsync(SQLiteAsyncConnection connection)
+    {
+        var columns = await connection.QueryAsync<TableInfoRow>("PRAGMA table_info(LocalPoi)");
+        if (columns.Any(x => string.Equals(x.Name, "SpeechTextLanguageCode", StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        await connection.ExecuteAsync("ALTER TABLE LocalPoi ADD COLUMN SpeechTextLanguageCode TEXT NULL");
+    }
+
+    private static List<PoiSpeechTextMobileDto> DeserializeSpeechTexts(string? json)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(json)
+                ? []
+                : JsonSerializer.Deserialize<List<PoiSpeechTextMobileDto>>(json) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static string SerializeSpeechTexts(IReadOnlyList<PoiSpeechTextMobileDto> speechTexts)
+    {
+        return JsonSerializer.Serialize(speechTexts);
+    }
+
+    private static IReadOnlyList<PoiSpeechTextMobileDto> CreateSpeechTextsFromLegacy(PoiMobileDto poi)
+    {
+        var legacyText = poi.SpeechText ?? poi.Description;
+        if (string.IsNullOrWhiteSpace(legacyText))
+        {
+            return [];
+        }
+
+        var languageCode = NormalizeLanguage(poi.SpeechTextLanguageCode ?? poi.PrimaryLanguage ?? poi.LanguageCode);
+        return [new PoiSpeechTextMobileDto { LanguageCode = languageCode, Text = legacyText }];
+    }
+
+    private static (string Text, string LanguageCode) ResolveSpeechText(
+        IReadOnlyList<PoiSpeechTextMobileDto> speechTexts,
+        string requestedLanguage,
+        string? primaryLanguage,
+        string? legacySpeechText,
+        string? fallbackDescription)
+    {
+        var normalizedRequested = NormalizeLanguage(requestedLanguage);
+        var normalizedPrimary = NormalizeLanguage(primaryLanguage);
+
+        var selected = speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguage(x.LanguageCode), normalizedRequested, StringComparison.OrdinalIgnoreCase))
+                       ?? speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguage(x.LanguageCode), "vi", StringComparison.OrdinalIgnoreCase))
+                       ?? speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguage(x.LanguageCode), normalizedPrimary, StringComparison.OrdinalIgnoreCase))
+                       ?? speechTexts.FirstOrDefault();
+
+        if (selected is not null && !string.IsNullOrWhiteSpace(selected.Text))
+        {
+            return (selected.Text, NormalizeLanguage(selected.LanguageCode));
+        }
+
+        if (!string.IsNullOrWhiteSpace(legacySpeechText))
+        {
+            return (legacySpeechText!, normalizedPrimary);
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackDescription))
+        {
+            return (fallbackDescription!, normalizedPrimary);
+        }
+
+        return (string.Empty, normalizedPrimary);
     }
 
     private sealed class TableInfoRow

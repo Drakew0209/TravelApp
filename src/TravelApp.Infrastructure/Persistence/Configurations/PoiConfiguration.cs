@@ -43,6 +43,12 @@ public class PoiConfiguration : IEntityTypeConfiguration<Poi>
         builder.Property(x => x.SpeechText)
             .HasMaxLength(4000);
 
+        builder.Property(x => x.SpeechTextsJson)
+            .HasColumnType("nvarchar(max)");
+
+        builder.Property(x => x.SpeechTextLanguageCode)
+            .HasMaxLength(10);
+
         builder.Property(x => x.PrimaryLanguage)
             .HasMaxLength(10)
             .IsRequired();

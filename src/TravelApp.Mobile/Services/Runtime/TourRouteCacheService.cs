@@ -37,6 +37,44 @@ public sealed class TourRouteCacheService : ITourRouteCacheService
         }
     }
 
+    public async Task<IReadOnlyList<TourRouteDto>> GetAllAsync(string? languageCode = null, CancellationToken cancellationToken = default)
+    {
+        var language = string.IsNullOrWhiteSpace(languageCode) ? "en" : languageCode.Trim().ToLowerInvariant();
+        var cacheDirectory = Path.Combine(FileSystem.AppDataDirectory, "tour-route-cache");
+        if (!Directory.Exists(cacheDirectory))
+        {
+            return [];
+        }
+
+        var routes = new List<TourRouteDto>();
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            foreach (var file in Directory.GetFiles(cacheDirectory, $"tour-*-{language}.json"))
+            {
+                try
+                {
+                    var json = await File.ReadAllTextAsync(file, cancellationToken);
+                    var route = JsonSerializer.Deserialize<TourRouteDto>(json, JsonOptions);
+                    if (route is not null)
+                    {
+                        routes.Add(route);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        return routes;
+    }
+
     public async Task SaveAsync(TourRouteDto route, CancellationToken cancellationToken = default)
     {
         var path = GetCachePath(route.AnchorPoiId, route.PrimaryLanguage);

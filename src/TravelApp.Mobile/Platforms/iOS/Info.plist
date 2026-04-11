@@ -13,6 +13,10 @@
 	<array>
 		<string>arm64</string>
 	</array>
+ <key>NSLocationWhenInUseUsageDescription</key>
+	<string>TravelApp needs your location to show nearby tours and your current position on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TravelApp needs your location to show nearby tours and your current position on the map.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TravelApp.Application.Dtos.Tours;
 using TravelApp.Application.Abstractions.Tours;
 
 namespace TravelApp.Api.Controllers;
@@ -19,5 +20,12 @@ public class ToursController : ControllerBase
     {
         var result = await _tourQueryService.GetByAnchorPoiIdAsync(anchorPoiId, languageCode, cancellationToken);
         return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<TourRouteDto>>> GetAll([FromQuery(Name = "lang")] string? languageCode, CancellationToken cancellationToken)
+    {
+        var result = await _tourQueryService.GetAllPublishedAsync(languageCode, cancellationToken);
+        return Ok(result);
     }
 }

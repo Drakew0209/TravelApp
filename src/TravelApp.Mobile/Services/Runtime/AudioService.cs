@@ -9,6 +9,8 @@ public class AudioService : IAudioService, IDisposable
 {
     public event EventHandler? PlaybackEnded;
 
+    private const string FallbackAudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+
     private readonly IPoiGeofenceService _poiGeofenceService;
     private readonly IAudioManager _audioManager;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -46,9 +48,11 @@ public class AudioService : IAudioService, IDisposable
         {
             await StopInternalAsync("switch-poi");
 
-            var languageCode = string.IsNullOrWhiteSpace(poi.LanguageCode)
-                ? (string.IsNullOrWhiteSpace(poi.PrimaryLanguage) ? "en" : poi.PrimaryLanguage)
-                : poi.LanguageCode;
+            var languageCode = string.IsNullOrWhiteSpace(poi.SpeechTextLanguageCode)
+                ? (string.IsNullOrWhiteSpace(poi.LanguageCode)
+                    ? (string.IsNullOrWhiteSpace(poi.PrimaryLanguage) ? "en" : poi.PrimaryLanguage)
+                    : poi.LanguageCode)
+                : poi.SpeechTextLanguageCode;
 
             var speechText = BuildSpeechText(poi, languageCode);
             if (!string.IsNullOrWhiteSpace(speechText))
@@ -254,7 +258,7 @@ public class AudioService : IAudioService, IDisposable
     private static string? SelectPreGeneratedAudioUrl(PoiMobileDto poi, string languageCode)
     {
         static string? FirstUrl(IEnumerable<PoiAudioMobileDto> assets)
-            => assets.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.AudioUrl))?.AudioUrl;
+            => assets.Select(x => NormalizeAudioUrl(x.AudioUrl)).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
 
         var byRequestedLang = FirstUrl(poi.AudioAssets.Where(x => string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase)));
         if (!string.IsNullOrWhiteSpace(byRequestedLang))
@@ -269,6 +273,27 @@ public class AudioService : IAudioService, IDisposable
         }
 
         return FirstUrl(poi.AudioAssets);
+    }
+
+    private static string? NormalizeAudioUrl(string? audioUrl)
+    {
+        if (string.IsNullOrWhiteSpace(audioUrl))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri))
+        {
+            return FallbackAudioUrl;
+        }
+
+        if (uri.Host.Contains("blob.core.windows.net", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.Contains("travel-app-audios", StringComparison.OrdinalIgnoreCase))
+        {
+            return FallbackAudioUrl;
+        }
+
+        return audioUrl;
     }
 
     private static async Task<bool> TryPlayCloudTtsSimulatedAsync(PoiMobileDto poi, string languageCode, CancellationToken cancellationToken)

@@ -95,12 +95,20 @@ public class EditProfileViewModel : INotifyPropertyChanged
         if (!IsUpdateEnabled)
             return;
 
+        var email = Email?.Trim() ?? string.Empty;
+        var fullName = FullName?.Trim() ?? string.Empty;
+        var countryCode = CountryCode?.Trim() ?? string.Empty;
+        var phoneNumber = PhoneNumber?.Trim() ?? string.Empty;
+        var preferredLanguage = string.IsNullOrWhiteSpace(UserProfileService.PreferredLanguage)
+            ? "vi"
+            : UserProfileService.PreferredLanguage.Trim();
+
         var request = new UpdateProfileRequestDto(
-            Email.Trim(),
-            FullName.Trim(),
-            CountryCode.Trim(),
-            PhoneNumber.Trim(),
-            UserProfileService.PreferredLanguage);
+            email,
+            fullName,
+            countryCode,
+            phoneNumber,
+            preferredLanguage);
 
         var isSuccess = await _profileApiClient.UpdateMyProfileAsync(request);
         if (!isSuccess)

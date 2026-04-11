@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TravelApp Admin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">🍜</div>
+                <div>
+                    <div class="brand-title">Vinh Khánh</div>
+                    <div class="brand-badge">CMS</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")" asp-controller="Admin" asp-action="Index">
+                    <span class="nav-icon">▣</span>
+                    <span>Dashboard</span>
+                </a>
+                <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tours" ? "active" : "")" asp-controller="Tours" asp-action="Index">
+                    <span class="nav-icon">◫</span>
+                    <span>Quản lý Tour</span>
+                </a>
+                <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Pois" ? "active" : "")" asp-controller="Pois" asp-action="Index">
+                    <span class="nav-icon">⌂</span>
+                    <span>Quản lý POI</span>
+                </a>
+                <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">
+                    <span class="nav-icon">☺</span>
+                    <span>Quản lý User</span>
+                </a>
+                <a class="nav-item disabled" href="#">
+                    <span class="nav-icon">◌</span>
+                    <span>Phân tích</span>
+                </a>
+                <a class="nav-item disabled" href="#">
+                    <span class="nav-icon">✎</span>
+                    <span>Bản dịch</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <form asp-controller="Auth" asp-action="Logout" method="post">
+                    <button type="submit" class="btn btn-outline-light w-100">Đăng xuất</button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="admin-main">
+            <header class="admin-topbar">
+                <button type="button" class="menu-button" data-sidebar-toggle aria-label="Mở hoặc thu gọn sidebar">☰</button>
+                <div>
+                    <div class="page-title">@ViewData["Title"]</div>
+                    <div class="page-subtitle">Phố ẩm thực Việt · CMS Admin</div>
+                </div>
+                <div class="topbar-actions">
+                    <div class="topbar-status">Online</div>
+                    <div class="user-chip">@User.Identity?.Name</div>
+                </div>
+            </header>
+
+            <main class="admin-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -9,6 +9,8 @@ public class PoiModel
     public required string Location { get; set; }
     public required string Distance { get; set; }
     public required string Duration { get; set; }
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
     public string? Description { get; set; }
     public string? Provider { get; set; }
     public string? Credit { get; set; }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Plugin.Maui.Audio;
+using TravelApp.Handlers;
 using TravelApp.Models.Runtime;
 using TravelApp.Services.Abstractions;
 using TravelApp.Services.Api;
@@ -52,6 +53,8 @@ namespace TravelApp
 #else
             builder.UseMauiMaps();
 #endif
+
+            MapPinAppearanceHandler.Register();
 
 #if DEBUG
     		builder.Logging.AddDebug();

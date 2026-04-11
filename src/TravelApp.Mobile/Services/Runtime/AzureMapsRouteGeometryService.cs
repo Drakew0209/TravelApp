@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Maui.Devices.Sensors;
 using TravelApp.Models.Contracts;
@@ -9,7 +11,7 @@ namespace TravelApp.Services.Runtime;
 
 public sealed class AzureMapsRouteGeometryService : ITourRouteGeometryService
 {
-    private static string RouteGeometryCacheVersion => "v4";
+    private static string RouteGeometryCacheVersion => "v5";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -27,7 +29,7 @@ public sealed class AzureMapsRouteGeometryService : ITourRouteGeometryService
         }
 
         var normalizedLanguage = Normalize(languageCode ?? route.PrimaryLanguage);
-        var cachePath = GetCachePath(route.AnchorPoiId, normalizedLanguage);
+        var cachePath = GetCachePath(route, normalizedLanguage);
 
         if (File.Exists(cachePath))
         {
@@ -350,10 +352,18 @@ public sealed class AzureMapsRouteGeometryService : ITourRouteGeometryService
         return string.IsNullOrWhiteSpace(languageCode) ? "en" : languageCode.Trim().ToLowerInvariant();
     }
 
-    private static string GetCachePath(int anchorPoiId, string languageCode)
+    private static string GetCachePath(TourRouteDto route, string languageCode)
     {
         var cacheDirectory = Path.Combine(FileSystem.AppDataDirectory, "tour-route-geometry-cache");
-        return Path.Combine(cacheDirectory, $"{RouteGeometryCacheVersion}-tour-{anchorPoiId}-{Normalize(languageCode)}.json");
+        var signature = BuildRouteSignature(route);
+        return Path.Combine(cacheDirectory, $"{RouteGeometryCacheVersion}-tour-{route.AnchorPoiId}-{Normalize(languageCode)}-{signature}.json");
+    }
+
+    private static string BuildRouteSignature(TourRouteDto route)
+    {
+        var raw = string.Join("|", route.Waypoints.Select(x => FormattableString.Invariant($"{x.Poi.Id}:{x.Poi.Latitude:F6}:{x.Poi.Longitude:F6}:{Normalize(x.Poi.PrimaryLanguage)}")));
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
+        return Convert.ToHexString(bytes)[..16].ToLowerInvariant();
     }
 
     private sealed class RouteCachePayload

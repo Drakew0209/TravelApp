@@ -123,7 +123,11 @@ public sealed class MyAudioLibraryViewModel : INotifyPropertyChanged, IDisposabl
         _audioLibraryService.DownloadProgressChanged += OnDownloadProgressChanged;
         _audioPlayerService.PlaybackStateChanged += OnPlaybackStateChanged;
 
-        BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        BackCommand = new Command(async () =>
+        {
+            await _audioPlayerService.StopAsync();
+            await Shell.Current.GoToAsync("..");
+        });
         RefreshCommand = new Command(async () => await RefreshAsync());
         DownloadCommand = new Command<AudioLibraryItem>(async item => await DownloadAsync(item));
         RemoveCommand = new Command<AudioLibraryItem>(async item => await RemoveAsync(item));
@@ -367,6 +371,11 @@ public sealed class MyAudioLibraryViewModel : INotifyPropertyChanged, IDisposabl
     private void OnLibraryChanged(object? sender, EventArgs e)
     {
         _ = RefreshAsync();
+    }
+
+    public Task StopAsync()
+    {
+        return _audioPlayerService.StopAsync();
     }
 
     private void RebuildFilteredItems()

@@ -1,0 +1,99 @@
+@model TravelApp.Admin.Web.Models.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="dashboard-grid">
+    <section class="section-header">
+        <div>
+            <h1 class="section-title">Dashboard</h1>
+            <p class="section-subtitle">Theo dõi nhanh dữ liệu tour, POI và hoạt động quản trị.</p>
+        </div>
+        <div class="section-actions">
+            <span class="soft-badge">API: @Model.ApiBaseUrl</span>
+        </div>
+    </section>
+
+    <section class="stats-row">
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-orange">📍</div>
+            <div>
+                <div class="stat-value">@Model.PoiCount</div>
+                <div class="stat-label">Tổng POI</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-green">👥</div>
+            <div>
+                <div class="stat-value">@Model.UserCount</div>
+                <div class="stat-label">User</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-blue">🎧</div>
+            <div>
+                <div class="stat-value">@Model.PublishedTourCount</div>
+                <div class="stat-label">Published tour</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-purple">QR</div>
+            <div>
+                <div class="stat-value">@Model.DraftTourCount</div>
+                <div class="stat-label">Draft tour</div>
+            </div>
+        </article>
+    </section>
+
+    <section class="dashboard-panels">
+        <div class="panel-card panel-large">
+            <div class="section-header mb-3">
+                <div>
+                    <h2 class="section-title">Tour hiện có</h2>
+                    <p class="section-subtitle">Danh sách tour đồng bộ từ API.</p>
+                </div>
+            </div>
+            <div class="activity-list">
+                @foreach (var tour in Model.RecentTours)
+                {
+                    <div class="activity-item">
+                        <span class="pill">@(tour.IsPublished ? "Published" : "Draft")</span>
+                        <span>@tour.Name • @tour.PoiCount POI</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="panel-card panel-large">
+            <div class="section-header mb-3">
+                <div>
+                    <h2 class="section-title">POI hiện có</h2>
+                    <p class="section-subtitle">Các POI đang đồng bộ giữa web và app.</p>
+                </div>
+            </div>
+            <div class="activity-list">
+                @foreach (var poi in Model.RecentPois)
+                {
+                    <div class="activity-item">
+                        <span class="pill">@(poi.IsUsedInTour ? "Used" : "Free")</span>
+                        <span>@poi.Title @(string.IsNullOrWhiteSpace(poi.Category) ? "" : $"• {poi.Category}")</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="panel-card">
+        <div class="section-header mb-3">
+            <div>
+                <h2 class="section-title">Tổng quan đồng bộ</h2>
+                <p class="section-subtitle">Dashboard hiện đang lấy dữ liệu thật từ API, không còn số giả.</p>
+            </div>
+        </div>
+        <div class="heatmap-placeholder">@Model.PoiCount POI • @Model.TourCount tour • @Model.UserCount user</div>
+    </section>
+</div>

@@ -76,20 +76,34 @@
                             BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
                             Padding="14,6">
                         <VerticalStackLayout Spacing="0">
-                            <Grid ColumnDefinitions="Auto,*,Auto" HeightRequest="58">
-                                <Label Text="👤" FontSize="20" VerticalTextAlignment="Center" />
+                            <Grid ColumnDefinitions="40,*,Auto" HeightRequest="58" ColumnSpacing="12">
+                                <Border WidthRequest="32"
+                                        HeightRequest="32"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="#FFF2F7"
+                                        VerticalOptions="Center">
+                                    <Label Text="👤" FontSize="16" TextColor="#D31963" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
                                 <Label Grid.Column="1" Text="Edit Profile" FontSize="20" TextColor="{AppThemeBinding Light=#1F1F24, Dark=#E6EBF7}" VerticalTextAlignment="Center" />
                                 <Label Grid.Column="2" Text="›" FontSize="26" TextColor="{AppThemeBinding Light=#9A9AA2, Dark=#9AA4B8}" VerticalTextAlignment="Center" />
-                            
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding OpenEditProfileCommand}" />
-                                </Grid.GestureRecognizers></Grid>
+                                </Grid.GestureRecognizers>
+                            </Grid>
 
                             <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#F0F0F3, Dark=#2A2F3A}" IsVisible="{Binding ShowPurchases}" />
 
-                            <Grid ColumnDefinitions="Auto,*,Auto" HeightRequest="58" IsVisible="{Binding ShowPurchases}">
-                                <Label Text="👜" FontSize="20" VerticalTextAlignment="Center" />
-                                <Label Grid.Column="1" Text="Purchases" FontSize="20" TextColor="{AppThemeBinding Light=#1F1F24, Dark=#E6EBF7}" VerticalTextAlignment="Center" />
+                            <Grid ColumnDefinitions="40,*,Auto" HeightRequest="58" IsVisible="{Binding ShowPurchases}" ColumnSpacing="12">
+                                <Border WidthRequest="32"
+                                        HeightRequest="32"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="#FFF2F7"
+                                        VerticalOptions="Center">
+                                    <Label Text="↓" FontSize="18" TextColor="#D31963" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Downloads" FontSize="20" TextColor="{AppThemeBinding Light=#1F1F24, Dark=#E6EBF7}" VerticalTextAlignment="Center" />
                                 <Label Grid.Column="2" Text="›" FontSize="26" TextColor="{AppThemeBinding Light=#9A9AA2, Dark=#9AA4B8}" VerticalTextAlignment="Center" />
                             </Grid>
                         </VerticalStackLayout>
@@ -108,24 +122,45 @@
                             BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
                             Padding="14,6">
                         <VerticalStackLayout Spacing="0">
-                            <Grid ColumnDefinitions="Auto,*,Auto" HeightRequest="58">
-                                <Label Text="🌐" FontSize="20" VerticalTextAlignment="Center" />
+                            <Grid ColumnDefinitions="40,*,Auto" HeightRequest="58" ColumnSpacing="12">
+                                <Border WidthRequest="32"
+                                        HeightRequest="32"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="#EEF8FB"
+                                        VerticalOptions="Center">
+                                    <Label Text="🌐" FontSize="16" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
                                 <Label Grid.Column="1" Text="Language" FontSize="20" TextColor="{AppThemeBinding Light=#1F1F24, Dark=#E6EBF7}" VerticalTextAlignment="Center" />
                                 <Label Grid.Column="2" Text="VI" FontSize="18" TextColor="{AppThemeBinding Light=#3D3D45, Dark=#B4BDCF}" VerticalTextAlignment="Center" />
                             </Grid>
 
                             <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#F0F0F3, Dark=#2A2F3A}" />
 
-                            <Grid ColumnDefinitions="Auto,*,Auto" HeightRequest="58">
-                                <Label Text="⚙" FontSize="20" VerticalTextAlignment="Center" />
+                            <Grid ColumnDefinitions="40,*,Auto" HeightRequest="58" ColumnSpacing="12">
+                                <Border WidthRequest="32"
+                                        HeightRequest="32"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="#EEF8FB"
+                                        VerticalOptions="Center">
+                                    <Label Text="⚙" FontSize="16" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
                                 <Label Grid.Column="1" Text="User preferences" FontSize="20" TextColor="{AppThemeBinding Light=#1F1F24, Dark=#E6EBF7}" VerticalTextAlignment="Center" />
                                 <Label Grid.Column="2" Text="›" FontSize="26" TextColor="{AppThemeBinding Light=#9A9AA2, Dark=#9AA4B8}" VerticalTextAlignment="Center" />
                             </Grid>
 
                             <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#F0F0F3, Dark=#2A2F3A}" IsVisible="{Binding ShowDownloads}" />
 
-                            <Grid ColumnDefinitions="Auto,*,Auto" HeightRequest="58" IsVisible="{Binding ShowDownloads}">
-                                <Label Text="↓" FontSize="20" VerticalTextAlignment="Center" />
+                            <Grid ColumnDefinitions="40,*,Auto" HeightRequest="58" IsVisible="{Binding ShowDownloads}" ColumnSpacing="12">
+                                <Border WidthRequest="32"
+                                        HeightRequest="32"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="#FFF2F7"
+                                        VerticalOptions="Center">
+                                    <Label Text="↓" FontSize="18" TextColor="#D31963" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" />
+                                </Border>
                                 <Label Grid.Column="1" Text="{Binding DownloadsTitle}" FontSize="20" TextColor="{AppThemeBinding Light=#1F1F24, Dark=#E6EBF7}" VerticalTextAlignment="Center" />
                                 <Label Grid.Column="2" Text="›" FontSize="26" TextColor="{AppThemeBinding Light=#9A9AA2, Dark=#9AA4B8}" VerticalTextAlignment="Center" />
                                 <Grid.GestureRecognizers>
@@ -135,8 +170,15 @@
 
                             <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#F0F0F3, Dark=#2A2F3A}" IsVisible="{Binding ShowBookmarks}" />
 
-                            <Grid ColumnDefinitions="Auto,*,Auto" HeightRequest="58" IsVisible="{Binding ShowBookmarks}">
-                                <Label Text="▮" FontSize="20" VerticalTextAlignment="Center" />
+                            <Grid ColumnDefinitions="40,*,Auto" HeightRequest="58" IsVisible="{Binding ShowBookmarks}" ColumnSpacing="12">
+                                <Border WidthRequest="32"
+                                        HeightRequest="32"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="#FFF2F7"
+                                        VerticalOptions="Center">
+                                    <Label Text="▮" FontSize="16" TextColor="#D31963" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" />
+                                </Border>
                                 <Label Grid.Column="1" Text="Bookmarks" FontSize="20" TextColor="{AppThemeBinding Light=#1F1F24, Dark=#E6EBF7}" VerticalTextAlignment="Center" />
                                 <Label Grid.Column="2" Text="›" FontSize="26" TextColor="{AppThemeBinding Light=#9A9AA2, Dark=#9AA4B8}" VerticalTextAlignment="Center" />
                                 <Grid.GestureRecognizers>

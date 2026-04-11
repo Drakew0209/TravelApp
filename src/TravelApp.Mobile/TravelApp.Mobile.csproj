@@ -142,7 +142,6 @@
 
 	<ItemGroup>
 	  <Folder Include="Pages\" />
-	  <Folder Include="Views\" />
 	</ItemGroup>
 
 	<ItemGroup>

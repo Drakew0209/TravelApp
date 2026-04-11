@@ -14,9 +14,10 @@ public partial class NowPlayingPage : ContentPage
         BindingContext = _viewModel;
     }
 
-    protected override void OnDisappearing()
+    protected override async void OnDisappearing()
     {
         base.OnDisappearing();
+        await _viewModel.StopAsync();
         _viewModel.Dispose();
     }
 }

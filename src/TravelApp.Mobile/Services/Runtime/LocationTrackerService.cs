@@ -1,4 +1,4 @@
-using TravelApp.Models.Runtime;
+ using TravelApp.Models.Runtime;
 using TravelApp.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -35,6 +35,7 @@ public class LocationTrackerService : ILocationTrackerService
         }
 
         _trackingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _ = PublishInitialLocationAsync(_trackingCts.Token);
         _trackingTask = TrackLoopAsync(_trackingCts.Token);
         _logger.LogInformation("GPS tracker: started with {PollIntervalSeconds}s polling interval.", PollInterval.TotalSeconds);
         _logService.Log("GPS", $"Tracker started (interval={PollInterval.TotalSeconds:0}s)");
@@ -64,6 +65,27 @@ public class LocationTrackerService : ILocationTrackerService
             _trackingTask = null;
             _logger.LogInformation("GPS tracker: stopped.");
             _logService.Log("GPS", "Tracker stopped");
+        }
+    }
+
+    private async Task PublishInitialLocationAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var sample = await _locationProvider.GetCurrentLocationAsync(cancellationToken);
+            if (sample is null)
+            {
+                return;
+            }
+
+            CurrentLocation = sample;
+            LocationChanged?.Invoke(this, sample);
+            _logger.LogInformation("GPS initial update: lat={Latitude:F6}, lng={Longitude:F6}, at={TimestampUtc:O}", sample.Latitude, sample.Longitude, sample.TimestampUtc);
+            _logService.Log("GPS", $"Initial update lat={sample.Latitude:F6}, lng={sample.Longitude:F6}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "GPS tracker: failed to get initial location.");
         }
     }
 
