@@ -639,6 +639,8 @@ static Table TestCaseTable()
         ("TC-MOB-07","Mobile","Trung bình","Đang offline rồi có mạng lại","Giữ app mở và chờ sync nền","Danh sách cập nhật mới, không nhân bản dữ liệu"),
         ("TC-MOB-08","Mobile","Cao","Tour đang chạy + vị trí dao động","Di chuyển qua lại mép geofence","Không phát lặp audio liên tục (cooldown hoạt động)"),
         ("TC-MOB-09","Mobile","Trung bình","Đã phát waypoint A","Rời vùng rồi quay lại ngay < cooldown","Không phát lại trước khi hết cooldown"),
+        ("TC-MOB-10","Mobile","Trung bình","Offline-first + API lỗi 5xx","Kích hoạt sync nền khi API lỗi","Ứng dụng giữ dữ liệu cache, không crash, ghi log lỗi"),
+        ("TC-MOB-11","Mobile","Trung bình","Offline-first + timeout mạng","Trigger đồng bộ với timeout ngắn","Sync fail graceful, thử lại ở lần sync kế tiếp"),
         ("TC-ADMWEB-01","Admin Web","Cao","Cấu hình BaseUrl","Đăng nhập admin cookie đúng","Vào dashboard"),
         ("TC-ADMWEB-02","Admin Web","Cao","Sai password","POST login","Thông báo lỗi tiếng Việt"),
         ("TC-ADMWEB-03","Admin Web","Trung bình","Đã login","Tạo/sửa POI","API phản hồi thành công qua client"),
@@ -648,6 +650,7 @@ static Table TestCaseTable()
         ("TC-DATA-02","Dữ liệu","Trung bình","Legacy DB","Khởi động API","Baseline migration history nếu có bảng POI cũ"),
         ("TC-RUN-01","Runtime Service","Cao","Đã Start TourRoutePlayback","Phát sinh OnLocationUpdated liên tục","Service xử lý event tuần tự, không crash"),
         ("TC-RUN-02","Runtime Service","Trung bình","Đã Stop playback","Giả lập tiếp tục bắn location event","Không còn callback phát audio sau khi stop"),
+        ("TC-RUN-03","Runtime Service","Trung bình","Giả lập GPS cập nhật tần suất cao","Bắn 50-100 location events/phút","Không tràn hàng đợi xử lý; app vẫn phản hồi"),
         ("TC-PERF-01","Hiệu năng","Thấp","—","GET /api/pois pageSize=100","Phản hồi chấp nhận được môi trường dev"),
         ("TC-INT-01","Tích hợp","Trung bình","Blob audio URL seed","GET URL audio mp3","HTTP 200 (nếu public)"),
         ("TC-REG-01","Hồi quy","Trung bình","Sau thay đổi DTO","Mobile deserialize TourRouteDto","Không lỗi JSON"),
@@ -681,8 +684,10 @@ static Table TestCaseTable()
 
 static string ResolveOutputPath()
 {
+    const int maxDepth = 20;
+    var depth = 0;
     var current = AppContext.BaseDirectory;
-    while (!string.IsNullOrWhiteSpace(current))
+    while (!string.IsNullOrWhiteSpace(current) && depth < maxDepth)
     {
         var docsPath = Path.Combine(current, "docs");
         if (Directory.Exists(docsPath))
@@ -693,7 +698,9 @@ static string ResolveOutputPath()
             break;
 
         current = parent.FullName;
+        depth++;
     }
 
-    throw new DirectoryNotFoundException("Không tìm thấy thư mục docs để xuất PRD.");
+    throw new DirectoryNotFoundException(
+        "Cannot find docs directory for PRD output. Không tìm thấy thư mục docs để xuất PRD.");
 }
