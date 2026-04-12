@@ -2,7 +2,8 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
-const string outputPath = @"c:\Users\KHANH\source\repos\TravelApp\docs\TravelApp-PRD-BaoCao.docx";
+var outputPath = ResolveOutputPath();
+var generatedDate = DateTime.UtcNow.ToString("dd/MM/yyyy");
 
 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
@@ -35,7 +36,7 @@ Add(
     Para("Ứng dụng du lịch – POI – Tour có hướng dẫn âm thanh đa ngôn ngữ", sizeHalfPoints: 22, justify: false),
     EmptyPara(),
     Para("Phiên bản tài liệu: 1.0", justify: false),
-    Para("Ngày: 12/04/2026", justify: false),
+    Para($"Ngày: {generatedDate}", justify: false),
     Para("Mục đích: Báo cáo / trình bày đồ án – đánh giá kiến trúc & kiểm thử", justify: false),
     Para("Nguồn phân tích: Mã nguồn repository TravelApp (API, Admin, Mobile, Infrastructure)", justify: false),
     PageBreak()
@@ -309,8 +310,58 @@ E --> User: Hiển thị card tour / POI")
 );
 
 Add(
+    Heading("8.10. Offline-first: đọc cache trước, đồng bộ sau", 2),
+    MonoBlock(
+        @"actor User
+participant ""ExploreViewModel"" as VM
+participant ""LocalDatabaseService"" as LDB
+participant ""PoiApiService"" as API
+participant ""SyncWorker"" as SW
+
+User -> VM: Mở ứng dụng khi mạng yếu/mất mạng
+VM -> LDB: GetCachedPoisAsync(lang)
+LDB --> VM: Cached list
+VM --> User: Hiển thị dữ liệu cục bộ ngay lập tức
+par có mạng
+  VM -> SW: TriggerBackgroundSync()
+  SW -> API: GET /api/pois?lang=...
+  API --> SW: dữ liệu mới
+  SW -> LDB: Upsert cache + timestamp
+  SW --> VM: DataUpdated event
+  VM --> User: Refresh danh sách
+else offline
+  VM --> User: Badge ""Offline mode""
+end")
+);
+
+Add(
+    Heading("8.11. Auto audio theo geofence và chống phát lặp", 2),
+    MonoBlock(
+        @"actor User
+participant ""LocationPollingService"" as LP
+participant ""PoiGeofenceService"" as GF
+participant ""AutoAudioTriggerService"" as AT
+participant ""AudioService"" as AS
+
+User -> AT: Start(tour, language)
+AT -> LP: Subscribe OnLocationUpdated
+LP --> AT: Location(lat,lng)
+AT -> GF: Evaluate(poiList, location)
+GF --> AT: EnteredPoiIds / ExitedPoiIds
+alt có POI mới đi vào vùng kích hoạt
+  AT -> AT: Check cooldown + played history
+  AT -> AS: PlayAsync(audioUrl, language)
+  AS --> AT: Success/Fail event
+else không có POI mới
+  AT -> AT: No-op
+end
+User -> AT: Stop()
+AT -> LP: Unsubscribe")
+);
+
+Add(
     PageBreak(),
-    Heading("8.10. Bổ sung: ma trận tương tác theo lớp", 2),
+    Heading("8.12. Bổ sung: ma trận tương tác theo lớp", 2),
     Para("Để phục vụ báo cáo, bảng sau tóm tắt hướng phụ thuộc giữa các lớp: UI (MAUI) phụ thuộc ViewModels; ViewModels phụ thuộc dịch vụ trừu tượng (IAuthApiClient, ITourRouteCatalogService, ITourRoutePlaybackService); các dịch vụ runtime gọi HttpClient tới Api; Api không gọi ngược Mobile."),
     Para("Đối với Admin Web, controller MVC gọi ITravelAppApiClient — tách biệt hoàn toàn với schema cookie — giúp kiểm thử đơn vị bằng mock HttpMessageHandler nếu cần."),
     Para("Hạ tầng EF Core map thực thể Domain sang bảng SQL; migration và các lệnh Ensure* trong Program.cs xử lý trường hợp cơ sở dữ liệu đã tồn tại từ phiên bản trước (legacy POI table) mà chưa có lịch sử migration EF.")
@@ -322,6 +373,7 @@ Add(
     BulletPara("Hiệu năng: phân trang POI mặc định pageSize=20; client admin gọi pageSize=100 khi đồng bộ."),
     BulletPara("Bảo mật: JWT HS256; HTTPS redirect khi không Development; mật khẩu BCrypt."),
     BulletPara("Khả dụng: endpoint /health cho probe đơn giản."),
+    BulletPara("Offline-first: mobile ưu tiên đọc cache cục bộ, đồng bộ nền khi có mạng."),
     BulletPara("Đa ngôn ngữ: tham số lang trên API; POI có localizations và audio theo LanguageCode."),
     BulletPara("Ghi log: Mobile dùng ILogger trong dịch vụ phát tour.")
 );
@@ -583,6 +635,10 @@ static Table TestCaseTable()
         ("TC-MOB-03","Mobile","Trung bình","Đã bắt đầu tour","Di chuyển mock vị trí vào geofence","Audio phát / waypoint đổi"),
         ("TC-MOB-04","Mobile","Trung bình","Đang phát","Stop tour","Audio dừng, location tracker dừng"),
         ("TC-MOB-05","Mobile","Thấp","Offline DB","Mở thư viện audio offline","Không crash, hiển thị số lượng nếu có"),
+        ("TC-MOB-06","Mobile","Cao","Có cache local, mất internet","Mở Explore","Hiển thị dữ liệu cache trước, không chặn UI"),
+        ("TC-MOB-07","Mobile","Trung bình","Đang offline rồi có mạng lại","Giữ app mở và chờ sync nền","Danh sách cập nhật mới, không nhân bản dữ liệu"),
+        ("TC-MOB-08","Mobile","Cao","Tour đang chạy + vị trí dao động","Di chuyển qua lại mép geofence","Không phát lặp audio liên tục (cooldown hoạt động)"),
+        ("TC-MOB-09","Mobile","Trung bình","Đã phát waypoint A","Rời vùng rồi quay lại ngay < cooldown","Không phát lại trước khi hết cooldown"),
         ("TC-ADMWEB-01","Admin Web","Cao","Cấu hình BaseUrl","Đăng nhập admin cookie đúng","Vào dashboard"),
         ("TC-ADMWEB-02","Admin Web","Cao","Sai password","POST login","Thông báo lỗi tiếng Việt"),
         ("TC-ADMWEB-03","Admin Web","Trung bình","Đã login","Tạo/sửa POI","API phản hồi thành công qua client"),
@@ -590,9 +646,12 @@ static Table TestCaseTable()
         ("TC-SEC-02","Bảo mật","Trung bình","HTTPS","Gọi API production","Redirect/TLS hợp lệ"),
         ("TC-DATA-01","Dữ liệu","Cao","DB trống mới","Khởi động API","Migrate + seed chạy không lỗi"),
         ("TC-DATA-02","Dữ liệu","Trung bình","Legacy DB","Khởi động API","Baseline migration history nếu có bảng POI cũ"),
+        ("TC-RUN-01","Runtime Service","Cao","Đã Start TourRoutePlayback","Phát sinh OnLocationUpdated liên tục","Service xử lý event tuần tự, không crash"),
+        ("TC-RUN-02","Runtime Service","Trung bình","Đã Stop playback","Giả lập tiếp tục bắn location event","Không còn callback phát audio sau khi stop"),
         ("TC-PERF-01","Hiệu năng","Thấp","—","GET /api/pois pageSize=100","Phản hồi chấp nhận được môi trường dev"),
         ("TC-INT-01","Tích hợp","Trung bình","Blob audio URL seed","GET URL audio mp3","HTTP 200 (nếu public)"),
-        ("TC-REG-01","Hồi quy","Trung bình","Sau thay đổi DTO","Mobile deserialize TourRouteDto","Không lỗi JSON")
+        ("TC-REG-01","Hồi quy","Trung bình","Sau thay đổi DTO","Mobile deserialize TourRouteDto","Không lỗi JSON"),
+        ("TC-REG-02","Hồi quy","Trung bình","Sau thay đổi service geofence","Chạy luồng tour đầy đủ từ start->stop","Không vỡ luồng cũ đăng nhập/khám phá/phát audio")
     };
 
     var table = new Table(
@@ -618,4 +677,23 @@ static Table TestCaseTable()
         AddRow(r.Id, r.Group, r.Sev, r.Pre, r.Steps, r.Expected);
 
     return table;
+}
+
+static string ResolveOutputPath()
+{
+    var current = AppContext.BaseDirectory;
+    while (!string.IsNullOrWhiteSpace(current))
+    {
+        var docsPath = Path.Combine(current, "docs");
+        if (Directory.Exists(docsPath))
+            return Path.Combine(docsPath, "TravelApp-PRD-BaoCao.docx");
+
+        var parent = Directory.GetParent(current);
+        if (parent is null)
+            break;
+
+        current = parent.FullName;
+    }
+
+    throw new DirectoryNotFoundException("Không tìm thấy thư mục docs để xuất PRD.");
 }
