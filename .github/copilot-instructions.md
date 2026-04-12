@@ -21,6 +21,10 @@
 - API communication → PoiApiService
 - Local storage → LocalDatabaseService
 
+## Data Management
+- Prioritize the removal of static/hardcoded data in the project; only allow static data for UI text, placeholders, and minimal fallback when necessary.
+- Avoid using fixed mock/seed data for business logic if data can be retrieved from API/DB.
+
 ## Offline-First Requirement
 - The app must work without internet connection.
 - Always load from local cache first (SQLite, file system).

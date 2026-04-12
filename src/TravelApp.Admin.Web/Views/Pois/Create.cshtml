@@ -43,7 +43,7 @@
                     </div>
                     <div class="col-md-6">
                         <label asp-for="PrimaryLanguage" class="form-label">Primary language</label>
-                        <input asp-for="PrimaryLanguage" class="form-control" data-live-preview-input="PrimaryLanguage" />
+                        <select asp-for="PrimaryLanguage" asp-items="Model.LanguageOptions" class="form-select" data-live-preview-input="PrimaryLanguage"></select>
                     </div>
                 </div>
             </div>
@@ -89,12 +89,72 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label asp-for="SpeechTextLanguageCode" class="form-label">Speech text language</label>
-                        <input asp-for="SpeechTextLanguageCode" class="form-control" data-live-preview-input="SpeechTextLanguageCode" />
+                        <select asp-for="SpeechTextLanguageCode" asp-items="Model.LanguageOptions" class="form-select" data-live-preview-input="SpeechTextLanguageCode" data-speech-text-language-select="true"></select>
                     </div>
                     <div class="col-12">
                         <label asp-for="SpeechText" class="form-label">Speech text</label>
-                        <textarea asp-for="SpeechText" rows="3" class="form-control" data-live-preview-input="SpeechText"></textarea>
+                        <textarea asp-for="SpeechText" rows="3" class="form-control" data-live-preview-input="SpeechText" data-speech-text-input="true"></textarea>
                     </div>
+                </div>
+            </div>
+
+            <div class="admin-card p-4 mb-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Localizations</h2>
+                        <p class="section-subtitle">Sửa tiêu đề, mô tả và subtitle theo từng ngôn ngữ.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="poi-localization-rows" data-prefix="Localizations">+ Add row</button>
+                </div>
+                <div id="poi-localization-rows" data-next-index="@Model.Localizations.Count">
+                    @for (var i = 0; i < Model.Localizations.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="Localizations">
+                            <div class="col-md-2"><select asp-for="Localizations[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
+                            <div class="col-md-3"><input asp-for="Localizations[@i].Title" class="form-control" placeholder="Title" /></div>
+                            <div class="col-md-3"><input asp-for="Localizations[@i].Subtitle" class="form-control" placeholder="Subtitle" /></div>
+                            <div class="col-md-4"><input asp-for="Localizations[@i].Description" class="form-control" placeholder="Description" /></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="admin-card p-4 mb-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Audio assets</h2>
+                        <p class="section-subtitle">Thêm audio trực tiếp cho POI theo từng ngôn ngữ.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="poi-audio-rows" data-prefix="AudioAssets">+ Add row</button>
+                </div>
+                <div id="poi-audio-rows" data-next-index="@Model.AudioAssets.Count">
+                    @for (var i = 0; i < Model.AudioAssets.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="AudioAssets">
+                            <div class="col-md-2"><select asp-for="AudioAssets[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
+                            <div class="col-md-5"><input asp-for="AudioAssets[@i].AudioUrl" class="form-control" placeholder="Audio URL" /></div>
+                            <div class="col-md-5"><input asp-for="AudioAssets[@i].Transcript" class="form-control" placeholder="Transcript" /></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Speech texts</h2>
+                        <p class="section-subtitle">Nội dung speech theo từng ngôn ngữ.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="poi-speech-rows" data-prefix="SpeechTexts">+ Add row</button>
+                </div>
+                <div id="poi-speech-rows" data-next-index="@Model.SpeechTexts.Count">
+                    @for (var i = 0; i < Model.SpeechTexts.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="SpeechTexts" data-speech-text-row="true">
+                            <div class="col-md-2"><select asp-for="SpeechTexts[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select" data-speech-text-row-language="true"></select></div>
+                            <div class="col-md-10"><textarea asp-for="SpeechTexts[@i].Text" rows="2" class="form-control" data-speech-text-row-text="true"></textarea></div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>

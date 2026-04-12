@@ -16,6 +16,11 @@ public interface IAuthService
     Task<AuthResultDto?> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Revoke an existing refresh token
+    /// </summary>
+    Task RevokeRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Get user profile by ID
     /// </summary>
     Task<UserProfileDto?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default);

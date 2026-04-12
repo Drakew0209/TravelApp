@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using TravelApp.Admin.Web.Models;
 
 namespace TravelApp.Admin.Web.Models.Tours;
 
@@ -24,6 +25,10 @@ public sealed class TourEditorViewModel
     [StringLength(1024)]
     [Display(Name = "Cover image URL")]
     public string? CoverImageUrl { get; set; }
+
+    public string? QrContent { get; set; }
+    public string? QrImageUrl { get; set; }
+    public bool CanShowQr => Id.HasValue && !string.IsNullOrWhiteSpace(QrContent) && !string.IsNullOrWhiteSpace(QrImageUrl);
 
     [Required, StringLength(10)]
     [Display(Name = "Primary language")]
@@ -56,6 +61,7 @@ public sealed class TourEditorViewModel
 
     public string AnchorPoiDetailsJson { get; set; } = "[]";
     public List<SelectListItem> AvailablePois { get; set; } = [];
+    public List<SelectListItem> LanguageOptions { get; set; } = LanguageCodeCatalog.Create();
 
     public List<TourPoiEditorInput> Pois { get; set; } = [new()];
     public List<TourAudioEditorInput> AudioAssets { get; set; } = [new()];

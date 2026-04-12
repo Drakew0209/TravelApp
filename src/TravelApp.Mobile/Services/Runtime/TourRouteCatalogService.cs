@@ -6,15 +6,18 @@ namespace TravelApp.Services.Runtime;
 public sealed class TourRouteCatalogService : ITourRouteCatalogService
 {
     private readonly ITourApiClient _tourApiClient;
+    private readonly IPoiApiClient _poiApiClient;
     private readonly ILocalDatabaseService _localDatabaseService;
     private readonly ITourRouteCacheService _tourRouteCacheService;
 
     public TourRouteCatalogService(
         ITourApiClient tourApiClient,
+        IPoiApiClient poiApiClient,
         ILocalDatabaseService localDatabaseService,
         ITourRouteCacheService tourRouteCacheService)
     {
         _tourApiClient = tourApiClient;
+        _poiApiClient = poiApiClient;
         _localDatabaseService = localDatabaseService;
         _tourRouteCacheService = tourRouteCacheService;
     }
@@ -29,12 +32,7 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
         }
 
         var cachedRoutes = await _tourRouteCacheService.GetAllAsync(normalizedLanguage, cancellationToken);
-        if (cachedRoutes.Count > 0)
-        {
-            return await MergeLocalPoiOverridesAsync(cachedRoutes.ToList(), normalizedLanguage, cancellationToken);
-        }
-
-        return [];
+        return cachedRoutes.Count > 0 ? cachedRoutes : [];
     }
 
     public async Task<TourRouteDto?> GetRouteAsync(int poiId, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -48,6 +46,19 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
     public async Task<PoiDto?> ResolvePoiAsync(int poiId, string? languageCode = null, CancellationToken cancellationToken = default)
     {
         var normalizedLanguage = NormalizeLanguageCode(languageCode);
+        PoiDto? poiDetails = null;
+
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+        {
+            try
+            {
+                poiDetails = await _poiApiClient.GetByIdAsync(poiId, normalizedLanguage, cancellationToken);
+            }
+            catch
+            {
+            }
+        }
+
         var routes = await GetAllRoutesAsync(normalizedLanguage, cancellationToken);
         var routePoi = routes
             .SelectMany(x => x.Waypoints)
@@ -56,7 +67,7 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
 
         if (routePoi is not null)
         {
-            return new PoiDto
+            var dto = new PoiDto
             {
                 Id = routePoi.Id,
                 Title = routePoi.Title,
@@ -79,6 +90,18 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
                 AudioAssets = routePoi.AudioAssets.Select(x => new PoiAudioDto(x.LanguageCode, x.AudioUrl, x.Transcript, x.IsGenerated)).ToList(),
                 SpeechTexts = routePoi.SpeechTexts.Select(x => new PoiSpeechTextDto(x.LanguageCode, x.Text)).ToList()
             };
+
+            if (poiDetails is not null)
+            {
+                MergeSpeechData(dto, poiDetails);
+            }
+
+            return dto;
+        }
+
+        if (poiDetails is not null)
+        {
+            return poiDetails;
         }
 
         var localPois = await _localDatabaseService.GetPoisAsync(normalizedLanguage, cancellationToken: cancellationToken);
@@ -111,6 +134,24 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
         };
     }
 
+    private static void MergeSpeechData(PoiDto target, PoiDto source)
+    {
+        if (!string.IsNullOrWhiteSpace(source.SpeechText))
+        {
+            target.SpeechText = source.SpeechText;
+        }
+
+        if (!string.IsNullOrWhiteSpace(source.SpeechTextLanguageCode))
+        {
+            target.SpeechTextLanguageCode = source.SpeechTextLanguageCode;
+        }
+
+        if (source.SpeechTexts.Count > 0)
+        {
+            target.SpeechTexts = source.SpeechTexts;
+        }
+    }
+
     private async Task<List<TourRouteDto>> TryGetOnlineRoutesAsync(string languageCode, CancellationToken cancellationToken)
     {
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
@@ -126,7 +167,11 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
                 return [];
             }
 
-            routes = await MergeLocalPoiOverridesAsync(routes, languageCode, cancellationToken);
+            foreach (var route in routes)
+            {
+                route.CoverImageUrl = NormalizeCoverImageUrl(route.CoverImageUrl, route.Name);
+            }
+
             foreach (var route in routes)
             {
                 await _tourRouteCacheService.SaveAsync(route, cancellationToken);
@@ -138,57 +183,6 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
         {
             return [];
         }
-    }
-
-    private async Task<List<TourRouteDto>> MergeLocalPoiOverridesAsync(List<TourRouteDto> routes, string languageCode, CancellationToken cancellationToken)
-    {
-        var localPois = await _localDatabaseService.GetPoisAsync(languageCode, cancellationToken: cancellationToken);
-        var localById = localPois.ToDictionary(x => x.Id);
-
-        foreach (var route in routes)
-        {
-            route.CoverImageUrl = NormalizeCoverImageUrl(route.CoverImageUrl, route.Name);
-            route.Waypoints = route.Waypoints.Select(waypoint => MergeWaypoint(waypoint, localById)).ToList();
-        }
-
-        return routes;
-    }
-
-    private static TourRouteWaypointDto MergeWaypoint(TourRouteWaypointDto waypoint, IReadOnlyDictionary<int, PoiMobileDto> localById)
-    {
-        if (!localById.TryGetValue(waypoint.Poi.Id, out var localPoi))
-        {
-            return waypoint;
-        }
-
-        if (localPoi.UpdatedAtUtc <= waypoint.Poi.UpdatedAtUtc)
-        {
-            return waypoint;
-        }
-
-        waypoint.Poi = new PoiMobileDto
-        {
-            Id = waypoint.Poi.Id,
-            Title = localPoi.Title,
-            Subtitle = localPoi.Subtitle,
-            Description = localPoi.Description,
-            LanguageCode = localPoi.LanguageCode,
-            PrimaryLanguage = string.IsNullOrWhiteSpace(localPoi.PrimaryLanguage) ? waypoint.Poi.PrimaryLanguage : localPoi.PrimaryLanguage,
-            ImageUrl = localPoi.ImageUrl,
-            Location = localPoi.Location,
-            Latitude = localPoi.Latitude,
-            Longitude = localPoi.Longitude,
-            DistanceMeters = waypoint.Poi.DistanceMeters,
-            GeofenceRadiusMeters = localPoi.GeofenceRadiusMeters,
-            Category = localPoi.Category,
-            SpeechText = localPoi.SpeechText,
-            SpeechTextLanguageCode = localPoi.SpeechTextLanguageCode,
-            UpdatedAtUtc = localPoi.UpdatedAtUtc,
-            AudioAssets = localPoi.AudioAssets,
-            SpeechTexts = localPoi.SpeechTexts,
-        };
-
-        return waypoint;
     }
 
     private static string NormalizeLanguageCode(string? languageCode)

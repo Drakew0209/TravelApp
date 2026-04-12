@@ -62,28 +62,6 @@ public partial class AddToursAndTourPois : Migration
                     onDelete: ReferentialAction.Cascade);
             });
 
-        migrationBuilder.InsertData(
-            table: "Tours",
-            columns: new[] { "Id", "AnchorPoiId", "Name", "Description", "CoverImageUrl", "PrimaryLanguage", "IsPublished", "CreatedAtUtc", "UpdatedAtUtc" },
-            values: new object[,]
-            {
-                { 1, 1, "HCM Food Tour", "Tour ẩm thực Sài Gòn với các điểm dừng được sắp xếp theo lộ trình thật.", "https://placehold.co/1200x800/png?text=HCM+Food+Tour", "vi", true, new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero), null },
-                { 2, 4, "Hanoi Food Tour", "Tour ẩm thực Hà Nội với các mốc waypoint, bản đồ và audio tự động.", "https://placehold.co/1200x800/png?text=Hanoi+Food+Tour", "vi", true, new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero), null }
-            });
-
-        migrationBuilder.InsertData(
-            table: "TourPois",
-            columns: new[] { "Id", "TourId", "PoiId", "SortOrder", "DistanceFromPreviousMeters" },
-            values: new object[,]
-            {
-                { 1, 1, 1, 1, 0d },
-                { 2, 1, 2, 2, 900d },
-                { 3, 1, 3, 3, 1100d },
-                { 4, 2, 4, 1, 0d },
-                { 5, 2, 5, 2, 300d },
-                { 6, 2, 6, 3, 500d }
-            });
-
         migrationBuilder.CreateIndex(
             name: "IX_Tours_AnchorPoiId",
             table: "Tours",

@@ -189,6 +189,46 @@
                     </Border>
                 </VerticalStackLayout>
 
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Backup &amp; Restore"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#0D5B6C, Dark=#7ECFE3}" />
+
+                    <Border Stroke="{AppThemeBinding Light=#ECECF1, Dark=#2A2F3A}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14"
+                            BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                            Padding="14,12">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Export ra file SQLite để copy sang máy khác hoặc lưu backup. Import sẽ nạp lại file .db3 hiện có."
+                                   FontSize="13"
+                                   TextColor="{AppThemeBinding Light=#4D4D57, Dark=#B4BDCF}" />
+
+                            <HorizontalStackLayout Spacing="10">
+                                <Button Text="Export database"
+                                        Command="{Binding ExportDatabaseCommand}"
+                                        BackgroundColor="#E31667"
+                                        TextColor="White"
+                                        CornerRadius="16"
+                                        HorizontalOptions="FillAndExpand" />
+
+                                <Button Text="Import database"
+                                        Command="{Binding ImportDatabaseCommand}"
+                                        BackgroundColor="{AppThemeBinding Light=#EEF2F8, Dark=#202635}"
+                                        TextColor="{AppThemeBinding Light=#1B1C22, Dark=#EEF1F8}"
+                                        CornerRadius="16"
+                                        HorizontalOptions="FillAndExpand" />
+                            </HorizontalStackLayout>
+
+                            <Label Text="{Binding BackupStatus}"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
                 <Button Text="{Binding PrimaryActionText}"
                         Command="{Binding PrimaryActionCommand}"
                         Style="{StaticResource PrimaryPillButtonStyle}"

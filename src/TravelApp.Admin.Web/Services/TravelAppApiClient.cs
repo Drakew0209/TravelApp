@@ -55,6 +55,10 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         {
             return [];
         }
+        catch (HttpRequestException)
+        {
+            return [];
+        }
     }
 
     public async Task<PoiMobileDto?> GetPoiAsync(int id, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -71,25 +75,50 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         {
             return null;
         }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
     }
 
     public async Task<PoiMobileDto> CreatePoiAsync(UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/pois", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<PoiMobileDto>(cancellationToken: cancellationToken))!;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/pois", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<PoiMobileDto>(cancellationToken: cancellationToken))!;
+        }
+        catch (HttpRequestException)
+        {
+            return null!;
+        }
     }
 
     public async Task<bool> UpdatePoiAsync(int id, UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PutAsJsonAsync($"api/pois/{id}", request, cancellationToken);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/pois/{id}", request, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
     }
 
     public async Task<bool> DeletePoiAsync(int id, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.DeleteAsync($"api/pois/{id}", cancellationToken);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"api/pois/{id}", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
     }
 
     public async Task<IReadOnlyList<UserAdminDto>> GetUsersAsync(CancellationToken cancellationToken = default)
@@ -99,6 +128,10 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
             return await _httpClient.GetFromJsonAsync<List<UserAdminDto>>("api/admin/users", cancellationToken) ?? [];
         }
         catch (OperationCanceledException)
+        {
+            return [];
+        }
+        catch (HttpRequestException)
         {
             return [];
         }
@@ -114,6 +147,10 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         {
             return null;
         }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
     }
 
     public async Task<IReadOnlyList<RoleAdminDto>> GetRolesAsync(CancellationToken cancellationToken = default)
@@ -126,29 +163,54 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         {
             return [];
         }
+        catch (HttpRequestException)
+        {
+            return [];
+        }
     }
 
     public async Task<UserAdminDto?> CreateUserAsync(UpsertUserRequestDto request, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/admin/users", request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/admin/users", request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            return (await response.Content.ReadFromJsonAsync<UserAdminDto>(cancellationToken: cancellationToken))!;
+        }
+        catch (HttpRequestException)
         {
             return null;
         }
-
-        return (await response.Content.ReadFromJsonAsync<UserAdminDto>(cancellationToken: cancellationToken))!;
     }
 
     public async Task<bool> UpdateUserAsync(Guid id, UpsertUserRequestDto request, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PutAsJsonAsync($"api/admin/users/{id}", request, cancellationToken);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/admin/users/{id}", request, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
     }
 
     public async Task<bool> DeleteUserAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.DeleteAsync($"api/admin/users/{id}", cancellationToken);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"api/admin/users/{id}", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
     }
 
     public async Task<IReadOnlyList<TourAdminDto>> GetToursAsync(CancellationToken cancellationToken = default)
@@ -158,6 +220,10 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
             return await _httpClient.GetFromJsonAsync<List<TourAdminDto>>("api/admin/tours", cancellationToken) ?? [];
         }
         catch (OperationCanceledException)
+        {
+            return [];
+        }
+        catch (HttpRequestException)
         {
             return [];
         }
@@ -173,25 +239,50 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         {
             return null;
         }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
     }
 
     public async Task<TourAdminDto> CreateTourAsync(UpsertTourRequestDto request, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/admin/tours", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<TourAdminDto>(cancellationToken: cancellationToken))!;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/admin/tours", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<TourAdminDto>(cancellationToken: cancellationToken))!;
+        }
+        catch (HttpRequestException)
+        {
+            return null!;
+        }
     }
 
     public async Task<bool> UpdateTourAsync(int id, UpsertTourRequestDto request, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PutAsJsonAsync($"api/admin/tours/{id}", request, cancellationToken);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/admin/tours/{id}", request, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
     }
 
     public async Task<bool> DeleteTourAsync(int id, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.DeleteAsync($"api/admin/tours/{id}", cancellationToken);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"api/admin/tours/{id}", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
     }
 
 }

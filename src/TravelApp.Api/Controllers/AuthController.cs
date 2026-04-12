@@ -40,6 +40,19 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Revoke refresh token (logout)
+    /// </summary>
+    [HttpPost("logout")]
+    public async Task<IActionResult> LogoutAsync([FromBody] RefreshTokenRequestDto request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        await _authService.RevokeRefreshTokenAsync(request.RefreshToken);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Refresh access token using refresh token
     /// </summary>
     [HttpPost("refresh")]

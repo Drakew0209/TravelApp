@@ -25,6 +25,7 @@ public class AdminController : Controller
         var vm = new AdminDashboardViewModel
         {
             PoiCount = pois.Count,
+            QrCount = pois.Count,
             TourCount = tours.Count,
             PublishedTourCount = tours.Count(x => x.IsPublished),
             DraftTourCount = tours.Count(x => !x.IsPublished),

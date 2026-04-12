@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using BCrypt.Net;
@@ -24,7 +25,11 @@ public class AuthService : IAuthService
 
     public async Task<AuthResultDto?> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
-        var user = await FindUserByEmailAsync(email, cancellationToken);
+        var user = await _dbContext.Users
+            .AsNoTracking()
+            .Include(x => x.UserRoles)
+                .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
         if (user is null || !user.IsActive)
             return null;
 
@@ -33,7 +38,7 @@ public class AuthService : IAuthService
             return null;
 
         var accessToken = GenerateAccessToken(user);
-        var refreshToken = GenerateRefreshToken();
+        var refreshToken = await IssueRefreshTokenAsync(user.Id, cancellationToken);
 
         return new AuthResultDto(
             AccessToken: accessToken,
@@ -41,27 +46,71 @@ public class AuthService : IAuthService
             ExpiresAtUtc: DateTimeOffset.UtcNow.AddHours(1),
             TokenType: "Bearer",
             UserId: user.Id.ToString(),
-            Roles: new[] { "User" }
+            Roles: user.UserRoles
+                .Where(x => x.Role is not null)
+                .Select(x => x.Role.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList()
         );
     }
 
     public async Task<AuthResultDto?> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
-        // For demo purposes, accept any refresh token
-        // In production, validate against stored refresh tokens
         if (string.IsNullOrWhiteSpace(refreshToken))
             return null;
 
-        // Get the user from the current token (in a real app, decode and verify)
-        var newAccessToken = GenerateAccessToken(new User { Id = Guid.NewGuid(), Email = "user@example.com" });
-        var newRefreshToken = GenerateRefreshToken();
+        var tokenHash = HashRefreshToken(refreshToken);
+        var tokenRecord = await _dbContext.RefreshTokens
+            .Include(x => x.User)
+                .ThenInclude(x => x.UserRoles)
+                    .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
+
+        if (tokenRecord is null || tokenRecord.User is null || !tokenRecord.User.IsActive)
+        {
+            return null;
+        }
+
+        if (tokenRecord.RevokedAtUtc.HasValue || tokenRecord.ExpiresAtUtc <= DateTimeOffset.UtcNow)
+        {
+            return null;
+        }
+
+        var newRefreshToken = await IssueRefreshTokenAsync(tokenRecord.User.Id, cancellationToken);
+        tokenRecord.RevokedAtUtc = DateTimeOffset.UtcNow;
+        tokenRecord.ReplacedByTokenHash = HashRefreshToken(newRefreshToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return new AuthResultDto(
-            AccessToken: newAccessToken,
+            AccessToken: GenerateAccessToken(tokenRecord.User),
             RefreshToken: newRefreshToken,
             ExpiresAtUtc: DateTimeOffset.UtcNow.AddHours(1),
-            TokenType: "Bearer"
-        );
+            TokenType: "Bearer",
+            UserId: tokenRecord.User.Id.ToString(),
+            Roles: tokenRecord.User.UserRoles
+                .Where(x => x.Role is not null)
+                .Select(x => x.Role.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList());
+    }
+
+    public async Task RevokeRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return;
+        }
+
+        var tokenHash = HashRefreshToken(refreshToken);
+        var tokenRecord = await _dbContext.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
+        if (tokenRecord is null || tokenRecord.RevokedAtUtc.HasValue)
+        {
+            return;
+        }
+
+        tokenRecord.RevokedAtUtc = DateTimeOffset.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<UserProfileDto?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -91,7 +140,9 @@ public class AuthService : IAuthService
     private string GenerateAccessToken(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Secret"] ?? "your-secret-key-must-be-at-least-32-characters-long");
+        var key = Encoding.ASCII.GetBytes(GetRequiredJwtSetting("Jwt:Secret"));
+        var issuer = GetRequiredJwtSetting("Jwt:Issuer");
+        var audience = GetRequiredJwtSetting("Jwt:Audience");
 
         var claims = new List<Claim>
         {
@@ -101,12 +152,17 @@ public class AuthService : IAuthService
             new Claim("email_verified", "true"),
         };
 
+        foreach (var roleName in user.UserRoles.Where(x => x.Role is not null).Select(x => x.Role.Name).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, roleName));
+        }
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
             Expires = DateTime.UtcNow.AddHours(1),
-            Issuer = _configuration["Jwt:Issuer"] ?? "TravelApp",
-            Audience = _configuration["Jwt:Audience"] ?? "TravelAppUsers",
+            Issuer = issuer,
+            Audience = audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 
@@ -114,13 +170,45 @@ public class AuthService : IAuthService
         return tokenHandler.WriteToken(token);
     }
 
-    private string GenerateRefreshToken()
+    private async Task<string> IssueRefreshTokenAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var refreshToken = GenerateRefreshToken();
+
+        _dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = userId,
+            TokenHash = HashRefreshToken(refreshToken),
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            ExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(30)
+        });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return refreshToken;
+    }
+
+    private static string GenerateRefreshToken()
     {
         var randomNumber = new byte[64];
-        using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
-        {
-            rng.GetBytes(randomNumber);
-        }
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
+    }
+
+    private static string HashRefreshToken(string refreshToken)
+    {
+        var tokenBytes = Encoding.UTF8.GetBytes(refreshToken);
+        var hashBytes = SHA256.HashData(tokenBytes);
+        return Convert.ToBase64String(hashBytes);
+    }
+
+    private string GetRequiredJwtSetting(string key)
+    {
+        var value = _configuration[key];
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException($"Missing required JWT configuration value '{key}'.");
+        }
+
+        return value;
     }
 }

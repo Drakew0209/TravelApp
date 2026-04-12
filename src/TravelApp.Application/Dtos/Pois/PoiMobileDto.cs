@@ -19,6 +19,7 @@ public class PoiMobileDto
     public string? SpeechTextLanguageCode { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
     public bool IsUsedInTour { get; set; }
+    public List<PoiLocalizationDto> Localizations { get; set; } = [];
     public List<PoiAudioMobileDto> AudioAssets { get; set; } = [];
     public List<PoiSpeechTextMobileDto> SpeechTexts { get; set; } = [];
 }
@@ -54,6 +55,14 @@ public class PoiSpeechTextMobileDto
 {
     public string LanguageCode { get; set; } = "en";
     public string Text { get; set; } = string.Empty;
+}
+
+public class PoiLocalizationDto
+{
+    public string LanguageCode { get; set; } = "en";
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
 }
 
 public class UpsertPoiRequestDto

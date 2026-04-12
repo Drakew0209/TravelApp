@@ -6,6 +6,7 @@ public sealed class AdminDashboardViewModel
     public int PublishedTourCount { get; set; }
     public int DraftTourCount { get; set; }
     public int PoiCount { get; set; }
+    public int QrCount { get; set; }
     public int UserCount { get; set; }
     public string ApiBaseUrl { get; set; } = string.Empty;
     public IReadOnlyList<DashboardTourSummary> RecentTours { get; set; } = [];

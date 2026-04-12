@@ -8,6 +8,7 @@ public partial class TourDetailPage : ContentPage, IQueryAttributable
 {
     private readonly TourDetailViewModel _viewModel;
     private readonly IAudioService _audioService;
+    private bool _isFirstAppearing = true;
 
     public TourDetailPage()
     {
@@ -15,12 +16,25 @@ public partial class TourDetailPage : ContentPage, IQueryAttributable
         _viewModel = MauiProgram.Services.GetRequiredService<TourDetailViewModel>();
         _audioService = MauiProgram.Services.GetRequiredService<IAudioService>();
         BindingContext = _viewModel;
+        Appearing += OnPageAppearing;
         Disappearing += OnPageDisappearing;
+    }
+
+    private async void OnPageAppearing(object? sender, EventArgs e)
+    {
+        if (_isFirstAppearing)
+        {
+            _isFirstAppearing = false;
+            return;
+        }
+
+        await _viewModel.RefreshAsync();
     }
 
     private async void OnPageDisappearing(object? sender, EventArgs e)
     {
         await _viewModel.StopAsync();
+        _viewModel.Dispose();
         await _audioService.StopAsync();
     }
 

@@ -29,6 +29,48 @@
         </div>
     </div>
 
+    <div class="admin-card p-4">
+        <div class="section-header mb-3">
+            <div>
+                <h2 class="section-title">QR test nhanh</h2>
+                <p class="section-subtitle">Dùng các mã này để test ngay trên app mobile hoặc emulator fallback.</p>
+            </div>
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Chưa có POI để tạo QR. Hãy tạo một POI trước.</div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var poi in Model.Take(4))
+                {
+                    var qrContent = $"travelapp://poi/{poi.Id}";
+                    var qrImageUrl = $"https://quickchart.io/qr?size=180&text={Uri.EscapeDataString(qrContent)}";
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="border rounded-4 bg-body-tertiary p-3 h-100">
+                            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                <div>
+                                    <div class="fw-semibold">@poi.Title</div>
+                                    <div class="small text-muted">POI #@poi.Id</div>
+                                </div>
+                                <span class="soft-badge">QR</span>
+                            </div>
+
+                            <img src="@qrImageUrl" alt="QR for @poi.Title" class="img-fluid rounded-3 border bg-white p-2 mb-2" />
+
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" readonly value="@qrContent" id="poi-qr-@poi.Id" />
+                                <button type="button" class="btn btn-outline-primary" data-copy-text="#poi-qr-@poi.Id">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
     <div class="poi-grid">
         <div class="panel-card poi-table-card" data-poi-index>
             <div class="table-responsive">

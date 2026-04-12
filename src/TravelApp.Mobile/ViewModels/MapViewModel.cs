@@ -4,7 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using TravelApp.Models;
+using TravelApp.Models.Contracts;
 using TravelApp.Models.Runtime;
+using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.ViewModels;
@@ -13,8 +15,9 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IPoiApiClient _poiApiClient;
     private readonly ILocationProvider _locationProvider;
+    private readonly ILocalDatabaseService _localDatabaseService;
     private readonly ILogService _logService;
-    
+
     private string _statusText = "Đang tải vị trí...";
     private LocationSample? _userLocation;
     private bool _isLoading = true;
@@ -64,10 +67,12 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
     public MapViewModel(
         IPoiApiClient poiApiClient,
         ILocationProvider locationProvider,
+        ILocalDatabaseService localDatabaseService,
         ILogService logService)
     {
         _poiApiClient = poiApiClient;
         _locationProvider = locationProvider;
+        _localDatabaseService = localDatabaseService;
         _logService = logService;
 
         BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
@@ -75,7 +80,7 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
         OpenPoiDetailCommand = new Command<MapPinItem>(async pin =>
         {
             if (pin is null) return;
-            
+
             StatusText = $"Mở chi tiết cho: {pin.Title}";
             await Shell.Current.GoToAsync($"TourDetailPage?tourId={pin.PoiId}");
         });
@@ -88,25 +93,20 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
             IsLoading = true;
             StatusText = "Đang lấy vị trí hiện tại...";
 
-            // Get user location first
             UserLocation = await _locationProvider.GetCurrentLocationAsync(cancellationToken);
-            
-            if (UserLocation is null)
-            {
-                StatusText = "Không thể lấy vị trí GPS. Hiển thị tất cả POI.";
-            }
-            else
-            {
-                StatusText = $"Vị trí: {UserLocation.Latitude:F4}, {UserLocation.Longitude:F4}";
-            }
+            StatusText = UserLocation is null
+                ? "Không thể lấy vị trí GPS. Hiển thị dữ liệu gần nhất." 
+                : $"Vị trí: {UserLocation.Latitude:F4}, {UserLocation.Longitude:F4}";
 
-            // Load POI data
             await LoadDataAsync(cancellationToken);
         }
         catch (Exception ex)
         {
             _logService.Log(nameof(MapViewModel), $"InitializeAsync error: {ex.Message}");
-            StatusText = "Lỗi tải dữ liệu. Vui lòng thử lại.";
+            if (PoisData.Count == 0)
+            {
+                StatusText = "Lỗi tải dữ liệu. Vui lòng thử lại.";
+            }
         }
         finally
         {
@@ -118,98 +118,160 @@ public sealed class MapViewModel : INotifyPropertyChanged, IDisposable
     {
         try
         {
-            // Fetch POIs from API
-            var pois = await _poiApiClient.GetAllAsync(languageCode: "vi", cancellationToken: cancellationToken);
-            
-            if (pois is null || pois.Count == 0)
+            var language = UserProfileService.PreferredLanguage;
+            var cachedPois = _userLocation is null
+                ? await _localDatabaseService.GetPoisAsync(language, cancellationToken: cancellationToken)
+                : await _localDatabaseService.GetPoisAsync(language, _userLocation.Latitude, _userLocation.Longitude, 1500, cancellationToken);
+
+            if (cachedPois.Count > 0)
             {
-                StatusText = "Không có POI nào để hiển thị.";
+                ApplyPois(cachedPois.Select(MapCachedPoi).ToList(), "Đang hiển thị dữ liệu từ cache cục bộ.");
+            }
+
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            {
+                if (cachedPois.Count == 0)
+                {
+                    StatusText = "Không có POI nào để hiển thị.";
+                }
+
                 return;
             }
 
-            MainThread.BeginInvokeOnMainThread(() =>
+            var pois = await _poiApiClient.GetAllAsync(languageCode: language, cancellationToken: cancellationToken);
+            if (pois.Count == 0)
             {
-                PoisData.Clear();
-                PoiPins.Clear();
-
-                foreach (var poi in pois)
+                if (cachedPois.Count == 0)
                 {
-                    var (lat, lng) = ParseLocationCoordinates(poi);
-
-                    // Add to data collection
-                    PoisData.Add(new PoiModel
-                    {
-                        Id = poi.Id,
-                        Title = poi.Title,
-                        Subtitle = poi.Subtitle,
-                        ImageUrl = poi.ImageUrl,
-                        Location = poi.Location,
-                        Latitude = lat,
-                        Longitude = lng,
-                        Distance = CalculateDistance(poi),
-                        Duration = poi.Duration ?? "30 min",
-                        Description = poi.Description,
-                        Provider = poi.Provider,
-                        Credit = poi.Credit
-                    });
-
-                    // Add to map pins
-                    PoiPins.Add(new MapPinItem
-                    {
-                        PoiId = poi.Id,
-                        Title = poi.Title,
-                        Address = poi.Location,
-                        Latitude = lat,
-                        Longitude = lng
-                    });
+                    StatusText = "Không có POI nào để hiển thị.";
                 }
 
-                StatusText = $"Đã tải {pois.Count} POI";
-            });
+                return;
+            }
+
+            await _localDatabaseService.SavePoisAsync(pois.Select(MapPoiToMobileDto), cancellationToken);
+            ApplyPois(pois.Select(MapPoi).ToList(), $"Đã tải {pois.Count} POI");
         }
         catch (Exception ex)
         {
             _logService.Log(nameof(MapViewModel), $"LoadDataAsync error: {ex.Message}");
-            StatusText = "Lỗi khi tải POI.";
+            if (PoisData.Count == 0)
+            {
+                StatusText = "Lỗi khi tải POI.";
+            }
         }
     }
 
-    private string CalculateDistance(Models.Contracts.PoiDto poi)
+    private void ApplyPois(IReadOnlyList<PoiModel> pois, string statusText)
     {
-        // Placeholder - in real implementation, calculate from user location
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            PoisData.Clear();
+            PoiPins.Clear();
+
+            foreach (var poi in pois)
+            {
+                PoisData.Add(poi);
+                PoiPins.Add(new MapPinItem
+                {
+                    PoiId = poi.Id,
+                    Title = poi.Title,
+                    Address = poi.Location,
+                    Latitude = poi.Latitude,
+                    Longitude = poi.Longitude
+                });
+            }
+
+            StatusText = statusText;
+        });
+    }
+
+    private PoiModel MapPoi(PoiDto poi)
+    {
+        var (lat, lng) = ParseLocationCoordinates(poi);
+
+        return new PoiModel
+        {
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = lat,
+            Longitude = lng,
+            Distance = CalculateDistance(poi),
+            Duration = poi.Duration ?? "30 min",
+            Description = poi.Description,
+            Provider = poi.Provider,
+            Credit = poi.Credit
+        };
+    }
+
+    private static PoiModel MapCachedPoi(PoiMobileDto poi)
+    {
+        return new PoiModel
+        {
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = poi.Latitude,
+            Longitude = poi.Longitude,
+            Distance = poi.DistanceMeters.HasValue ? $"{poi.DistanceMeters.Value:F0} m" : string.Empty,
+            Duration = string.Empty,
+            Description = poi.Description,
+            Provider = null,
+            Credit = null
+        };
+    }
+
+    private static PoiMobileDto MapPoiToMobileDto(PoiDto poi)
+    {
+        return new PoiMobileDto
+        {
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle ?? string.Empty,
+            Description = poi.Description ?? string.Empty,
+            LanguageCode = poi.PrimaryLanguage ?? string.Empty,
+            PrimaryLanguage = poi.PrimaryLanguage ?? string.Empty,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = poi.Latitude,
+            Longitude = poi.Longitude,
+            GeofenceRadiusMeters = poi.GeofenceRadiusMeters ?? 100,
+            Category = poi.Category ?? string.Empty,
+            SpeechText = poi.SpeechText,
+            SpeechTextLanguageCode = poi.SpeechTextLanguageCode,
+            UpdatedAtUtc = poi.UpdatedAtUtc,
+            AudioAssets = poi.AudioAssets.Select(x => new PoiAudioMobileDto
+            {
+                LanguageCode = x.LanguageCode,
+                AudioUrl = x.AudioUrl,
+                Transcript = x.Transcript,
+                IsGenerated = x.IsGenerated
+            }).ToList(),
+            SpeechTexts = poi.SpeechTexts.Select(x => new PoiSpeechTextMobileDto
+            {
+                LanguageCode = x.LanguageCode,
+                Text = x.Text
+            }).ToList()
+        };
+    }
+
+    private string CalculateDistance(PoiDto poi)
+    {
         return "< 5 km";
     }
 
-    private (double lat, double lng) ParseLocationCoordinates(Models.Contracts.PoiDto poi)
+    private (double lat, double lng) ParseLocationCoordinates(PoiDto poi)
     {
-        if (poi.Latitude != 0 || poi.Longitude != 0)
-        {
-            return (poi.Latitude, poi.Longitude);
-        }
-
-        // Default HCM + Hanoi area coordinates based on location name
-        if (poi.Location.Contains("HCM") || poi.Location.Contains("TPHCM") || poi.Location.Contains("Sài Gòn"))
-        {
-            // HCM coordinates (random within city bounds)
-            var random = new Random();
-            return (10.7 + (random.NextDouble() - 0.5) * 0.1, 106.7 + (random.NextDouble() - 0.5) * 0.1);
-        }
-        else if (poi.Location.Contains("Hanoi") || poi.Location.Contains("Hà Nội"))
-        {
-            // Hanoi coordinates (random within city bounds)
-            var random = new Random();
-            return (21.0 + (random.NextDouble() - 0.5) * 0.1, 105.8 + (random.NextDouble() - 0.5) * 0.1);
-        }
-        else
-        {
-            // Default to HCM center
-            return (10.762622, 106.660172);
-        }
+        return poi.Latitude != 0 || poi.Longitude != 0 ? (poi.Latitude, poi.Longitude) : (0, 0);
     }
 
     public void Dispose()
     {
-        // Cleanup if needed
     }
 
     protected void OnPropertyChanged([CallerMemberName] string? name = null)

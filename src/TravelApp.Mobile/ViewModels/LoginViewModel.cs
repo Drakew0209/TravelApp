@@ -78,6 +78,7 @@ public class LoginViewModel : INotifyPropertyChanged
                 return;
             }
 
+            UserProfileService.SetRoles(result.Roles);
             AuthStateService.IsLoggedIn = true;
             await Shell.Current.GoToAsync("..");
         });

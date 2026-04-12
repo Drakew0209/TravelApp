@@ -12,8 +12,8 @@
         Route="ExplorePage" />
 
     <ShellContent
-        Title="POI Live"
-        ContentTemplate="{DataTemplate local:PoiListPage}"
-        Route="PoiListPage" />
+        Title="Map"
+        ContentTemplate="{DataTemplate local:MapPage}"
+        Route="MapPage" />
 
 </Shell>

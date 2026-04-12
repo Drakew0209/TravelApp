@@ -21,4 +21,8 @@ public interface ILocalDatabaseService
         string? audioUrl,
         string? localFilePath,
         CancellationToken cancellationToken = default);
+
+    Task<string> ExportDatabaseAsync(string destinationDirectory, string? fileName = null, CancellationToken cancellationToken = default);
+
+    Task ImportDatabaseAsync(string sourceFilePath, CancellationToken cancellationToken = default);
 }

@@ -18,6 +18,7 @@ public partial class ExplorePage : ContentPage
     private readonly ILocationPollingService _locationPollingService;
     private readonly ILogger<ExplorePage> _logger;
     private Microsoft.Maui.Controls.Maps.Map? _map;
+    private Microsoft.Maui.Controls.Maps.Map? _discoverMap;
     private IDispatcherTimer? _audioStatusTimer;
     private bool _explorePinsAttached;
     private int? _selectedExplorePoiId;
@@ -35,6 +36,7 @@ public partial class ExplorePage : ContentPage
         AttachExplorePinsObservers();
         _locationPollingService.OnLocationUpdated += OnLocationUpdated;
         InitializeMap();
+        InitializeDiscoverMap();
         UpdateAudioStatus();
     }
 
@@ -83,6 +85,18 @@ public partial class ExplorePage : ContentPage
         InitializeMapInContainer("ExploreMapContainer", showUser: true, radiusKm: 1);
     }
 
+    private void InitializeDiscoverMap()
+    {
+#if WINDOWS
+        if (string.IsNullOrWhiteSpace(Windows.Services.Maps.MapService.ServiceToken))
+        {
+            return;
+        }
+#endif
+
+        InitializeMapInContainer("DiscoverMapContainer", showUser: true, radiusKm: 1.2);
+    }
+
     private void InitializeMapInContainer(string containerName, bool showUser, double radiusKm)
     {
         var map = new Microsoft.Maui.Controls.Maps.Map
@@ -101,7 +115,15 @@ public partial class ExplorePage : ContentPage
 
         mapContainer.Children.Clear();
         mapContainer.Children.Add(map);
-        _map = map;
+
+        if (string.Equals(containerName, "ExploreMapContainer", StringComparison.OrdinalIgnoreCase))
+        {
+            _map = map;
+        }
+        else if (string.Equals(containerName, "DiscoverMapContainer", StringComparison.OrdinalIgnoreCase))
+        {
+            _discoverMap = map;
+        }
 
         var hoChiMinhCity = new Location(10.7769, 106.7009);
         map.MoveToRegion(MapSpan.FromCenterAndRadius(hoChiMinhCity, Distance.FromKilometers(radiusKm)));

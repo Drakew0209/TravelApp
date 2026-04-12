@@ -12,6 +12,7 @@ public sealed class TourRoutePlaybackService : ITourRoutePlaybackService, IDispo
 
     private readonly ILocationTrackerService _locationTrackerService;
     private readonly IAudioService _audioService;
+    private readonly ILocalDatabaseService _localDatabaseService;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<TourRoutePlaybackService> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -30,11 +31,13 @@ public sealed class TourRoutePlaybackService : ITourRoutePlaybackService, IDispo
     public TourRoutePlaybackService(
         ILocationTrackerService locationTrackerService,
         IAudioService audioService,
+        ILocalDatabaseService localDatabaseService,
         TimeProvider timeProvider,
         ILogger<TourRoutePlaybackService> logger)
     {
         _locationTrackerService = locationTrackerService;
         _audioService = audioService;
+        _localDatabaseService = localDatabaseService;
         _timeProvider = timeProvider;
         _logger = logger;
 
@@ -283,12 +286,60 @@ public sealed class TourRoutePlaybackService : ITourRoutePlaybackService, IDispo
     {
         try
         {
-            await _audioService.PlayPoiAudioAsync(poi, cancellationToken);
+            var playbackPoi = await ResolvePlaybackPoiAsync(poi, cancellationToken);
+            await _audioService.PlayPoiAudioAsync(playbackPoi, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to auto-play audio for POI {PoiId}.", poi.Id);
         }
+    }
+
+    private async Task<PoiMobileDto> ResolvePlaybackPoiAsync(PoiMobileDto poi, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var requestedLanguage = NormalizeLanguage(poi.SpeechTextLanguageCode ?? poi.LanguageCode ?? poi.PrimaryLanguage);
+            var localPois = await _localDatabaseService.GetPoisAsync(requestedLanguage, cancellationToken: cancellationToken);
+            var localPoi = localPois.FirstOrDefault(x => x.Id == poi.Id);
+            if (localPoi is null)
+            {
+                return poi;
+            }
+
+            return new PoiMobileDto
+            {
+                Id = poi.Id,
+                Title = localPoi.Title,
+                Subtitle = localPoi.Subtitle,
+                Description = localPoi.Description,
+                LanguageCode = string.IsNullOrWhiteSpace(localPoi.LanguageCode) ? poi.LanguageCode : localPoi.LanguageCode,
+                PrimaryLanguage = string.IsNullOrWhiteSpace(localPoi.PrimaryLanguage) ? poi.PrimaryLanguage : localPoi.PrimaryLanguage,
+                ImageUrl = localPoi.ImageUrl,
+                Location = localPoi.Location,
+                Latitude = localPoi.Latitude,
+                Longitude = localPoi.Longitude,
+                DistanceMeters = poi.DistanceMeters,
+                GeofenceRadiusMeters = localPoi.GeofenceRadiusMeters,
+                Category = localPoi.Category,
+                SpeechText = localPoi.SpeechText ?? poi.SpeechText,
+                SpeechTextLanguageCode = localPoi.SpeechTextLanguageCode ?? poi.SpeechTextLanguageCode,
+                UpdatedAtUtc = localPoi.UpdatedAtUtc,
+                AudioAssets = localPoi.AudioAssets.Count > 0 ? localPoi.AudioAssets : poi.AudioAssets,
+                SpeechTexts = localPoi.SpeechTexts.Count > 0 ? localPoi.SpeechTexts : poi.SpeechTexts
+            };
+        }
+        catch
+        {
+            return poi;
+        }
+    }
+
+    private static string NormalizeLanguage(string? languageCode)
+    {
+        return string.IsNullOrWhiteSpace(languageCode)
+            ? string.Empty
+            : languageCode.Trim().ToLowerInvariant();
     }
 
     private static double GetActivationRadiusMeters(TourRouteWaypointDto waypoint)

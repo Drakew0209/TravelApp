@@ -161,25 +161,55 @@
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding ToggleSpeechLanguageMenuCommand}" />
                                     </Border.GestureRecognizers>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding CanEditSpeechText}" Value="False">
+                                            <Setter Property="IsVisible" Value="False" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
                                     <Label Text="{Binding SelectedSpeechLanguageDisplayText}"
                                            FontSize="14"
                                            TextColor="#D31963"
                                            VerticalTextAlignment="Center" />
                                 </Border>
                             </Grid>
-                            <Editor Text="{Binding SpeechTextInput}"
-                                    Unfocused="OnSpeechTextEditorUnfocused"
-                                    AutoSize="TextChanges"
-                                    Placeholder="Nhập nội dung sẽ được đọc khi phát audio..."
-                                    BackgroundColor="Transparent"
-                                    TextColor="{AppThemeBinding Light=#2B2D33, Dark=#EEF1F8}"
-                                    HeightRequest="140" />
-                            <Button Text="Lưu text TTS"
-                                    Command="{Binding SaveSpeechTextCommand}"
-                                    Style="{StaticResource PrimaryPillButtonStyle}"
-                                    HeightRequest="52"
-                                    CornerRadius="26"
-                                    FontSize="18" />
+
+                            <VerticalStackLayout Spacing="8">
+                                <VerticalStackLayout.Triggers>
+                                    <DataTrigger TargetType="VerticalStackLayout" Binding="{Binding CanEditSpeechText}" Value="False">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </VerticalStackLayout.Triggers>
+
+                                <Editor Text="{Binding SpeechTextInput}"
+                                        Unfocused="OnSpeechTextEditorUnfocused"
+                                        AutoSize="TextChanges"
+                                        Placeholder="Nhập nội dung sẽ được đọc khi phát audio..."
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light=#2B2D33, Dark=#EEF1F8}"
+                                        HeightRequest="140" />
+                                <Button Text="Lưu text TTS"
+                                        Command="{Binding SaveSpeechTextCommand}"
+                                        Style="{StaticResource PrimaryPillButtonStyle}"
+                                        HeightRequest="52"
+                                        CornerRadius="26"
+                                        FontSize="18" />
+                            </VerticalStackLayout>
+
+                            <Border Stroke="#D31963"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14"
+                                    BackgroundColor="#FFF4F8"
+                                    Padding="12,10">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding CanEditSpeechText}" Value="True">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Label Text="Chỉ tài khoản có role Owner hoặc Admin mới được sửa text to speech trực tiếp trên app."
+                                       FontSize="13"
+                                       TextColor="#B51A50"
+                                       LineBreakMode="WordWrap" />
+                            </Border>
                         </VerticalStackLayout>
                     </Border>
 

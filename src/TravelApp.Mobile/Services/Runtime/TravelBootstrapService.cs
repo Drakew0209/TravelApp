@@ -13,6 +13,7 @@ public class TravelBootstrapService : ITravelBootstrapService
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(2);
 
     private readonly IPoiApiClient _poiApiClient;
+    private readonly ILocalDatabaseService _localDatabaseService;
     private readonly ILocationProvider _locationProvider;
     private readonly ITravelRuntimePipeline _travelRuntimePipeline;
     private readonly TimeProvider _timeProvider;
@@ -27,12 +28,14 @@ public class TravelBootstrapService : ITravelBootstrapService
 
     public TravelBootstrapService(
         IPoiApiClient poiApiClient,
+        ILocalDatabaseService localDatabaseService,
         ILocationProvider locationProvider,
         ITravelRuntimePipeline travelRuntimePipeline,
         TimeProvider timeProvider,
         ILogger<TravelBootstrapService> logger)
     {
         _poiApiClient = poiApiClient;
+        _localDatabaseService = localDatabaseService;
         _locationProvider = locationProvider;
         _travelRuntimePipeline = travelRuntimePipeline;
         _timeProvider = timeProvider;
@@ -112,8 +115,17 @@ public class TravelBootstrapService : ITravelBootstrapService
 
         if (pois.Count == 0)
         {
-            pois = [CreateDemoPoiNear(location, languageCode)];
-            _logger.LogInformation("Travel bootstrap: using demo POI fallback for runtime flow.");
+            var localPois = await _localDatabaseService.GetPoisAsync(languageCode, location.Latitude, location.Longitude, NearbyRadiusMeters, cancellationToken);
+            pois = localPois.Select(MapLocalPoiToDto).ToList();
+
+            if (pois.Count > 0)
+            {
+                _logger.LogInformation("Travel bootstrap: using local cache fallback for runtime flow ({PoiCount}).", pois.Count);
+            }
+            else
+            {
+                _logger.LogWarning("Travel bootstrap: no nearby POIs available from API or local cache.");
+            }
         }
 
         _cachedPois = pois;
@@ -166,22 +178,29 @@ public class TravelBootstrapService : ITravelBootstrapService
         return earthRadiusMeters * c;
     }
 
-    private static PoiDto CreateDemoPoiNear(LocationSample location, string? languageCode)
+    private static PoiDto MapLocalPoiToDto(PoiMobileDto poi)
     {
-        var lang = string.IsNullOrWhiteSpace(languageCode) ? "en" : languageCode;
-
         return new PoiDto
         {
-            Id = 999001,
-            Title = "Demo POI - Nearby Audio Point",
-            Subtitle = "Demo route",
-            ImageUrl = "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1f?w=1200&h=500&fit=crop",
-            Location = "Demo location",
-            Latitude = location.Latitude + 0.0001,
-            Longitude = location.Longitude + 0.0001,
-            GeofenceRadiusMeters = 200,
-            PrimaryLanguage = lang,
-            AudioAssets = []
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = poi.Latitude,
+            Longitude = poi.Longitude,
+            GeofenceRadiusMeters = poi.GeofenceRadiusMeters,
+            Distance = poi.DistanceMeters.HasValue ? $"{poi.DistanceMeters.Value:F0} m" : string.Empty,
+            Duration = string.Empty,
+            Description = poi.Description,
+            Provider = null,
+            Credit = null,
+            Category = poi.Category,
+            PrimaryLanguage = poi.PrimaryLanguage,
+            SpeechText = poi.SpeechText,
+            SpeechTextLanguageCode = poi.SpeechTextLanguageCode,
+            AudioAssets = poi.AudioAssets.Select(audio => new PoiAudioDto(audio.LanguageCode, audio.AudioUrl, audio.Transcript, audio.IsGenerated)).ToList(),
+            SpeechTexts = poi.SpeechTexts.Select(text => new PoiSpeechTextDto(text.LanguageCode, text.Text)).ToList()
         };
     }
 }

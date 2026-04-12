@@ -43,7 +43,7 @@
                     </div>
                     <div class="col-md-6">
                         <label asp-for="PrimaryLanguage" class="form-label">Primary language</label>
-                        <input asp-for="PrimaryLanguage" class="form-control" data-live-preview-input="PrimaryLanguage" />
+                        <select asp-for="PrimaryLanguage" asp-items="Model.LanguageOptions" class="form-select" data-live-preview-input="PrimaryLanguage"></select>
                     </div>
                 </div>
             </div>
@@ -169,7 +169,7 @@
                     @for (var i = 0; i < Model.AudioAssets.Count; i++)
                     {
                         <div class="row g-2 mb-3" data-repeat-row>
-                            <div class="col-md-2"><input asp-for="AudioAssets[@i].LanguageCode" class="form-control" /></div>
+                            <div class="col-md-2"><select asp-for="AudioAssets[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
                             <div class="col-md-5"><input asp-for="AudioAssets[@i].AudioUrl" class="form-control" placeholder="Audio URL" /></div>
                             <div class="col-md-5"><input asp-for="AudioAssets[@i].Transcript" class="form-control" placeholder="Transcript" /></div>
                         </div>
@@ -189,7 +189,7 @@
                     @for (var i = 0; i < Model.SpeechTexts.Count; i++)
                     {
                         <div class="row g-2 mb-3" data-repeat-row>
-                            <div class="col-md-2"><input asp-for="SpeechTexts[@i].LanguageCode" class="form-control" /></div>
+                            <div class="col-md-2"><select asp-for="SpeechTexts[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
                             <div class="col-md-10"><textarea asp-for="SpeechTexts[@i].Text" rows="2" class="form-control"></textarea></div>
                         </div>
                     }

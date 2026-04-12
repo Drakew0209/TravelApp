@@ -25,6 +25,7 @@ public class PoiDto
     public string? PrimaryLanguage { get; set; }
     public string? SpeechText { get; set; }
     public string? SpeechTextLanguageCode { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
     public IReadOnlyList<PoiLocalizationDto> Localizations { get; set; } = [];
     public IReadOnlyList<PoiAudioDto> AudioAssets { get; set; } = [];
     public IReadOnlyList<PoiSpeechTextDto> SpeechTexts { get; set; } = [];

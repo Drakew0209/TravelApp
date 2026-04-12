@@ -13,15 +13,16 @@ public class ProfileApiClient : ApiClientBase, IProfileApiClient
 
     public async Task<ProfileDto?> GetMyProfileAsync(CancellationToken cancellationToken = default)
     {
-        var client = CreateClient(authorized: true);
-        var response = await client.GetAsync("api/auth/profile", cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, "api/auth/profile"), authorized: true, cancellationToken);
         return await ReadAsAsync<ProfileDto>(response, cancellationToken);
     }
 
     public async Task<bool> UpdateMyProfileAsync(UpdateProfileRequestDto request, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient(authorized: true);
-        var response = await client.PutAsJsonAsync("api/auth/profile", request, JsonOptions, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Put, "api/auth/profile")
+        {
+            Content = JsonContent.Create(request, options: JsonOptions)
+        }, authorized: true, cancellationToken);
         return response.IsSuccessStatusCode;
     }
 }

@@ -25,12 +25,14 @@ public class ToursController : Controller
         return View(model);
     }
 
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Create(int? anchorPoiId, CancellationToken cancellationToken)
     {
         var model = await BuildEditorModelAsync((TourAdminDto?)null, anchorPoiId, cancellationToken);
         return View(model);
     }
 
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> AttachPoi(int poiId, CancellationToken cancellationToken)
     {
         var model = await BuildAttachPoiModelAsync(poiId, cancellationToken);
@@ -39,6 +41,7 @@ public class ToursController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> AttachPoi(AttachPoiToToursViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
@@ -48,6 +51,7 @@ public class ToursController : Controller
         }
 
         var selectedTourIds = model.SelectedTourIds.Where(x => x > 0).Distinct().ToHashSet();
+        var anyFailure = false;
         foreach (var tourId in selectedTourIds)
         {
             var tour = await _apiClient.GetTourAsync(tourId, cancellationToken);
@@ -95,15 +99,24 @@ public class ToursController : Controller
                 SpeechTexts = tour.SpeechTexts
             };
 
-            await _apiClient.UpdateTourAsync(tourId, request, cancellationToken);
+            var success = await _apiClient.UpdateTourAsync(tourId, request, cancellationToken);
+            if (!success)
+            {
+                anyFailure = true;
+                TempData["ErrorMessage"] = $"Không thể cập nhật tour #{tourId}.";
+            }
         }
 
-        TempData["SuccessMessage"] = "Đã thêm POI vào các tour đã chọn.";
+        if (!anyFailure)
+        {
+            TempData["SuccessMessage"] = "Đã thêm POI vào các tour đã chọn.";
+        }
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Create(TourEditorViewModel model, CancellationToken cancellationToken)
     {
         model = await BuildTourEditorModelFromFormAsync(model, cancellationToken);
@@ -115,10 +128,17 @@ public class ToursController : Controller
         }
 
         var request = ToRequest(model);
-        await _apiClient.CreateTourAsync(request, cancellationToken);
+        var created = await _apiClient.CreateTourAsync(request, cancellationToken);
+        if (created is null || created.Id <= 0)
+        {
+            ModelState.AddModelError(string.Empty, "Không thể tạo tour. Vui lòng kiểm tra kết nối API và thử lại.");
+            return View(model);
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
         var existing = await _apiClient.GetTourAsync(id, cancellationToken);
@@ -133,6 +153,7 @@ public class ToursController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Edit(int id, TourEditorViewModel model, CancellationToken cancellationToken)
     {
         model = await BuildTourEditorModelFromFormAsync(model, cancellationToken);
@@ -147,7 +168,8 @@ public class ToursController : Controller
         var updated = await _apiClient.UpdateTourAsync(id, request, cancellationToken);
         if (!updated)
         {
-            return NotFound();
+            ModelState.AddModelError(string.Empty, "Không thể cập nhật tour. Vui lòng thử lại.");
+            return View(model);
         }
 
         return RedirectToAction(nameof(Index)); 
@@ -155,9 +177,15 @@ public class ToursController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        await _apiClient.DeleteTourAsync(id, cancellationToken);
+        var deleted = await _apiClient.DeleteTourAsync(id, cancellationToken);
+        if (!deleted)
+        {
+            TempData["ErrorMessage"] = "Không thể xóa tour.";
+        }
+
         return RedirectToAction(nameof(Index));
     }
 

@@ -16,8 +16,10 @@ public class AuthApiClient : ApiClientBase, IAuthApiClient
 
     public async Task<AuthResultDto?> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient();
-        var response = await client.PostAsJsonAsync("api/auth/login", request, JsonOptions, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Post, "api/auth/login")
+        {
+            Content = JsonContent.Create(request, options: JsonOptions)
+        }, cancellationToken: cancellationToken);
         var result = await ReadAsAsync<AuthResultDto>(response, cancellationToken);
 
         PersistToken(result);
@@ -27,8 +29,10 @@ public class AuthApiClient : ApiClientBase, IAuthApiClient
 
     public async Task<AuthResultDto?> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient();
-        var response = await client.PostAsJsonAsync("api/auth/register", request, JsonOptions, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Post, "api/auth/register")
+        {
+            Content = JsonContent.Create(request, options: JsonOptions)
+        }, cancellationToken: cancellationToken);
         var result = await ReadAsAsync<AuthResultDto>(response, cancellationToken);
 
         PersistToken(result);
@@ -38,8 +42,10 @@ public class AuthApiClient : ApiClientBase, IAuthApiClient
 
     public async Task<AuthResultDto?> RefreshTokenAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient();
-        var response = await client.PostAsJsonAsync("api/auth/refresh", request, JsonOptions, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Post, "api/auth/refresh")
+        {
+            Content = JsonContent.Create(request, options: JsonOptions)
+        }, cancellationToken: cancellationToken);
         var result = await ReadAsAsync<AuthResultDto>(response, cancellationToken);
 
         PersistToken(result);
@@ -49,11 +55,34 @@ public class AuthApiClient : ApiClientBase, IAuthApiClient
 
     public Task LogoutAsync(CancellationToken cancellationToken = default)
     {
-        _tokenStore.AccessToken = null;
-        _tokenStore.RefreshToken = null;
-        _tokenStore.ExpiresAtUtc = null;
-        _tokenStore.TokenType = "Bearer";
-        return Task.CompletedTask;
+        return LogoutAsyncInternal(cancellationToken);
+    }
+
+    private async Task LogoutAsyncInternal(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_tokenStore.RefreshToken))
+            {
+                return;
+            }
+
+            var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Post, "api/auth/logout")
+            {
+                Content = JsonContent.Create(new { refreshToken = _tokenStore.RefreshToken }, options: JsonOptions)
+            }, cancellationToken: cancellationToken);
+            response.EnsureSuccessStatusCode();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _tokenStore.AccessToken = null;
+            _tokenStore.RefreshToken = null;
+            _tokenStore.ExpiresAtUtc = null;
+            _tokenStore.TokenType = "Bearer";
+        }
     }
 
     private void PersistToken(AuthResultDto? result)

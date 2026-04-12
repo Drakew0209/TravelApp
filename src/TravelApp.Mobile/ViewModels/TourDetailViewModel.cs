@@ -17,11 +17,14 @@ public class TourDetailViewModel : INotifyPropertyChanged
     private PoiModel? _tour;
     private PoiDto? _currentPoiDto;
     private string _speechTextInput = string.Empty;
-    private string _selectedSpeechLanguageCode = "vi";
+    private string _selectedSpeechLanguageCode = string.Empty;
     private bool _isSavingSpeechText;
     private bool _suppressSpeechTextAutoSave;
+    private bool _hasPendingSpeechTextChanges;
     private bool _isSpeechLanguageMenuOpen;
     private bool _isBookmarked;
+    private bool _canEditSpeechText;
+    private int? _currentTourId;
     private CancellationTokenSource? _speechTextAutoSaveCts;
     private readonly IPoiApiClient _poiApiClient;
     private readonly ILocalDatabaseService _localDatabaseService;
@@ -41,6 +44,21 @@ public class TourDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(Description));
             OnPropertyChanged(nameof(Credit));
             OnPropertyChanged(nameof(SpeechTextInput));
+        }
+    }
+
+    public bool CanEditSpeechText
+    {
+        get => _canEditSpeechText;
+        private set
+        {
+            if (_canEditSpeechText == value)
+            {
+                return;
+            }
+
+            _canEditSpeechText = value;
+            OnPropertyChanged();
         }
     }
 
@@ -70,6 +88,10 @@ public class TourDetailViewModel : INotifyPropertyChanged
             }
 
             _speechTextInput = value;
+            if (!_suppressSpeechTextAutoSave)
+            {
+                _hasPendingSpeechTextChanges = true;
+            }
             OnPropertyChanged();
 
             if (!_suppressSpeechTextAutoSave)
@@ -94,8 +116,8 @@ public class TourDetailViewModel : INotifyPropertyChanged
         }
     }
 
-    public string ProviderName => Tour?.Provider ?? "TravelApp";
-    public string Description => Tour?.SpeechText ?? Tour?.Description ?? "This tour is available daily and includes the most iconic landmarks in the area.";
+    public string ProviderName => Tour?.Provider ?? string.Empty;
+    public string Description => Tour?.SpeechText ?? Tour?.Description ?? string.Empty;
     public string Credit => Tour?.Credit ?? string.Empty;
     public string SelectedSpeechLanguageDisplayText => GetLanguageDisplayText(SelectedSpeechLanguageCode);
     public ObservableCollection<SpeechLanguageOption> SpeechLanguages => _speechLanguages;
@@ -189,6 +211,9 @@ public class TourDetailViewModel : INotifyPropertyChanged
         ToggleSpeechLanguageMenuCommand = new Command(() => IsSpeechLanguageMenuOpen = !IsSpeechLanguageMenuOpen);
         CloseSpeechLanguageMenuCommand = new Command(() => IsSpeechLanguageMenuOpen = false);
         SelectSpeechLanguageCommand = new Command<SpeechLanguageOption>(async option => await SelectSpeechLanguageAsync(option));
+
+        UpdateSpeechTextPermission();
+        UserProfileService.ProfileChanged += OnUserProfileChanged;
     }
 
     private async Task DownloadTourAsync()
@@ -215,12 +240,22 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
     public Task PersistSpeechTextAsync()
     {
+        if (!_hasPendingSpeechTextChanges)
+        {
+            return Task.CompletedTask;
+        }
+
         CancelSpeechTextAutoSave();
         return SaveSpeechTextAsync(showConfirmation: false);
     }
 
     public async Task StopAsync()
     {
+        if (!_hasPendingSpeechTextChanges)
+        {
+            return;
+        }
+
         CancelSpeechTextAutoSave();
         await SaveSpeechTextAsync(showConfirmation: false);
     }
@@ -230,7 +265,32 @@ public class TourDetailViewModel : INotifyPropertyChanged
         if (!int.TryParse(tourId, out var id))
             return;
 
+        _currentTourId = id;
         _ = LoadAsync(id);
+    }
+
+    public Task RefreshAsync()
+    {
+        if (!_currentTourId.HasValue)
+        {
+            return Task.CompletedTask;
+        }
+
+        var selectedLanguage = SelectedSpeechLanguageCode;
+        return RefreshAndRestoreSelectionAsync(_currentTourId.Value, selectedLanguage);
+    }
+
+    private async Task RefreshAndRestoreSelectionAsync(int tourId, string? selectedLanguage)
+    {
+        await LoadAsync(tourId);
+
+        var normalized = NormalizeLanguageCode(selectedLanguage);
+        if (!string.IsNullOrWhiteSpace(normalized) && _speechTextsByLanguage.ContainsKey(normalized))
+        {
+            SelectedSpeechLanguageCode = normalized;
+            UpdateSelectedLanguageFlags();
+            ApplySpeechTextForSelectedLanguage();
+        }
     }
 
     private async Task LoadAsync(int id)
@@ -238,35 +298,28 @@ public class TourDetailViewModel : INotifyPropertyChanged
         _suppressSpeechTextAutoSave = true;
         try
         {
-            PoiMobileDto? cachedPoi = null;
-
-            try
-            {
-                var localPois = await _localDatabaseService.GetPoisAsync(UserProfileService.PreferredLanguage, cancellationToken: CancellationToken.None);
-                cachedPoi = localPois.FirstOrDefault(x => x.Id == id);
-            }
-            catch
-            {
-            }
-
             try
             {
                 var dto = await _tourRouteCatalogService.ResolvePoiAsync(id, UserProfileService.PreferredLanguage);
                 if (dto is not null)
                 {
-                    if (cachedPoi is not null && !string.IsNullOrWhiteSpace(cachedPoi.SpeechText))
-                    {
-                        dto.SpeechText = cachedPoi.SpeechText;
-                        dto.SpeechTextLanguageCode = cachedPoi.SpeechTextLanguageCode;
-                        dto.SpeechTexts = cachedPoi.SpeechTexts.Select(x => new PoiSpeechTextDto(x.LanguageCode, x.Text)).ToList();
-                    }
-
                     _currentPoiDto = dto;
                     Tour = MapPoi(dto);
                     SetLoadedSpeechTexts(dto.SpeechTexts, dto.SpeechTextLanguageCode, dto.SpeechText ?? dto.Description, dto.PrimaryLanguage);
+                    _hasPendingSpeechTextChanges = false;
                     IsBookmarked = await _bookmarkHistoryService.IsBookmarkedAsync(id, CancellationToken.None);
                     return;
                 }
+            }
+            catch
+            {
+            }
+
+            PoiMobileDto? cachedPoi = null;
+            try
+            {
+                var localPois = await _localDatabaseService.GetPoisAsync(UserProfileService.PreferredLanguage, cancellationToken: CancellationToken.None);
+                cachedPoi = localPois.FirstOrDefault(x => x.Id == id);
             }
             catch
             {
@@ -316,12 +369,14 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
                 Tour = cachedModel;
                 SetLoadedSpeechTexts(_currentPoiDto.SpeechTexts, _currentPoiDto.SpeechTextLanguageCode, _currentPoiDto.SpeechText ?? _currentPoiDto.Description, _currentPoiDto.PrimaryLanguage);
+                _hasPendingSpeechTextChanges = false;
                 IsBookmarked = await _bookmarkHistoryService.IsBookmarkedAsync(id, CancellationToken.None);
                 return;
             }
 
             Tour = null;
             SpeechTextInput = string.Empty;
+            _hasPendingSpeechTextChanges = false;
             IsBookmarked = false;
         }
         finally
@@ -332,6 +387,11 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
     private async Task SaveSpeechTextAsync(bool showConfirmation = true)
     {
+        if (!CanEditSpeechText)
+        {
+            return;
+        }
+
         if (Tour is null || _currentPoiDto is null || IsSavingSpeechText)
         {
             return;
@@ -416,6 +476,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(Tour));
             OnPropertyChanged(nameof(Description));
             SpeechTextInput = speechText ?? string.Empty;
+            _hasPendingSpeechTextChanges = false;
             _suppressSpeechTextAutoSave = false;
             if (showConfirmation)
             {
@@ -465,13 +526,20 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
     private async Task SelectSpeechLanguageAsync(SpeechLanguageOption? option)
     {
-        if (option is null)
+        if (option is null || !CanEditSpeechText)
         {
             return;
         }
 
         IsSpeechLanguageMenuOpen = false;
-        await PersistSpeechTextAsync();
+        if (_hasPendingSpeechTextChanges)
+        {
+            await PersistSpeechTextAsync();
+        }
+        else if (_currentTourId.HasValue)
+        {
+            await RefreshAsync();
+        }
 
         SelectedSpeechLanguageCode = NormalizeLanguageCode(option.LanguageCode);
         UpdateSelectedLanguageFlags();
@@ -495,21 +563,14 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
         if (_speechTextsByLanguage.Count == 0 && !string.IsNullOrWhiteSpace(fallbackText))
         {
-            var defaultLanguage = NormalizeLanguageCode(selectedLanguageHint ?? primaryLanguage ?? "vi");
+            var defaultLanguage = NormalizeLanguageCode(selectedLanguageHint ?? primaryLanguage);
             _speechTextsByLanguage[defaultLanguage] = fallbackText.Trim();
-        }
-
-        if (!_speechTextsByLanguage.ContainsKey("vi") && !string.IsNullOrWhiteSpace(fallbackText))
-        {
-            _speechTextsByLanguage["vi"] = fallbackText.Trim();
         }
 
         var persistedLanguage = NormalizeLanguageCode(selectedLanguageHint ?? primaryLanguage);
         SelectedSpeechLanguageCode = !string.IsNullOrWhiteSpace(persistedLanguage) && _speechTextsByLanguage.ContainsKey(persistedLanguage)
             ? persistedLanguage
-            : _speechTextsByLanguage.ContainsKey("vi")
-                ? "vi"
-                : NormalizeLanguageCode(_speechTextsByLanguage.Keys.FirstOrDefault() ?? "vi");
+            : NormalizeLanguageCode(_speechTextsByLanguage.Keys.FirstOrDefault());
 
         UpdateSelectedLanguageFlags();
         ApplySpeechTextForSelectedLanguage();
@@ -562,7 +623,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
             var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var items = new List<SpeechLanguageOption>();
 
-            foreach (var code in _speechTextsByLanguage.Keys.Concat([SelectedSpeechLanguageCode, UserProfileService.PreferredLanguage, "vi"]))
+            foreach (var code in _speechTextsByLanguage.Keys.Concat([SelectedSpeechLanguageCode, UserProfileService.PreferredLanguage]))
             {
                 AddLanguageCode(code, items, codes);
             }
@@ -587,7 +648,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 _speechLanguages.Clear();
-                foreach (var code in _speechTextsByLanguage.Keys.Concat([SelectedSpeechLanguageCode, "vi"]).Distinct(StringComparer.OrdinalIgnoreCase))
+                foreach (var code in _speechTextsByLanguage.Keys.Concat([SelectedSpeechLanguageCode]).Distinct(StringComparer.OrdinalIgnoreCase))
                 {
                     _speechLanguages.Add(new SpeechLanguageOption
                     {
@@ -739,6 +800,21 @@ public class TourDetailViewModel : INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    private void OnUserProfileChanged(object? sender, EventArgs e)
+    {
+        UpdateSpeechTextPermission();
+    }
+
+    private void UpdateSpeechTextPermission()
+    {
+        CanEditSpeechText = UserProfileService.CanEditSpeechText;
+    }
+
+    public void Dispose()
+    {
+        UserProfileService.ProfileChanged -= OnUserProfileChanged;
     }
 }
 

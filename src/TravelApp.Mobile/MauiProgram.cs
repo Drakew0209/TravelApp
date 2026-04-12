@@ -6,6 +6,7 @@ using TravelApp.Services.Abstractions;
 using TravelApp.Services.Api;
 using TravelApp.Services.Runtime;
 using TravelApp.ViewModels;
+using ZXing.Net.Maui.Controls;
 
 namespace TravelApp
 {
@@ -38,6 +39,7 @@ namespace TravelApp
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseBarcodeReader()
                 .AddAudio()
                 .ConfigureFonts(fonts =>
                 {
@@ -81,6 +83,7 @@ namespace TravelApp
             builder.Services.AddTransient<ITourRouteCatalogService, TourRouteCatalogService>();
             builder.Services.AddSingleton<ITourRouteGeometryService, AzureMapsRouteGeometryService>();
             builder.Services.AddTransient<IPoiApiService, PoiApiService>();
+            builder.Services.AddSingleton<IQrCodeParserService, QrCodeParserService>();
 
             builder.Services.AddSingleton(TimeProvider.System);
             builder.Services.AddSingleton<ILogService, RuntimeLogService>();
@@ -111,6 +114,7 @@ namespace TravelApp
             builder.Services.AddTransient<BookmarksHistoryViewModel>();
             builder.Services.AddTransient<TourMapRouteViewModel>();
             builder.Services.AddTransient<MapViewModel>();
+            builder.Services.AddTransient<QrScannerPage>();
 
             builder.Services.AddSingleton<AppShell>();
 

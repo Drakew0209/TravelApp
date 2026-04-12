@@ -44,7 +44,7 @@
                     </div>
                     <div class="col-md-6">
                         <label asp-for="PrimaryLanguage" class="form-label">Primary language</label>
-                        <input asp-for="PrimaryLanguage" class="form-control" data-live-preview-input="PrimaryLanguage" />
+                        <select asp-for="PrimaryLanguage" asp-items="Model.LanguageOptions" class="form-select" data-live-preview-input="PrimaryLanguage"></select>
                     </div>
                 </div>
             </div>
@@ -90,12 +90,104 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label asp-for="SpeechTextLanguageCode" class="form-label">Speech text language</label>
-                        <input asp-for="SpeechTextLanguageCode" class="form-control" data-live-preview-input="SpeechTextLanguageCode" />
+                        <select asp-for="SpeechTextLanguageCode" asp-items="Model.LanguageOptions" class="form-select" data-live-preview-input="SpeechTextLanguageCode" data-speech-text-language-select="true"></select>
                     </div>
                     <div class="col-12">
                         <label asp-for="SpeechText" class="form-label">Speech text</label>
-                        <textarea asp-for="SpeechText" rows="3" class="form-control" data-live-preview-input="SpeechText"></textarea>
+                        <textarea asp-for="SpeechText" rows="3" class="form-control" data-live-preview-input="SpeechText" data-speech-text-input="true"></textarea>
                     </div>
+                </div>
+            </div>
+
+            <div class="admin-card p-4 mb-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Localizations</h2>
+                        <p class="section-subtitle">Chỉnh sửa nội dung đa ngôn ngữ cho POI.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="poi-localization-rows" data-prefix="Localizations">+ Add row</button>
+                </div>
+                <div id="poi-localization-rows" data-next-index="@Model.Localizations.Count">
+                    @for (var i = 0; i < Model.Localizations.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="Localizations">
+                            <div class="col-md-2"><select asp-for="Localizations[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
+                            <div class="col-md-3"><input asp-for="Localizations[@i].Title" class="form-control" placeholder="Title" /></div>
+                            <div class="col-md-3"><input asp-for="Localizations[@i].Subtitle" class="form-control" placeholder="Subtitle" /></div>
+                            <div class="col-md-4"><input asp-for="Localizations[@i].Description" class="form-control" placeholder="Description" /></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="admin-card p-4 mb-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Audio assets</h2>
+                        <p class="section-subtitle">Sửa audio trực tiếp cho POI.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="poi-audio-rows" data-prefix="AudioAssets">+ Add row</button>
+                </div>
+                <div id="poi-audio-rows" data-next-index="@Model.AudioAssets.Count">
+                    @for (var i = 0; i < Model.AudioAssets.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="AudioAssets">
+                            <div class="col-md-2"><input asp-for="AudioAssets[@i].LanguageCode" class="form-control" placeholder="vi" /></div>
+                            <div class="col-md-5"><input asp-for="AudioAssets[@i].AudioUrl" class="form-control" placeholder="Audio URL" /></div>
+                            <div class="col-md-5"><input asp-for="AudioAssets[@i].Transcript" class="form-control" placeholder="Transcript" /></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">QR code</h2>
+                        <p class="section-subtitle">Dùng để gắn tại địa điểm du lịch. Mobile app sẽ mở thẳng trang detail POI.</p>
+                    </div>
+                </div>
+
+                @if (Model.CanShowQr)
+                {
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-5 col-lg-4">
+                            <img src="@Model.QrImageUrl" alt="QR code for POI" class="img-fluid rounded-4 border border-1 border-light-subtle bg-white p-2" />
+                        </div>
+                        <div class="col-md-7 col-lg-8">
+                            <label class="form-label">QR content</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" readonly value="@Model.QrContent" id="poiQrContent" />
+                                <button type="button" class="btn btn-outline-primary" data-copy-text="#poiQrContent">Copy</button>
+                            </div>
+                            <div class="small text-secondary">Nội dung này có thể dán vào app/debug emulator hoặc dùng để tạo QR ở ngoài.</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info mb-0">
+                        Lưu POI trước để tạo QR. Sau khi có `Id`, hệ thống sẽ sinh mã QR mở trực tiếp đến POI detail.
+                    </div>
+                }
+            </div>
+
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Speech texts</h2>
+                        <p class="section-subtitle">Sửa nội dung speech theo từng ngôn ngữ.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="poi-speech-rows" data-prefix="SpeechTexts">+ Add row</button>
+                </div>
+                <div id="poi-speech-rows" data-next-index="@Model.SpeechTexts.Count">
+                    @for (var i = 0; i < Model.SpeechTexts.Count; i++)
+                    {
+                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="SpeechTexts" data-speech-text-row="true">
+                            <div class="col-md-2"><select asp-for="SpeechTexts[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select" data-speech-text-row-language="true"></select></div>
+                            <div class="col-md-10"><textarea asp-for="SpeechTexts[@i].Text" rows="2" class="form-control" data-speech-text-row-text="true"></textarea></div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>

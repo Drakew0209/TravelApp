@@ -1,4 +1,17 @@
 ﻿document.addEventListener('click', (event) => {
+    const copyButton = event.target.closest('[data-copy-text]');
+    if (copyButton) {
+        const selector = copyButton.getAttribute('data-copy-text');
+        const input = selector ? document.querySelector(selector) : null;
+        const value = (input && 'value' in input ? input.value : input?.textContent) ?? '';
+
+        if (value.trim()) {
+            navigator.clipboard?.writeText(value.trim());
+        }
+
+        return;
+    }
+
     const button = event.target.closest('[data-add-row]');
     if (!button) {
         const sidebarToggle = event.target.closest('[data-sidebar-toggle]');
@@ -28,6 +41,7 @@
 
     const nextIndex = Number.parseInt(container.getAttribute('data-next-index') ?? `${rows.length}`, 10);
     const row = rows[0].cloneNode(true);
+    const oldIndex = Number.parseInt(rows[0].querySelector('input[name], select[name], textarea[name]')?.getAttribute('name')?.match(/\[(\d+)\]/)?.[1] ?? '0', 10);
 
     row.querySelectorAll('input, select, textarea').forEach((element) => {
         if (element instanceof HTMLSelectElement) {
@@ -41,18 +55,31 @@
         } else {
             element.value = '';
         }
-    });
 
-    row.innerHTML = row.innerHTML.replace(new RegExp(`${prefix}\\[\\d+\\]`, 'g'), `${prefix}[${nextIndex}]`);
-    row.querySelectorAll('input, select, textarea').forEach((element) => {
         const name = element.getAttribute('name');
         if (name) {
-            element.setAttribute('name', name.replace(new RegExp(`${prefix}\\[\\d+\\]`, 'g'), `${prefix}[${nextIndex}]`));
+            element.setAttribute('name', name
+                .replace(new RegExp(`${prefix}\\[${oldIndex}\\]`, 'g'), `${prefix}[${nextIndex}]`)
+                .replace(new RegExp(`${prefix}\\.${oldIndex}\\.`, 'g'), `${prefix}.${nextIndex}.`));
         }
 
         const id = element.getAttribute('id');
         if (id) {
-            element.setAttribute('id', id.replace(new RegExp(`${prefix}_(\\d+)__`, 'g'), `${prefix}_${nextIndex}__`));
+            element.setAttribute('id', id.replace(new RegExp(`${prefix}_${oldIndex}__`, 'g'), `${prefix}_${nextIndex}__`));
+        }
+
+        const htmlFor = element.getAttribute('for');
+        if (htmlFor) {
+            element.setAttribute('for', htmlFor.replace(new RegExp(`${prefix}_${oldIndex}__`, 'g'), `${prefix}_${nextIndex}__`));
+        }
+    });
+
+    row.querySelectorAll('[data-valmsg-for]').forEach((element) => {
+        const value = element.getAttribute('data-valmsg-for');
+        if (value) {
+            element.setAttribute('data-valmsg-for', value
+                .replace(new RegExp(`${prefix}\\[${oldIndex}\\]`, 'g'), `${prefix}[${nextIndex}]`)
+                .replace(new RegExp(`${prefix}\\.${oldIndex}\\.`, 'g'), `${prefix}.${nextIndex}.`));
         }
     });
 
@@ -141,6 +168,50 @@ const updateLivePreview = (root) => {
         const audioFilled = Array.from(audioCount).filter((x) => (x.value ?? '').trim()).length;
         const speechFilled = Array.from(speechCount).filter((x) => (x.value ?? '').trim()).length;
         routeAssets.textContent = `${audioFilled} audio · ${speechFilled} text`;
+    }
+};
+
+const normalizeLanguageCode = (value) => (value ?? '').trim().toLowerCase();
+
+const syncSpeechTextFields = (form, source) => {
+    if (!form) {
+        return;
+    }
+
+    const languageSelect = form.querySelector('[data-speech-text-language-select="true"]');
+    const speechTextInput = form.querySelector('[data-speech-text-input="true"]');
+    const selectedLanguage = normalizeLanguageCode(languageSelect?.value);
+    const rows = Array.from(form.querySelectorAll('[data-speech-text-row="true"]'));
+
+    const selectedRow = rows.find((row) => {
+        const rowLanguage = normalizeLanguageCode(row.querySelector('[data-speech-text-row-language="true"]')?.value);
+        return rowLanguage === selectedLanguage;
+    });
+
+    const sourceIsLanguageSelect = source === languageSelect || source?.closest('[data-speech-text-language-select="true"]');
+    const sourceIsSpeechTextInput = source?.closest('[data-speech-text-input="true"]');
+    const sourceIsSpeechTextRow = source?.closest('[data-speech-text-row="true"]');
+
+    if ((sourceIsLanguageSelect || sourceIsSpeechTextRow || !source) && selectedRow && speechTextInput) {
+        const rowText = selectedRow.querySelector('[data-speech-text-row-text="true"]');
+        speechTextInput.value = rowText?.value ?? '';
+    }
+
+    if (sourceIsSpeechTextInput && selectedRow) {
+        const rowText = selectedRow.querySelector('[data-speech-text-row-text="true"]');
+        if (rowText) {
+            rowText.value = speechTextInput?.value ?? '';
+        }
+    }
+
+    if (sourceIsSpeechTextRow && selectedRow && speechTextInput) {
+        const rowText = selectedRow.querySelector('[data-speech-text-row-text="true"]');
+        speechTextInput.value = rowText?.value ?? '';
+    }
+
+    const preview = form.querySelector('[data-live-preview="speech-text"]');
+    if (preview) {
+        preview.textContent = (speechTextInput?.value ?? '').trim() || 'Nội dung speech sẽ hiển thị ở đây';
     }
 };
 
@@ -373,78 +444,6 @@ const updateUserIndex = (root) => {
     updateUserPreviewCard(card, firstVisible);
 };
 
-const updateUserPreviewCard = (card, row) => {
-    if (!card) {
-        return;
-    }
-
-    const get = (name, fallback = '—') => (row?.getAttribute(`data-user-${name}`) ?? '').trim() || fallback;
-
-    const avatar = card.querySelector('[data-user-preview="avatar"]');
-    if (avatar) avatar.textContent = (get('name', 'U').charAt(0) || 'U').toUpperCase();
-
-    const name = card.querySelector('[data-user-preview="name"]');
-    if (name) name.textContent = get('name', 'No users');
-
-    const email = card.querySelector('[data-user-preview="email"]');
-    if (email) email.textContent = get('email', 'Tạo user đầu tiên để xem preview');
-
-    const status = card.querySelector('[data-user-preview="status"]');
-    if (status) status.textContent = get('status', 'Chưa có dữ liệu');
-
-    const badge = card.querySelector('[data-user-preview="badge"]');
-    if (badge) badge.textContent = row ? 'Featured' : 'No result';
-
-    const statusText = card.querySelector('[data-user-preview="status-text"]');
-    if (statusText) statusText.textContent = get('status');
-
-    const nameText = card.querySelector('[data-user-preview="name-text"]');
-    if (nameText) nameText.textContent = get('name');
-
-    const emailText = card.querySelector('[data-user-preview="email-text"]');
-    if (emailText) emailText.textContent = get('email');
-
-    const roles = card.querySelector('[data-user-preview="roles"]');
-    if (roles) {
-        const roleNames = (row?.getAttribute('data-user-roles') ?? '').split('|').map((x) => x.trim()).filter(Boolean);
-        roles.innerHTML = roleNames.length === 0
-            ? '—'
-            : roleNames.map((role) => `<span class="user-role-chip">${role}</span>`).join('');
-    }
-};
-
-const updateUserIndex = (root) => {
-    if (!root) {
-        return;
-    }
-
-    const searchInput = root.querySelector('[data-user-search]');
-    const rows = Array.from(root.querySelectorAll('[data-user-row]'));
-    const card = root.querySelector('[data-user-feature-card]');
-    const noResults = root.querySelector('[data-user-no-results]');
-    if (!searchInput || rows.length === 0) {
-        return;
-    }
-
-    const query = (searchInput.value ?? '').trim().toLowerCase();
-    let firstVisible = null;
-
-    rows.forEach((row) => {
-        const haystack = (row.getAttribute('data-search-text') ?? '').toLowerCase();
-        const isVisible = !query || haystack.includes(query);
-        row.hidden = !isVisible;
-        if (isVisible && firstVisible === null) {
-            firstVisible = row;
-        }
-    });
-
-    if (noResults) {
-        noResults.hidden = firstVisible !== null;
-    }
-
-    updateUserPreviewCard(card, firstVisible);
-};
-
 document.addEventListener('input', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
@@ -465,18 +464,12 @@ document.addEventListener('input', (event) => {
         return;
     }
 
-    const userSearch = target.closest('[data-user-search]');
-    if (userSearch) {
-        const root = userSearch.closest('[data-user-index]');
-        updateUserIndex(root);
-        return;
-    }
-
     const form = target.closest('form[data-live-preview-form]');
     if (!form) {
         return;
     }
 
+    syncSpeechTextFields(form, target);
     syncAnchorPoiDetails(form);
     updateLivePreview(form);
 });
@@ -501,18 +494,12 @@ document.addEventListener('change', (event) => {
         return;
     }
 
-    const userSearch = target.closest('[data-user-search]');
-    if (userSearch) {
-        const root = userSearch.closest('[data-user-index]');
-        updateUserIndex(root);
-        return;
-    }
-
     const form = target.closest('form[data-live-preview-form]');
     if (!form) {
         return;
     }
 
+    syncSpeechTextFields(form, target);
     syncAnchorPoiDetails(form);
     updateLivePreview(form);
 });
@@ -520,6 +507,7 @@ document.addEventListener('change', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('form[data-live-preview-form]').forEach((form) => {
         syncAnchorPoiDetails(form);
+        syncSpeechTextFields(form);
         updateLivePreview(form);
     });
     document.querySelectorAll('[data-poi-index]').forEach((root) => updatePoiIndex(root));

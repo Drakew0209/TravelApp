@@ -13,18 +13,16 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
 
     public async Task<IReadOnlyList<PoiDto>> GetAllAsync(string? languageCode = null, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient();
         var endpoint = string.IsNullOrWhiteSpace(languageCode)
             ? "api/pois"
             : $"api/pois?lang={Uri.EscapeDataString(languageCode)}";
 
-        var response = await client.GetAsync(endpoint, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
         return await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? [];
     }
 
     public async Task<IReadOnlyList<PoiDto>> GetNearbyAsync(NearbyPoiQueryDto query, string? languageCode = null, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient();
         var queryString =
             $"lat={query.Latitude}&lng={query.Longitude}&radiusMeters={query.RadiusMeters}";
 
@@ -33,39 +31,41 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
             queryString += $"&lang={Uri.EscapeDataString(languageCode)}";
         }
 
-        var response = await client.GetAsync($"api/pois?{queryString}", cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, $"api/pois?{queryString}"), cancellationToken: cancellationToken);
         return await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? [];
     }
 
     public async Task<PoiDto?> GetByIdAsync(int id, string? languageCode = null, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient();
         var endpoint = string.IsNullOrWhiteSpace(languageCode)
             ? $"api/pois/{id}"
             : $"api/pois/{id}?lang={Uri.EscapeDataString(languageCode)}";
 
-        var response = await client.GetAsync(endpoint, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
         return await ReadAsAsync<PoiDto>(response, cancellationToken);
     }
 
     public async Task<PoiDto?> CreateAsync(UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient(authorized: true);
-        var response = await client.PostAsJsonAsync("api/pois", request, JsonOptions, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Post, "api/pois")
+        {
+            Content = JsonContent.Create(request, options: JsonOptions)
+        }, authorized: true, cancellationToken);
         return await ReadAsAsync<PoiDto>(response, cancellationToken);
     }
 
     public async Task<bool> UpdateAsync(int id, UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient(authorized: true);
-        var response = await client.PutAsJsonAsync($"api/pois/{id}", request, JsonOptions, cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Put, $"api/pois/{id}")
+        {
+            Content = JsonContent.Create(request, options: JsonOptions)
+        }, authorized: true, cancellationToken);
         return response.IsSuccessStatusCode;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var client = CreateClient(authorized: true);
-        var response = await client.DeleteAsync($"api/pois/{id}", cancellationToken);
+        var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Delete, $"api/pois/{id}"), authorized: true, cancellationToken);
         return response.IsSuccessStatusCode;
     }
 }

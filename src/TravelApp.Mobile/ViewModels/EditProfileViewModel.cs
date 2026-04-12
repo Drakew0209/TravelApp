@@ -14,7 +14,7 @@ public class EditProfileViewModel : INotifyPropertyChanged
 
     private string _email = string.Empty;
     private string _fullName = string.Empty;
-    private string _countryCode = "+971";
+    private string _countryCode = string.Empty;
     private string _phoneNumber = string.Empty;
     private readonly IProfileApiClient _profileApiClient;
 

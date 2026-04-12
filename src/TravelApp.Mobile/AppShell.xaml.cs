@@ -17,6 +17,7 @@
             Routing.RegisterRoute("BookmarksHistoryPage", typeof(BookmarksHistoryPage));
             Routing.RegisterRoute("TourMapRoutePage", typeof(TourMapRoutePage));
             Routing.RegisterRoute("MapPage", typeof(MapPage));
+            Routing.RegisterRoute("QrScannerPage", typeof(QrScannerPage));
         }
     }
 }

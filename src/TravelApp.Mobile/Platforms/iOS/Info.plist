@@ -17,6 +17,8 @@
 	<string>TravelApp needs your location to show nearby tours and your current position on the map.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>TravelApp needs your location to show nearby tours and your current position on the map.</string>
+ <key>NSCameraUsageDescription</key>
+	<string>TravelApp needs camera access to scan QR codes at tourist locations.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

@@ -1,7 +1,6 @@
 using TravelApp.Application;
 using TravelApp.Infrastructure;
 using TravelApp.Infrastructure.Persistence;
-using TravelApp.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -13,9 +12,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddApplication();
 
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "your-secret-key-must-be-at-least-32-characters-long";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "TravelApp";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "TravelAppUsers";
+var jwtSecret = GetRequiredConfigValue(builder.Configuration, "Jwt:Secret");
+var jwtIssuer = GetRequiredConfigValue(builder.Configuration, "Jwt:Issuer");
+var jwtAudience = GetRequiredConfigValue(builder.Configuration, "Jwt:Audience");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -53,15 +52,10 @@ using (var scope = app.Services.CreateScope())
 
     dbContext.Database.Migrate();
     await EnsureTourSchemaAsync(dbContext);
+    await EnsureRefreshTokenSchemaAsync(dbContext);
     await EnsurePoiSpeechTextColumnAsync(dbContext);
     await EnsurePoiSpeechTextsColumnAsync(dbContext);
     await EnsurePoiSpeechTextLanguageCodeColumnAsync(dbContext);
-    await ProgramStartupHelpers.EnsureSeedPoisAsync(dbContext);
-
-    if (app.Environment.IsDevelopment())
-    {
-        await ProgramStartupHelpers.EnsureDemoLoginUsersAsync(dbContext);
-    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -119,6 +113,68 @@ static bool ShouldBaselineLegacyDatabase(TravelAppDbContext dbContext)
     }
 }
 
+static async Task EnsureRefreshTokenSchemaAsync(TravelAppDbContext dbContext)
+{
+    var connection = dbContext.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+    {
+        await connection.OpenAsync();
+    }
+
+    try
+    {
+        using var tableCommand = connection.CreateCommand();
+        tableCommand.CommandText = "SELECT OBJECT_ID(N'[RefreshTokens]')";
+        var tableObjectId = await tableCommand.ExecuteScalarAsync();
+
+        if (tableObjectId is null or DBNull)
+        {
+            await dbContext.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE [RefreshTokens] (
+                    [Id] uniqueidentifier NOT NULL,
+                    [UserId] uniqueidentifier NOT NULL,
+                    [TokenHash] nvarchar(128) NOT NULL,
+                    [CreatedAtUtc] datetimeoffset NOT NULL,
+                    [ExpiresAtUtc] datetimeoffset NOT NULL,
+                    [RevokedAtUtc] datetimeoffset NULL,
+                    [ReplacedByTokenHash] nvarchar(128) NULL,
+                    CONSTRAINT [PK_RefreshTokens] PRIMARY KEY ([Id]),
+                    CONSTRAINT [FK_RefreshTokens_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE CASCADE
+                );
+                """);
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_RefreshTokens_TokenHash' AND object_id = OBJECT_ID(N'[RefreshTokens]'))
+                CREATE UNIQUE INDEX [IX_RefreshTokens_TokenHash] ON [RefreshTokens] ([TokenHash]);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_RefreshTokens_UserId_ExpiresAtUtc' AND object_id = OBJECT_ID(N'[RefreshTokens]'))
+                CREATE INDEX [IX_RefreshTokens_UserId_ExpiresAtUtc] ON [RefreshTokens] ([UserId], [ExpiresAtUtc]);
+
+            IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+            BEGIN
+                CREATE TABLE [__EFMigrationsHistory] (
+                    [MigrationId] nvarchar(150) NOT NULL,
+                    [ProductVersion] nvarchar(32) NOT NULL,
+                    CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+                );
+            END;
+
+            IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260410180000_AddRefreshTokens')
+                INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('20260410180000_AddRefreshTokens', '10.0.0');
+            """);
+    }
+    finally
+    {
+        if (shouldClose)
+        {
+            await connection.CloseAsync();
+        }
+    }
+}
+
 static async Task EnsurePoiSpeechTextsColumnAsync(TravelAppDbContext dbContext)
 {
     var connection = dbContext.Database.GetDbConnection();
@@ -151,6 +207,17 @@ static async Task EnsurePoiSpeechTextsColumnAsync(TravelAppDbContext dbContext)
     }
 }
 
+static string GetRequiredConfigValue(IConfiguration configuration, string key)
+{
+    var value = configuration[key];
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new InvalidOperationException($"Missing required configuration value '{key}'.");
+    }
+
+    return value;
+}
+
 static void SeedLegacyMigrationHistory(TravelAppDbContext dbContext)
 {
     dbContext.Database.ExecuteSqlRaw("""
@@ -165,15 +232,6 @@ static void SeedLegacyMigrationHistory(TravelAppDbContext dbContext)
 
         IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260331040844_InitialCreate')
             INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('20260331040844_InitialCreate', '10.0.0');
-
-        IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260401000000_SeedFoodTours')
-            INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('20260401000000_SeedFoodTours', '10.0.0');
-
-        IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260402000000_SeedUsers')
-            INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('20260402000000_SeedUsers', '10.0.0');
-
-        IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260406000000_FixSeedUserPasswordHashes')
-            INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('20260406000000_FixSeedUserPasswordHashes', '10.0.0');
 
         IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260406190000_AddToursAndTourPois')
             INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('20260406190000_AddToursAndTourPois', '10.0.0');

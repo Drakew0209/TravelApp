@@ -222,6 +222,15 @@ public class PoiQueryService : IPoiQueryService
             SpeechTextLanguageCode = string.IsNullOrWhiteSpace(preferredSpeechLanguage) ? speech.LanguageCode : preferredSpeechLanguage,
             UpdatedAtUtc = poi.UpdatedAtUtc ?? DateTimeOffset.UtcNow,
             IsUsedInTour = usedPoiIds?.Contains(poi.Id) ?? false,
+            Localizations = poi.Localizations
+                .Select(x => new PoiLocalizationDto
+                {
+                    LanguageCode = x.LanguageCode,
+                    Title = x.Title,
+                    Subtitle = x.Subtitle,
+                    Description = x.Description
+                })
+                .ToList(),
             AudioAssets = poi.AudioAssets
                 .OrderByDescending(x => string.Equals(x.LanguageCode, requestedLanguage, StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(x => string.Equals(x.LanguageCode, primaryLanguage, StringComparison.OrdinalIgnoreCase))
@@ -310,16 +319,19 @@ public class PoiQueryService : IPoiQueryService
         poi.SpeechText = ResolveLegacySpeechText(speechTexts, poi.PrimaryLanguage, request.Description);
         poi.SpeechTextLanguageCode = NormalizeLanguageCode(request.SpeechTextLanguageCode ?? request.PrimaryLanguage);
 
-        poi.Localizations.Clear();
-        foreach (var localization in request.Localizations)
+        if (request.Localizations.Count > 0)
         {
-            poi.Localizations.Add(new PoiLocalization
+            poi.Localizations.Clear();
+            foreach (var localization in request.Localizations)
             {
-                LanguageCode = NormalizeLanguageCode(localization.LanguageCode),
-                Title = localization.Title,
-                Subtitle = localization.Subtitle,
-                Description = localization.Description
-            });
+                poi.Localizations.Add(new PoiLocalization
+                {
+                    LanguageCode = NormalizeLanguageCode(localization.LanguageCode),
+                    Title = localization.Title,
+                    Subtitle = localization.Subtitle,
+                    Description = localization.Description
+                });
+            }
         }
 
         poi.AudioAssets.Clear();

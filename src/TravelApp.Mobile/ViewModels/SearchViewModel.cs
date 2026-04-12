@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Text;
+using TravelApp.Models;
+using TravelApp.Models.Contracts;
 using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
@@ -19,6 +21,7 @@ public class SearchViewModel : INotifyPropertyChanged
     private bool _museumEnabled = true;
     private bool _questEnabled = true;
     private readonly IPoiApiClient _poiApiClient;
+    private readonly ILocalDatabaseService _localDatabaseService;
 
     public ObservableCollection<SearchDestinationItem> PopularDestinations { get; }
     public ObservableCollection<SearchDestinationItem> SearchResults { get; }
@@ -107,9 +110,10 @@ public class SearchViewModel : INotifyPropertyChanged
     public ICommand SearchCommand { get; }
     public ICommand OpenDestinationCommand { get; }
 
-    public SearchViewModel(IPoiApiClient poiApiClient)
+    public SearchViewModel(IPoiApiClient poiApiClient, ILocalDatabaseService localDatabaseService)
     {
         _poiApiClient = poiApiClient;
+        _localDatabaseService = localDatabaseService;
         PopularDestinations = [];
         SearchResults = [];
         TourTypes = new ObservableCollection<TourTypeOption>
@@ -155,64 +159,200 @@ public class SearchViewModel : INotifyPropertyChanged
         try
         {
             var language = UserProfileService.PreferredLanguage;
-            var pois = await _poiApiClient.GetAllAsync(language);
+            var cachedPois = await _localDatabaseService.GetPoisAsync(language);
+            var cachedDestinations = BuildDestinations(cachedPois.Select(MapPoi).ToList());
 
-            // Group POIs by location and create destination items
-            var destinations = pois
-                .GroupBy(p => string.IsNullOrWhiteSpace(p.Category) ? p.Subtitle : p.Category)
-                .Select(g => new SearchDestinationItem
-                {
-                    Name = g.Key ?? "Unknown",
-                    Type = "DESTINATION",
-                    Count = g.Count(),
-                    ImageUrl = g.FirstOrDefault()?.ImageUrl ?? "https://placehold.co/1200x600/png?text=Travel+App",
-                    FirstPoiId = g.MinBy(p => p.Id)?.Id ?? 0,
-                    SearchText = string.Join(" ", g.SelectMany(p => new[] { p.Title, p.Subtitle, p.Description, p.Location, p.Category }).Where(x => !string.IsNullOrWhiteSpace(x)))
-                })
-                .ToList();
-
-            if (destinations.Count == 0)
+            if (cachedDestinations.Count > 0)
             {
-                LoadMockDestinations();
+                ApplyDestinations(cachedDestinations);
             }
-            else
+
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    _allDestinations.Clear();
-                    _allDestinations.AddRange(destinations);
+                return;
+            }
 
-                    PopularDestinations.Clear();
-                    foreach (var destination in destinations.Take(2))
-                    {
-                        PopularDestinations.Add(destination);
-                    }
+            var onlinePois = await _poiApiClient.GetAllAsync(language);
+            if (onlinePois.Count == 0)
+            {
+                return;
+            }
 
-                    RebuildSearchResults();
-                });
+            await _localDatabaseService.SavePoisAsync(onlinePois.Select(MapPoiToMobileDto));
+            var destinations = BuildDestinations(onlinePois.Select(MapPoiOnline).ToList());
+            if (destinations.Count > 0)
+            {
+                ApplyDestinations(destinations);
             }
         }
         catch
         {
-            LoadMockDestinations();
+            if (_allDestinations.Count == 0)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    PopularDestinations.Clear();
+                    SearchResults.Clear();
+                });
+            }
         }
     }
 
-    private void LoadMockDestinations()
+    private void ApplyDestinations(IReadOnlyList<SearchDestinationItem> destinations)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
             _allDestinations.Clear();
+            _allDestinations.AddRange(destinations);
+
             PopularDestinations.Clear();
-            var hcm = new SearchDestinationItem { Name = "🍲 Ho Chi Minh Food Tour", Type = "DESTINATION", Count = 3, ImageUrl = "https://placehold.co/1200x600/png?text=Ho+Chi+Minh+Food+Tour", FirstPoiId = 1, SearchText = "Chợ Bến Thành Phở Vĩnh Khánh Bến Bạch Đằng Ho Chi Minh Food Tour" };
-            var hanoi = new SearchDestinationItem { Name = "🍜 Hanoi Food Tour", Type = "DESTINATION", Count = 3, ImageUrl = "https://placehold.co/1200x600/png?text=Hanoi+Food+Tour", FirstPoiId = 4, SearchText = "Chùa Một Cột Phố Hàng Xanh Phố Hàng Dâu Hanoi Food Tour" };
-            _allDestinations.Add(hcm);
-            _allDestinations.Add(hanoi);
-            PopularDestinations.Add(hcm);
-            PopularDestinations.Add(hanoi);
+            foreach (var destination in destinations.Take(2))
+            {
+                PopularDestinations.Add(destination);
+            }
 
             RebuildSearchResults();
         });
+    }
+
+    private static List<SearchDestinationItem> BuildDestinations(IReadOnlyList<PoiModel> pois)
+    {
+        var hcmPois = pois.Where(IsHcmPoi).ToList();
+        var hanoiPois = pois.Where(IsHanoiPoi).ToList();
+
+        var destinations = new List<SearchDestinationItem>();
+
+        if (hcmPois.Count > 0)
+        {
+            destinations.Add(BuildDestinationItem("🍲 Ho Chi Minh Food Tour", hcmPois));
+        }
+
+        if (hanoiPois.Count > 0)
+        {
+            destinations.Add(BuildDestinationItem("🍜 Hanoi Food Tour", hanoiPois));
+        }
+
+        if (destinations.Count == 0)
+        {
+            destinations.AddRange(pois
+                .GroupBy(p => string.IsNullOrWhiteSpace(p.Subtitle) ? p.Provider : p.Subtitle)
+                .Select(g => BuildDestinationItem(g.Key ?? "Unknown", g.ToList())));
+        }
+
+        return destinations;
+    }
+
+    private static SearchDestinationItem BuildDestinationItem(string name, IReadOnlyList<PoiModel> pois)
+    {
+        return new SearchDestinationItem
+        {
+            Name = name,
+            Type = "DESTINATION",
+            Count = pois.Count,
+            ImageUrl = pois.FirstOrDefault()?.ImageUrl ?? "https://placehold.co/1200x600/png?text=Travel+App",
+            FirstPoiId = pois.MinBy(p => p.Id)?.Id ?? 0,
+            SearchText = string.Join(" ", pois.SelectMany(p => new[] { p.Title, p.Subtitle, p.Description, p.Location, p.Provider }).Where(x => !string.IsNullOrWhiteSpace(x)))
+        };
+    }
+
+    private static PoiModel MapPoi(PoiMobileDto poi)
+    {
+        return new PoiModel
+        {
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = poi.Latitude,
+            Longitude = poi.Longitude,
+            Distance = poi.DistanceMeters.HasValue ? $"{poi.DistanceMeters.Value:F0} m" : string.Empty,
+            Duration = string.Empty,
+            Description = poi.Description,
+            Provider = string.Empty,
+            Credit = string.Empty
+        };
+    }
+
+    private static PoiMobileDto MapPoiToMobileDto(PoiDto poi)
+    {
+        return new PoiMobileDto
+        {
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle ?? string.Empty,
+            Description = poi.Description ?? string.Empty,
+            LanguageCode = poi.PrimaryLanguage ?? string.Empty,
+            PrimaryLanguage = poi.PrimaryLanguage ?? string.Empty,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = poi.Latitude,
+            Longitude = poi.Longitude,
+            GeofenceRadiusMeters = poi.GeofenceRadiusMeters ?? 100,
+            Category = poi.Category ?? string.Empty,
+            SpeechText = poi.SpeechText,
+            SpeechTextLanguageCode = poi.SpeechTextLanguageCode,
+            UpdatedAtUtc = poi.UpdatedAtUtc,
+            AudioAssets = poi.AudioAssets.Select(x => new PoiAudioMobileDto
+            {
+                LanguageCode = x.LanguageCode,
+                AudioUrl = x.AudioUrl,
+                Transcript = x.Transcript,
+                IsGenerated = x.IsGenerated
+            }).ToList(),
+            SpeechTexts = poi.SpeechTexts.Select(x => new PoiSpeechTextMobileDto
+            {
+                LanguageCode = x.LanguageCode,
+                Text = x.Text
+            }).ToList()
+        };
+    }
+
+    private static PoiModel MapPoiOnline(PoiDto poi)
+    {
+        return new PoiModel
+        {
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = poi.Latitude,
+            Longitude = poi.Longitude,
+            Distance = string.Empty,
+            Duration = poi.Duration,
+            Description = poi.Description,
+            Provider = poi.Provider,
+            Credit = poi.Credit
+        };
+    }
+
+    private static bool IsHcmPoi(PoiModel poi)
+    {
+        return ContainsText(poi.Title, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
+               || ContainsText(poi.Subtitle, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
+               || ContainsText(poi.Description, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
+               || ContainsText(poi.Location, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
+               || ContainsText(poi.Provider, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn");
+    }
+
+    private static bool IsHanoiPoi(PoiModel poi)
+    {
+        return ContainsText(poi.Title, "hanoi", "ha noi", "hà nội")
+               || ContainsText(poi.Subtitle, "hanoi", "ha noi", "hà nội")
+               || ContainsText(poi.Description, "hanoi", "ha noi", "hà nội")
+               || ContainsText(poi.Location, "hanoi", "ha noi", "hà nội")
+               || ContainsText(poi.Provider, "hanoi", "ha noi", "hà nội");
+    }
+
+    private static bool ContainsText(string? value, params string[] keywords)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return keywords.Any(keyword => value.Contains(keyword, StringComparison.OrdinalIgnoreCase));
     }
 
     private void ApplySearch()
@@ -243,6 +383,17 @@ public class SearchViewModel : INotifyPropertyChanged
     {
         if (item is null || item.FirstPoiId <= 0)
         {
+            return;
+        }
+
+        if (!AuthStateService.IsLoggedIn)
+        {
+            if (Shell.Current is not null)
+            {
+                await Shell.Current.DisplayAlert("Login Required", "Please sign in to view tour details.", "OK");
+                await Shell.Current.GoToAsync("LoginPage");
+            }
+
             return;
         }
 

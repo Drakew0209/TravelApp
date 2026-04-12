@@ -28,14 +28,5 @@ public class TourPoiConfiguration : IEntityTypeConfiguration<TourPoi>
             .WithMany()
             .HasForeignKey(x => x.PoiId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasData(
-            new TourPoi { Id = 1, TourId = 1, PoiId = 1, SortOrder = 1, DistanceFromPreviousMeters = 0 },
-            new TourPoi { Id = 2, TourId = 1, PoiId = 2, SortOrder = 2, DistanceFromPreviousMeters = 900 },
-            new TourPoi { Id = 3, TourId = 1, PoiId = 3, SortOrder = 3, DistanceFromPreviousMeters = 1100 },
-            new TourPoi { Id = 4, TourId = 2, PoiId = 4, SortOrder = 1, DistanceFromPreviousMeters = 0 },
-            new TourPoi { Id = 5, TourId = 2, PoiId = 5, SortOrder = 2, DistanceFromPreviousMeters = 300 },
-            new TourPoi { Id = 6, TourId = 2, PoiId = 6, SortOrder = 3, DistanceFromPreviousMeters = 500 }
-        );
     }
 }

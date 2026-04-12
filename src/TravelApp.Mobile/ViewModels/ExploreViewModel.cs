@@ -66,6 +66,7 @@ public class ExploreViewModel : INotifyPropertyChanged
     public ICommand OpenBookmarksCommand { get; }
     public ICommand OpenTourMapRouteCommand { get; }
     public ICommand OpenMapCommand { get; }
+    public ICommand OpenQrScannerCommand { get; }
     public ICommand SelectBottomTabCommand { get; }
 
     public void ResetBottomTabToExplore()
@@ -147,8 +148,9 @@ public class ExploreViewModel : INotifyPropertyChanged
             IsMenuOpen = false;
             await Shell.Current.GoToAsync("BookmarksHistoryPage?tab=bookmarks");
         });
-        OpenTourMapRouteCommand = new Command(async () => await Shell.Current.GoToAsync("TourMapRoutePage"));
+        OpenTourMapRouteCommand = new Command(async () => await Shell.Current.GoToAsync("MapPage"));
         OpenMapCommand = new Command(async () => await Shell.Current.GoToAsync("MapPage"));
+        OpenQrScannerCommand = new Command(async () => await Shell.Current.GoToAsync("QrScannerPage"));
         SelectBottomTabCommand = new Command<string>(async tab => await SelectBottomTabAsync(tab));
         OpenTourDetailCommand = new Command<PoiModel>(async item =>
         {
@@ -184,7 +186,7 @@ public class ExploreViewModel : INotifyPropertyChanged
             case "Discover":
                 break;
             case "MyTours":
-                await Shell.Current.GoToAsync("TourMapRoutePage");
+                await Shell.Current.GoToAsync("MapPage");
                 break;
             case "Saved":
                 await Shell.Current.GoToAsync("BookmarksHistoryPage?tab=bookmarks");
@@ -222,14 +224,13 @@ public class ExploreViewModel : INotifyPropertyChanged
         {
             var language = UserProfileService.PreferredLanguage;
             var routes = await _tourRouteCatalogService.GetAllRoutesAsync(language, cancellationToken);
-            var mapped = routes
-                .SelectMany(route => route.Waypoints.Select(waypoint => MapPoi(waypoint.Poi, route.Name)))
-                .GroupBy(x => x.Id)
-                .Select(g => g.First())
-                .ToList();
 
-            var forYou = mapped.Take(3).ToList();
-            var editors = mapped.Skip(3).ToList();
+            var orderedRoutes = routes.OrderBy(x => x.Id).ToList();
+            var forYouRoute = orderedRoutes.FirstOrDefault();
+            var editorsChoiceRoute = orderedRoutes.Skip(1).FirstOrDefault();
+
+            var forYou = BuildRouteItems(forYouRoute);
+            var editors = BuildRouteItems(editorsChoiceRoute);
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -255,6 +256,20 @@ public class ExploreViewModel : INotifyPropertyChanged
 
             });
         }
+    }
+
+    private static List<PoiModel> BuildRouteItems(TourRouteDto? route)
+    {
+        if (route is null)
+        {
+            return [];
+        }
+
+        return route.Waypoints
+            .Select(waypoint => MapPoi(waypoint.Poi, route.Name))
+            .GroupBy(x => x.Id)
+            .Select(g => g.First())
+            .ToList();
     }
 
     private static PoiModel MapPoi(PoiMobileDto dto, string? tourName)

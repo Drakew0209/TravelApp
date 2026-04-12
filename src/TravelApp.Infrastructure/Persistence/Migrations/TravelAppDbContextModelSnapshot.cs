@@ -224,32 +224,6 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Tours", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AnchorPoiId = 1,
-                            CoverImageUrl = "https://placehold.co/1200x800/png?text=HCM+Food+Tour",
-                            CreatedAtUtc = new DateTimeOffset(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified), TimeSpan.Zero),
-                            Description = "Tour ẩm thực Sài Gòn với các điểm dừng được sắp xếp theo lộ trình thật.",
-                            IsPublished = true,
-                            Name = "HCM Food Tour",
-                            PrimaryLanguage = "vi",
-                            UpdatedAtUtc = (DateTimeOffset?)null
-                        },
-                        new
-                        {
-                            Id = 2,
-                            AnchorPoiId = 4,
-                            CoverImageUrl = "https://placehold.co/1200x800/png?text=Hanoi+Food+Tour",
-                            CreatedAtUtc = new DateTimeOffset(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified), TimeSpan.Zero),
-                            Description = "Tour ẩm thực Hà Nội với các mốc waypoint, bản đồ và audio tự động.",
-                            IsPublished = true,
-                            Name = "Hanoi Food Tour",
-                            PrimaryLanguage = "vi",
-                            UpdatedAtUtc = (DateTimeOffset?)null
-                        });
                 });
 
             modelBuilder.Entity("TravelApp.Domain.Entities.TourPoi", b =>
@@ -280,14 +254,6 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("TourPois", (string)null);
-
-                    b.HasData(
-                        new { Id = 1, TourId = 1, PoiId = 1, SortOrder = 1, DistanceFromPreviousMeters = 0d },
-                        new { Id = 2, TourId = 1, PoiId = 2, SortOrder = 2, DistanceFromPreviousMeters = 900d },
-                        new { Id = 3, TourId = 1, PoiId = 3, SortOrder = 3, DistanceFromPreviousMeters = 1100d },
-                        new { Id = 4, TourId = 2, PoiId = 4, SortOrder = 1, DistanceFromPreviousMeters = 0d },
-                        new { Id = 5, TourId = 2, PoiId = 5, SortOrder = 2, DistanceFromPreviousMeters = 300d },
-                        new { Id = 6, TourId = 2, PoiId = 6, SortOrder = 3, DistanceFromPreviousMeters = 500d });
                 });
 
             modelBuilder.Entity("TravelApp.Domain.Entities.Role", b =>
@@ -379,6 +345,42 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("TravelApp.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "ExpiresAtUtc");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
             modelBuilder.Entity("TravelApp.Domain.Entities.UserRole", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -464,6 +466,17 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TravelApp.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("TravelApp.Domain.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TravelApp.Domain.Entities.Poi", b =>
                 {
                     b.Navigation("AudioAssets");
@@ -490,6 +503,8 @@ namespace TravelApp.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TravelApp.Domain.Entities.User", b =>
                 {
+                    b.Navigation("RefreshTokens");
+
                     b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618

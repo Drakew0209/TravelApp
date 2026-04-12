@@ -334,7 +334,20 @@ public class AudioService : IAudioService, IDisposable
 
     private static string BuildSpeechText(PoiMobileDto poi, string languageCode)
     {
-        if (!string.IsNullOrWhiteSpace(poi.SpeechText))
+        var normalizedLanguage = NormalizeLanguage(languageCode);
+
+        var selectedSpeechText = poi.SpeechTexts
+            .FirstOrDefault(x => string.Equals(NormalizeLanguage(x.LanguageCode), normalizedLanguage, StringComparison.OrdinalIgnoreCase))
+            ?? poi.SpeechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguage(x.LanguageCode), NormalizeLanguage(poi.SpeechTextLanguageCode), StringComparison.OrdinalIgnoreCase))
+            ?? poi.SpeechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguage(x.LanguageCode), NormalizeLanguage(poi.PrimaryLanguage), StringComparison.OrdinalIgnoreCase))
+            ?? poi.SpeechTexts.FirstOrDefault();
+
+        if (selectedSpeechText is not null && !string.IsNullOrWhiteSpace(selectedSpeechText.Text))
+        {
+            return selectedSpeechText.Text;
+        }
+
+        if (!string.IsNullOrWhiteSpace(poi.SpeechText) && string.Equals(NormalizeLanguage(poi.SpeechTextLanguageCode), normalizedLanguage, StringComparison.OrdinalIgnoreCase))
         {
             return poi.SpeechText;
         }
@@ -350,6 +363,13 @@ public class AudioService : IAudioService, IDisposable
         }
 
         return poi.Title;
+    }
+
+    private static string NormalizeLanguage(string? languageCode)
+    {
+        return string.IsNullOrWhiteSpace(languageCode)
+            ? string.Empty
+            : languageCode.Trim().ToLowerInvariant();
     }
 
     private void LogSource(string source, PoiMobileDto poi, string languageCode, string detail)

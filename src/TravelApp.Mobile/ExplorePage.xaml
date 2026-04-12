@@ -49,7 +49,7 @@
                 </Border.Background>
             </Border>
 
-            <Grid Padding="14,48,14,14" ColumnDefinitions="40,*,40" ColumnSpacing="10">
+            <Grid Padding="14,48,14,14" ColumnDefinitions="40,*,40,40" ColumnSpacing="10">
                 <Border Grid.Column="0"
                         WidthRequest="40"
                         HeightRequest="40"
@@ -111,6 +111,26 @@
                 </Border>
 
                 <Border Grid.Column="2"
+                        StrokeThickness="0"
+                        BackgroundColor="#33FFFFFF"
+                        StrokeShape="RoundRectangle 20"
+                        WidthRequest="40"
+                        HeightRequest="40"
+                        AutomationProperties.Name="Scan QR code"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding OpenQrScannerCommand}" />
+                    </Border.GestureRecognizers>
+                    <Label Text="QR"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="White"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+                </Border>
+
+                <Border Grid.Column="3"
                         StrokeThickness="0"
                         BackgroundColor="#33FFFFFF"
                         StrokeShape="RoundRectangle 20"
@@ -432,6 +452,9 @@
                             StrokeThickness="0"
                             BackgroundColor="{StaticResource TravelAccent}"
                             StrokeShape="RoundRectangle 26">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenMapCommand}" />
+                        </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="*,Auto" Padding="0,0,18,0">
                             <Label Text="Start"
                                    TextColor="White"

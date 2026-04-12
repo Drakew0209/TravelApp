@@ -8,9 +8,11 @@ namespace TravelApp.Services.Runtime;
 public class LocalDatabaseService : ILocalDatabaseService
 {
     private const double EarthRadiusMeters = 6371000;
+    private const string DatabaseFileName = "travelapp-local.db3";
 
     private readonly SemaphoreSlim _initGate = new(1, 1);
     private readonly SemaphoreSlim _writeGate = new(1, 1);
+    private readonly string _databasePath = Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
     private SQLiteAsyncConnection? _database;
 
     public async Task<IReadOnlyList<PoiMobileDto>> GetPoisAsync(
@@ -178,6 +180,64 @@ public class LocalDatabaseService : ILocalDatabaseService
         }
     }
 
+    public async Task<string> ExportDatabaseAsync(string destinationDirectory, string? fileName = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(destinationDirectory))
+        {
+            throw new ArgumentException("Destination directory is required.", nameof(destinationDirectory));
+        }
+
+        await EnsureInitializedAsync();
+        await _writeGate.WaitAsync(cancellationToken);
+        try
+        {
+            await CloseDatabaseAsync();
+
+            Directory.CreateDirectory(destinationDirectory);
+            var destinationFileName = string.IsNullOrWhiteSpace(fileName)
+                ? $"travelapp-local-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.db3"
+                : fileName.Trim();
+            var destinationPath = Path.Combine(destinationDirectory, destinationFileName);
+
+            File.Copy(_databasePath, destinationPath, true);
+            return destinationPath;
+        }
+        finally
+        {
+            await EnsureInitializedAsync();
+            _writeGate.Release();
+        }
+    }
+
+    public async Task ImportDatabaseAsync(string sourceFilePath, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(sourceFilePath))
+        {
+            throw new ArgumentException("Source file path is required.", nameof(sourceFilePath));
+        }
+
+        if (!File.Exists(sourceFilePath))
+        {
+            throw new FileNotFoundException("Database file not found.", sourceFilePath);
+        }
+
+        await _writeGate.WaitAsync(cancellationToken);
+        try
+        {
+            await CloseDatabaseAsync();
+
+            Directory.CreateDirectory(Path.GetDirectoryName(_databasePath)!);
+            DeleteSidecarFiles(_databasePath);
+            File.Copy(sourceFilePath, _databasePath, true);
+
+            await EnsureInitializedAsync();
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
     public async Task<string?> GetOfflineAudioPathAsync(int poiId, string languageCode, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
@@ -253,8 +313,7 @@ public class LocalDatabaseService : ILocalDatabaseService
                 return;
             }
 
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "travelapp-local.db3");
-            var connection = new SQLiteAsyncConnection(dbPath);
+            var connection = new SQLiteAsyncConnection(_databasePath);
 
             await connection.CreateTableAsync<LocalPoiEntity>();
             await connection.CreateTableAsync<LocalPoiLocalizationEntity>();
@@ -270,6 +329,41 @@ public class LocalDatabaseService : ILocalDatabaseService
         finally
         {
             _initGate.Release();
+        }
+    }
+
+    private async Task CloseDatabaseAsync()
+    {
+        if (_database is null)
+        {
+            return;
+        }
+
+        var database = _database;
+        _database = null;
+
+        try
+        {
+            await database.CloseAsync();
+        }
+        catch
+        {
+        }
+    }
+
+    private void DeleteSidecarFiles(string databasePath)
+    {
+        var walPath = databasePath + "-wal";
+        var shmPath = databasePath + "-shm";
+
+        if (File.Exists(walPath))
+        {
+            File.Delete(walPath);
+        }
+
+        if (File.Exists(shmPath))
+        {
+            File.Delete(shmPath);
         }
     }
 
