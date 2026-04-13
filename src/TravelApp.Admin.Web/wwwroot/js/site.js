@@ -128,7 +128,8 @@ const updateLivePreview = (root) => {
 
         const value = (source.value ?? '').trim();
         if (binding.isImage) {
-            target.setAttribute('src', value || binding.fallback);
+            target.onerror = () => { target.setAttribute('src', binding.fallback); };
+            target.setAttribute('src', value ? `/Media/Preview?url=${encodeURIComponent(value)}` : binding.fallback);
             return;
         }
 
@@ -267,7 +268,12 @@ const syncAnchorPoiDetails = (root) => {
     setValue('Longitude', selected.longitude ?? selected.Longitude ?? '');
     setValue('Category', selected.category ?? selected.Category ?? '');
     setValue('ImageUrl', selected.imageUrl ?? selected.ImageUrl ?? '');
-    setValue('CoverImageUrl', selected.imageUrl ?? selected.ImageUrl ?? '');
+    const coverImageInput = root.querySelector('[data-live-preview-input="CoverImageUrl"]');
+    if (coverImageInput instanceof HTMLInputElement || coverImageInput instanceof HTMLTextAreaElement) {
+        if (!(coverImageInput.value ?? '').trim()) {
+            coverImageInput.value = selected.imageUrl ?? selected.ImageUrl ?? '';
+        }
+    }
 
     updateLivePreview(root);
 };
@@ -444,9 +450,72 @@ const updateUserIndex = (root) => {
     updateUserPreviewCard(card, firstVisible);
 };
 
+const uploadImageFile = async (input) => {
+    if (!(input instanceof HTMLInputElement) || input.type !== 'file' || !input.files || input.files.length === 0) {
+        return;
+    }
+
+    const form = input.closest('form');
+    const file = input.files[0];
+    const targetName = input.getAttribute('data-image-upload-target');
+    const folder = input.getAttribute('data-image-upload-folder') || 'images';
+    if (!form || !targetName) {
+        return;
+    }
+
+    const urlInput = form.querySelector(`[name="${targetName}"]`);
+    if (!(urlInput instanceof HTMLInputElement || urlInput instanceof HTMLTextAreaElement)) {
+        return;
+    }
+
+    const tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+    const token = tokenInput?.value ?? '';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (token) {
+        formData.append('__RequestVerificationToken', token);
+    }
+
+    try {
+        input.disabled = true;
+        const response = await fetch(`/Media/UploadImage?folder=${encodeURIComponent(folder)}`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed (${response.status})`);
+        }
+
+        const payload = await response.json();
+        const url = (payload?.url ?? '').toString().trim();
+        if (!url) {
+            throw new Error('Missing uploaded URL');
+        }
+
+        urlInput.value = url;
+        urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+        urlInput.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch (error) {
+        console.error(error);
+        alert('Không thể upload ảnh. Vui lòng thử lại.');
+    } finally {
+        input.disabled = false;
+        input.value = '';
+    }
+};
+
 document.addEventListener('input', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    const imageUploadInput = target.closest('[data-image-upload-input="true"]');
+    if (imageUploadInput instanceof HTMLInputElement) {
+        uploadImageFile(imageUploadInput);
         return;
     }
 

@@ -2,6 +2,7 @@ using TravelApp.Models.Contracts;
 using TravelApp.Models.Runtime;
 using Microsoft.Extensions.Logging;
 using TravelApp.Services;
+using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.Services.Runtime;
@@ -18,6 +19,7 @@ public class TravelBootstrapService : ITravelBootstrapService
     private readonly ITravelRuntimePipeline _travelRuntimePipeline;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<TravelBootstrapService> _logger;
+    private readonly ApiClientOptions _apiOptions;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private bool _isStarted;
@@ -32,7 +34,8 @@ public class TravelBootstrapService : ITravelBootstrapService
         ILocationProvider locationProvider,
         ITravelRuntimePipeline travelRuntimePipeline,
         TimeProvider timeProvider,
-        ILogger<TravelBootstrapService> logger)
+        ILogger<TravelBootstrapService> logger,
+        ApiClientOptions apiOptions)
     {
         _poiApiClient = poiApiClient;
         _localDatabaseService = localDatabaseService;
@@ -40,6 +43,7 @@ public class TravelBootstrapService : ITravelBootstrapService
         _travelRuntimePipeline = travelRuntimePipeline;
         _timeProvider = timeProvider;
         _logger = logger;
+        _apiOptions = apiOptions;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -178,14 +182,14 @@ public class TravelBootstrapService : ITravelBootstrapService
         return earthRadiusMeters * c;
     }
 
-    private static PoiDto MapLocalPoiToDto(PoiMobileDto poi)
+    private PoiDto MapLocalPoiToDto(PoiMobileDto poi)
     {
         return new PoiDto
         {
             Id = poi.Id,
             Title = poi.Title,
             Subtitle = poi.Subtitle,
-            ImageUrl = poi.ImageUrl,
+            ImageUrl = ResourceUrlHelper.Normalize(poi.ImageUrl, _apiOptions.BaseUrl),
             Location = poi.Location,
             Latitude = poi.Latitude,
             Longitude = poi.Longitude,

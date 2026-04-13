@@ -18,7 +18,7 @@ public class TourApiClient : ApiClientBase, ITourApiClient
             : $"api/tours/{anchorPoiId}?lang={Uri.EscapeDataString(languageCode)}";
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
-        return await ReadAsAsync<TourRouteDto>(response, cancellationToken);
+        return NormalizeRoute(await ReadAsAsync<TourRouteDto>(response, cancellationToken));
     }
 
     public async Task<IReadOnlyList<TourRouteDto>> GetAllAsync(string? languageCode = null, CancellationToken cancellationToken = default)
@@ -28,6 +28,32 @@ public class TourApiClient : ApiClientBase, ITourApiClient
             : $"api/tours?lang={Uri.EscapeDataString(languageCode)}";
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
-        return await ReadAsAsync<List<TourRouteDto>>(response, cancellationToken) ?? [];
+        return NormalizeRoutes(await ReadAsAsync<List<TourRouteDto>>(response, cancellationToken) ?? []);
+    }
+
+    private TourRouteDto? NormalizeRoute(TourRouteDto? route)
+    {
+        if (route is null)
+        {
+            return null;
+        }
+
+        route.CoverImageUrl = NormalizeResourceUrl(route.CoverImageUrl);
+        foreach (var waypoint in route.Waypoints)
+        {
+            waypoint.Poi.ImageUrl = NormalizeResourceUrl(waypoint.Poi.ImageUrl);
+        }
+
+        return route;
+    }
+
+    private IReadOnlyList<TourRouteDto> NormalizeRoutes(IReadOnlyList<TourRouteDto> routes)
+    {
+        foreach (var route in routes)
+        {
+            NormalizeRoute(route);
+        }
+
+        return routes;
     }
 }

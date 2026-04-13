@@ -77,12 +77,12 @@
                     Style="{StaticResource PrimaryPillButtonStyle}"
                     Margin="0,6,0,0" />
 
-            <Label Text="Forgot password?"
+            <Label Text=""
                    HorizontalOptions="End"
                    TextColor="{AppThemeBinding Light=#B73A6D, Dark=#FF84B2}"
                    FontSize="16" />
 
-            <Label Text="Demo credentials: demo@example.com / Demo@123456"
+            <Label Text=""
                    HorizontalOptions="Center"
                    TextColor="{AppThemeBinding Light=#8A8A93, Dark=#A8B0C4}"
                    FontSize="14"

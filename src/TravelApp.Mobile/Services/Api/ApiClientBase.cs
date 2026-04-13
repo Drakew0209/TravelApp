@@ -123,4 +123,9 @@ public abstract class ApiClientBase
 
         return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
     }
+
+    protected string NormalizeResourceUrl(string? url)
+    {
+        return ResourceUrlHelper.Normalize(url, _options.BaseUrl);
+    }
 }

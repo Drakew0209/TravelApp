@@ -18,7 +18,7 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
             : $"api/pois?lang={Uri.EscapeDataString(languageCode)}";
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
-        return await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? [];
+        return NormalizePois(await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? []);
     }
 
     public async Task<IReadOnlyList<PoiDto>> GetNearbyAsync(NearbyPoiQueryDto query, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -32,7 +32,7 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
         }
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, $"api/pois?{queryString}"), cancellationToken: cancellationToken);
-        return await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? [];
+        return NormalizePois(await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? []);
     }
 
     public async Task<PoiDto?> GetByIdAsync(int id, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -42,7 +42,7 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
             : $"api/pois/{id}?lang={Uri.EscapeDataString(languageCode)}";
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
-        return await ReadAsAsync<PoiDto>(response, cancellationToken);
+        return NormalizePoi(await ReadAsAsync<PoiDto>(response, cancellationToken));
     }
 
     public async Task<PoiDto?> CreateAsync(UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
@@ -51,7 +51,7 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
         {
             Content = JsonContent.Create(request, options: JsonOptions)
         }, authorized: true, cancellationToken);
-        return await ReadAsAsync<PoiDto>(response, cancellationToken);
+        return NormalizePoi(await ReadAsAsync<PoiDto>(response, cancellationToken));
     }
 
     public async Task<bool> UpdateAsync(int id, UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
@@ -67,5 +67,26 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
     {
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Delete, $"api/pois/{id}"), authorized: true, cancellationToken);
         return response.IsSuccessStatusCode;
+    }
+
+    private PoiDto? NormalizePoi(PoiDto? poi)
+    {
+        if (poi is null)
+        {
+            return null;
+        }
+
+        poi.ImageUrl = NormalizeResourceUrl(poi.ImageUrl);
+        return poi;
+    }
+
+    private IReadOnlyList<PoiDto> NormalizePois(IReadOnlyList<PoiDto> pois)
+    {
+        foreach (var poi in pois)
+        {
+            poi.ImageUrl = NormalizeResourceUrl(poi.ImageUrl);
+        }
+
+        return pois;
     }
 }

@@ -141,8 +141,7 @@ public partial class ExplorePage : ContentPage
             return;
         }
 
-        _viewModel.ForYouItems.CollectionChanged += OnExplorePoisChanged;
-        _viewModel.EditorsChoiceItems.CollectionChanged += OnExplorePoisChanged;
+        _viewModel.ExploreMapItems.CollectionChanged += OnExplorePoisChanged;
         _explorePinsAttached = true;
     }
 
@@ -153,8 +152,7 @@ public partial class ExplorePage : ContentPage
             return;
         }
 
-        _viewModel.ForYouItems.CollectionChanged -= OnExplorePoisChanged;
-        _viewModel.EditorsChoiceItems.CollectionChanged -= OnExplorePoisChanged;
+        _viewModel.ExploreMapItems.CollectionChanged -= OnExplorePoisChanged;
         _explorePinsAttached = false;
     }
 
@@ -170,8 +168,7 @@ public partial class ExplorePage : ContentPage
             return;
         }
 
-        var pois = _viewModel.ForYouItems
-            .Concat(_viewModel.EditorsChoiceItems)
+        var pois = _viewModel.ExploreMapItems
             .DistinctBy(x => x.Id)
             .Where(HasValidCoordinates)
             .ToList();

@@ -6,6 +6,7 @@ using System.Windows.Input;
 using TravelApp.Models;
 using TravelApp.Models.Contracts;
 using TravelApp.Services;
+using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.ViewModels;
@@ -32,6 +33,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
     private readonly IBookmarkHistoryService _bookmarkHistoryService;
     private readonly ITourRouteCatalogService _tourRouteCatalogService;
     private readonly TravelApp.Services.Runtime.TourRouteCacheService _tourRouteCacheService;
+    private readonly ApiClientOptions _apiOptions;
 
     public PoiModel? Tour
     {
@@ -182,7 +184,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
         }
     }
 
-    public TourDetailViewModel(ITourRouteCatalogService tourRouteCatalogService, IPoiApiClient poiApiClient, ILocalDatabaseService localDatabaseService, IAudioLibraryService audioLibraryService, IBookmarkHistoryService bookmarkHistoryService, TravelApp.Services.Runtime.TourRouteCacheService tourRouteCacheService)
+    public TourDetailViewModel(ITourRouteCatalogService tourRouteCatalogService, IPoiApiClient poiApiClient, ILocalDatabaseService localDatabaseService, IAudioLibraryService audioLibraryService, IBookmarkHistoryService bookmarkHistoryService, TravelApp.Services.Runtime.TourRouteCacheService tourRouteCacheService, ApiClientOptions apiOptions)
     {
         _tourRouteCatalogService = tourRouteCatalogService;
         _poiApiClient = poiApiClient;
@@ -190,6 +192,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
         _audioLibraryService = audioLibraryService;
         _bookmarkHistoryService = bookmarkHistoryService;
         _tourRouteCacheService = tourRouteCacheService;
+        _apiOptions = apiOptions;
         BackCommand = new Command(async () =>
         {
             await StopAsync();
@@ -741,14 +744,14 @@ public class TourDetailViewModel : INotifyPropertyChanged
                || value.Contains("USA", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static PoiDto MergePoiDto(PoiDto source, PoiModel localPoi)
+    private PoiDto MergePoiDto(PoiDto source, PoiModel localPoi)
     {
         return new PoiDto
         {
             Id = source.Id,
             Title = localPoi.Title,
             Subtitle = localPoi.Subtitle,
-            ImageUrl = localPoi.ImageUrl,
+            ImageUrl = NormalizeImageUrl(localPoi.ImageUrl),
             Location = localPoi.Location,
             Latitude = source.Latitude,
             Longitude = source.Longitude,
@@ -768,14 +771,14 @@ public class TourDetailViewModel : INotifyPropertyChanged
         };
     }
 
-    private static PoiDto BuildPoiDtoFromLocalPoi(PoiModel localPoi)
+    private PoiDto BuildPoiDtoFromLocalPoi(PoiModel localPoi)
     {
         return new PoiDto
         {
             Id = localPoi.Id,
             Title = localPoi.Title,
             Subtitle = localPoi.Subtitle,
-            ImageUrl = localPoi.ImageUrl,
+            ImageUrl = NormalizeImageUrl(localPoi.ImageUrl),
             Location = localPoi.Location,
             Latitude = 0,
             Longitude = 0,
@@ -805,6 +808,12 @@ public class TourDetailViewModel : INotifyPropertyChanged
     private void OnUserProfileChanged(object? sender, EventArgs e)
     {
         UpdateSpeechTextPermission();
+    }
+
+    private string NormalizeImageUrl(string? imageUrl)
+    {
+        var normalized = ResourceUrlHelper.Normalize(imageUrl, _apiOptions.BaseUrl);
+        return string.IsNullOrWhiteSpace(normalized) ? "https://placehold.co/1200x800/png?text=Tour+Preview" : normalized;
     }
 
     private void UpdateSpeechTextPermission()

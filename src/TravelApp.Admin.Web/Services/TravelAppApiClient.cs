@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http;
 using TravelApp.Application.Dtos.Pois;
 using TravelApp.Application.Dtos.Users;
 using TravelApp.Application.Dtos.Tours;
@@ -118,6 +120,40 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         catch (HttpRequestException)
         {
             return false;
+        }
+    }
+
+    public async Task<string?> UploadImageAsync(IFormFile file, string folder, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (file is null || file.Length == 0)
+            {
+                return null;
+            }
+
+            await using var stream = file.OpenReadStream();
+            using var content = new MultipartFormDataContent();
+            using var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
+            content.Add(fileContent, "file", file.FileName);
+
+            var endpoint = string.IsNullOrWhiteSpace(folder)
+                ? "api/media/image"
+                : $"api/media/image?folder={Uri.EscapeDataString(folder)}";
+
+            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<UploadImageResponseDto>(cancellationToken: cancellationToken);
+            return payload?.Url;
+        }
+        catch (HttpRequestException)
+        {
+            return null;
         }
     }
 
@@ -284,5 +320,7 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
             return false;
         }
     }
+
+    private sealed record UploadImageResponseDto(string Url);
 
 }

@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    <form asp-action="Edit" method="post" class="content-grid" data-live-preview-form>
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="content-grid" data-live-preview-form>
         <input asp-for="Id" type="hidden" />
         <div class="d-grid gap-4">
             <div class="admin-card p-4">
@@ -64,6 +64,8 @@
                     <div class="col-12">
                         <label asp-for="ImageUrl" class="form-label">Image URL</label>
                         <input asp-for="ImageUrl" class="form-control" data-live-preview-input="ImageUrl" />
+                        <div class="form-text">Hoặc chọn ảnh mới từ máy tính để upload lên server.</div>
+                        <input asp-for="ImageFile" type="file" accept="image/*" class="form-control mt-2" data-image-upload-input="true" data-image-upload-folder="pois" data-image-upload-target="ImageUrl" />
                     </div>
                     <div class="col-md-4">
                         <label asp-for="Latitude" class="form-label">Latitude</label>

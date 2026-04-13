@@ -5,7 +5,7 @@
              Shell.NavBarIsVisible="False"
              BackgroundColor="{AppThemeBinding Light=#F6F7FB, Dark=#111318}">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="16,48,16,12">
+    <Grid RowDefinitions="Auto,Auto,280,*" Padding="16,48,16,12">
         <Grid ColumnDefinitions="40,*" ColumnSpacing="10">
             <Border WidthRequest="40"
                     HeightRequest="40"
@@ -119,7 +119,11 @@
             </Border>
         </Grid>
 
-        <CollectionView Grid.Row="3" ItemsSource="{Binding Waypoints}" SelectionMode="None" Margin="0,10,0,0">
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding Waypoints}"
+                        SelectionMode="None"
+                        Margin="0,10,0,0"
+                        VerticalOptions="Fill">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"

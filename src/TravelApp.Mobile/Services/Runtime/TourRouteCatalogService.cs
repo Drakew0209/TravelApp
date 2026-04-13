@@ -1,4 +1,5 @@
 using TravelApp.Models.Contracts;
+using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.Services.Runtime;
@@ -9,17 +10,20 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
     private readonly IPoiApiClient _poiApiClient;
     private readonly ILocalDatabaseService _localDatabaseService;
     private readonly ITourRouteCacheService _tourRouteCacheService;
+    private readonly ApiClientOptions _apiOptions;
 
     public TourRouteCatalogService(
         ITourApiClient tourApiClient,
         IPoiApiClient poiApiClient,
         ILocalDatabaseService localDatabaseService,
-        ITourRouteCacheService tourRouteCacheService)
+        ITourRouteCacheService tourRouteCacheService,
+        ApiClientOptions apiOptions)
     {
         _tourApiClient = tourApiClient;
         _poiApiClient = poiApiClient;
         _localDatabaseService = localDatabaseService;
         _tourRouteCacheService = tourRouteCacheService;
+        _apiOptions = apiOptions;
     }
 
     public async Task<IReadOnlyList<TourRouteDto>> GetAllRoutesAsync(string? languageCode = null, CancellationToken cancellationToken = default)
@@ -28,11 +32,11 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
         var onlineRoutes = await TryGetOnlineRoutesAsync(normalizedLanguage, cancellationToken);
         if (onlineRoutes.Count > 0)
         {
-            return onlineRoutes;
+            return NormalizeRoutes(onlineRoutes);
         }
 
         var cachedRoutes = await _tourRouteCacheService.GetAllAsync(normalizedLanguage, cancellationToken);
-        return cachedRoutes.Count > 0 ? cachedRoutes : [];
+        return cachedRoutes.Count > 0 ? NormalizeRoutes(cachedRoutes) : [];
     }
 
     public async Task<TourRouteDto?> GetRouteAsync(int poiId, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -40,7 +44,13 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
         var normalizedLanguage = NormalizeLanguageCode(languageCode);
         var routes = await GetAllRoutesAsync(normalizedLanguage, cancellationToken);
         var route = routes.FirstOrDefault(x => x.AnchorPoiId == poiId || x.Waypoints.Any(w => w.Poi.Id == poiId));
-        return route is not null ? route : await _tourRouteCacheService.GetAsync(poiId, normalizedLanguage, cancellationToken);
+        if (route is not null)
+        {
+            return NormalizeRoute(route);
+        }
+
+        var cachedRoute = await _tourRouteCacheService.GetAsync(poiId, normalizedLanguage, cancellationToken);
+        return NormalizeRoute(cachedRoute);
     }
 
     public async Task<PoiDto?> ResolvePoiAsync(int poiId, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -96,12 +106,12 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
                 MergeSpeechData(dto, poiDetails);
             }
 
-            return dto;
+            return NormalizePoi(dto);
         }
 
         if (poiDetails is not null)
         {
-            return poiDetails;
+            return NormalizePoi(poiDetails);
         }
 
         var localPois = await _localDatabaseService.GetPoisAsync(normalizedLanguage, cancellationToken: cancellationToken);
@@ -111,7 +121,7 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
             return null;
         }
 
-        return new PoiDto
+        return NormalizePoi(new PoiDto
         {
             Id = localPoi.Id,
             Title = localPoi.Title,
@@ -131,7 +141,7 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
             Localizations = [],
             AudioAssets = localPoi.AudioAssets.Select(x => new PoiAudioDto(x.LanguageCode, x.AudioUrl, x.Transcript, x.IsGenerated)).ToList(),
             SpeechTexts = localPoi.SpeechTexts.Select(x => new PoiSpeechTextDto(x.LanguageCode, x.Text)).ToList()
-        };
+        });
     }
 
     private static void MergeSpeechData(PoiDto target, PoiDto source)
@@ -188,6 +198,43 @@ public sealed class TourRouteCatalogService : ITourRouteCatalogService
     private static string NormalizeLanguageCode(string? languageCode)
     {
         return string.IsNullOrWhiteSpace(languageCode) ? "en" : languageCode.Trim().ToLowerInvariant();
+    }
+
+    private TourRouteDto? NormalizeRoute(TourRouteDto? route)
+    {
+        if (route is null)
+        {
+            return null;
+        }
+
+        route.CoverImageUrl = ResourceUrlHelper.Normalize(route.CoverImageUrl, _apiOptions.BaseUrl);
+        foreach (var waypoint in route.Waypoints)
+        {
+            waypoint.Poi.ImageUrl = ResourceUrlHelper.Normalize(waypoint.Poi.ImageUrl, _apiOptions.BaseUrl);
+        }
+
+        return route;
+    }
+
+    private IReadOnlyList<TourRouteDto> NormalizeRoutes(IReadOnlyList<TourRouteDto> routes)
+    {
+        foreach (var route in routes)
+        {
+            NormalizeRoute(route);
+        }
+
+        return routes;
+    }
+
+    private PoiDto? NormalizePoi(PoiDto? poi)
+    {
+        if (poi is null)
+        {
+            return null;
+        }
+
+        poi.ImageUrl = ResourceUrlHelper.Normalize(poi.ImageUrl, _apiOptions.BaseUrl);
+        return poi;
     }
 
     private static string NormalizeCoverImageUrl(string? coverImageUrl, string tourName)

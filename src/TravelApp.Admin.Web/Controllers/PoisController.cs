@@ -33,6 +33,19 @@ public class PoisController : Controller
     [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Create(PoiEditorViewModel model, CancellationToken cancellationToken)
     {
+        if (model.ImageFile is not null && model.ImageFile.Length > 0)
+        {
+            var uploadedUrl = await _apiClient.UploadImageAsync(model.ImageFile, "pois", cancellationToken);
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                ModelState.AddModelError(nameof(model.ImageFile), "Không thể upload ảnh POI.");
+            }
+            else
+            {
+                model.ImageUrl = uploadedUrl;
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             EnsureMinimumRows(model);
@@ -68,6 +81,19 @@ public class PoisController : Controller
     [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Edit(int id, PoiEditorViewModel model, CancellationToken cancellationToken)
     {
+        if (model.ImageFile is not null && model.ImageFile.Length > 0)
+        {
+            var uploadedUrl = await _apiClient.UploadImageAsync(model.ImageFile, "pois", cancellationToken);
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                ModelState.AddModelError(nameof(model.ImageFile), "Không thể upload ảnh POI.");
+            }
+            else
+            {
+                model.ImageUrl = uploadedUrl;
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             EnsureMinimumRows(model);

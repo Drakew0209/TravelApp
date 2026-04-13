@@ -7,6 +7,7 @@ using System.Text;
 using TravelApp.Models;
 using TravelApp.Models.Contracts;
 using TravelApp.Services;
+using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.ViewModels;
@@ -22,6 +23,7 @@ public class SearchViewModel : INotifyPropertyChanged
     private bool _questEnabled = true;
     private readonly IPoiApiClient _poiApiClient;
     private readonly ILocalDatabaseService _localDatabaseService;
+    private readonly ApiClientOptions _apiOptions;
 
     public ObservableCollection<SearchDestinationItem> PopularDestinations { get; }
     public ObservableCollection<SearchDestinationItem> SearchResults { get; }
@@ -110,10 +112,11 @@ public class SearchViewModel : INotifyPropertyChanged
     public ICommand SearchCommand { get; }
     public ICommand OpenDestinationCommand { get; }
 
-    public SearchViewModel(IPoiApiClient poiApiClient, ILocalDatabaseService localDatabaseService)
+    public SearchViewModel(IPoiApiClient poiApiClient, ILocalDatabaseService localDatabaseService, ApiClientOptions apiOptions)
     {
         _poiApiClient = poiApiClient;
         _localDatabaseService = localDatabaseService;
+        _apiOptions = apiOptions;
         PopularDestinations = [];
         SearchResults = [];
         TourTypes = new ObservableCollection<TourTypeOption>
@@ -215,54 +218,49 @@ public class SearchViewModel : INotifyPropertyChanged
         });
     }
 
-    private static List<SearchDestinationItem> BuildDestinations(IReadOnlyList<PoiModel> pois)
+    private List<SearchDestinationItem> BuildDestinations(IReadOnlyList<PoiModel> pois)
     {
-        var hcmPois = pois.Where(IsHcmPoi).ToList();
-        var hanoiPois = pois.Where(IsHanoiPoi).ToList();
-
         var destinations = new List<SearchDestinationItem>();
 
-        if (hcmPois.Count > 0)
-        {
-            destinations.Add(BuildDestinationItem("🍲 Ho Chi Minh Food Tour", hcmPois));
-        }
-
-        if (hanoiPois.Count > 0)
-        {
-            destinations.Add(BuildDestinationItem("🍜 Hanoi Food Tour", hanoiPois));
-        }
-
-        if (destinations.Count == 0)
-        {
-            destinations.AddRange(pois
-                .GroupBy(p => string.IsNullOrWhiteSpace(p.Subtitle) ? p.Provider : p.Subtitle)
-                .Select(g => BuildDestinationItem(g.Key ?? "Unknown", g.ToList())));
-        }
+        destinations.AddRange(pois
+            .GroupBy(GetDestinationGroupKey)
+            .Select(g => BuildDestinationItem(g.Key, g.ToList())));
 
         return destinations;
     }
 
-    private static SearchDestinationItem BuildDestinationItem(string name, IReadOnlyList<PoiModel> pois)
+    private static string GetDestinationGroupKey(PoiModel poi)
+    {
+        return FirstNonEmpty(
+            poi.Category,
+            poi.Subtitle,
+            poi.Provider,
+            poi.Location,
+            poi.Title,
+            "Unknown");
+    }
+
+    private SearchDestinationItem BuildDestinationItem(string name, IReadOnlyList<PoiModel> pois)
     {
         return new SearchDestinationItem
         {
             Name = name,
             Type = "DESTINATION",
             Count = pois.Count,
-            ImageUrl = pois.FirstOrDefault()?.ImageUrl ?? "https://placehold.co/1200x600/png?text=Travel+App",
+            ImageUrl = FirstNonEmpty(pois.FirstOrDefault()?.ImageUrl, "https://placehold.co/1200x600/png?text=Travel+App"),
             FirstPoiId = pois.MinBy(p => p.Id)?.Id ?? 0,
             SearchText = string.Join(" ", pois.SelectMany(p => new[] { p.Title, p.Subtitle, p.Description, p.Location, p.Provider }).Where(x => !string.IsNullOrWhiteSpace(x)))
         };
     }
 
-    private static PoiModel MapPoi(PoiMobileDto poi)
+    private PoiModel MapPoi(PoiMobileDto poi)
     {
         return new PoiModel
         {
             Id = poi.Id,
             Title = poi.Title,
             Subtitle = poi.Subtitle,
-            ImageUrl = poi.ImageUrl,
+            ImageUrl = NormalizeImageUrl(poi.ImageUrl),
             Location = poi.Location,
             Latitude = poi.Latitude,
             Longitude = poi.Longitude,
@@ -270,11 +268,12 @@ public class SearchViewModel : INotifyPropertyChanged
             Duration = string.Empty,
             Description = poi.Description,
             Provider = string.Empty,
-            Credit = string.Empty
+            Credit = string.Empty,
+            Category = poi.Category
         };
     }
 
-    private static PoiMobileDto MapPoiToMobileDto(PoiDto poi)
+    private PoiMobileDto MapPoiToMobileDto(PoiDto poi)
     {
         return new PoiMobileDto
         {
@@ -284,7 +283,7 @@ public class SearchViewModel : INotifyPropertyChanged
             Description = poi.Description ?? string.Empty,
             LanguageCode = poi.PrimaryLanguage ?? string.Empty,
             PrimaryLanguage = poi.PrimaryLanguage ?? string.Empty,
-            ImageUrl = poi.ImageUrl,
+            ImageUrl = NormalizeImageUrl(poi.ImageUrl),
             Location = poi.Location,
             Latitude = poi.Latitude,
             Longitude = poi.Longitude,
@@ -308,14 +307,14 @@ public class SearchViewModel : INotifyPropertyChanged
         };
     }
 
-    private static PoiModel MapPoiOnline(PoiDto poi)
+    private PoiModel MapPoiOnline(PoiDto poi)
     {
         return new PoiModel
         {
             Id = poi.Id,
             Title = poi.Title,
             Subtitle = poi.Subtitle,
-            ImageUrl = poi.ImageUrl,
+            ImageUrl = NormalizeImageUrl(poi.ImageUrl),
             Location = poi.Location,
             Latitude = poi.Latitude,
             Longitude = poi.Longitude,
@@ -323,36 +322,28 @@ public class SearchViewModel : INotifyPropertyChanged
             Duration = poi.Duration,
             Description = poi.Description,
             Provider = poi.Provider,
-            Credit = poi.Credit
+            Credit = poi.Credit,
+            Category = poi.Category
         };
     }
 
-    private static bool IsHcmPoi(PoiModel poi)
+    private static string FirstNonEmpty(params string?[] values)
     {
-        return ContainsText(poi.Title, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
-               || ContainsText(poi.Subtitle, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
-               || ContainsText(poi.Description, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
-               || ContainsText(poi.Location, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn")
-               || ContainsText(poi.Provider, "hcm", "ho chi minh", "tphcm", "sai gon", "sài gòn");
-    }
-
-    private static bool IsHanoiPoi(PoiModel poi)
-    {
-        return ContainsText(poi.Title, "hanoi", "ha noi", "hà nội")
-               || ContainsText(poi.Subtitle, "hanoi", "ha noi", "hà nội")
-               || ContainsText(poi.Description, "hanoi", "ha noi", "hà nội")
-               || ContainsText(poi.Location, "hanoi", "ha noi", "hà nội")
-               || ContainsText(poi.Provider, "hanoi", "ha noi", "hà nội");
-    }
-
-    private static bool ContainsText(string? value, params string[] keywords)
-    {
-        if (string.IsNullOrWhiteSpace(value))
+        foreach (var value in values)
         {
-            return false;
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
         }
 
-        return keywords.Any(keyword => value.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        return string.Empty;
+    }
+
+    private string NormalizeImageUrl(string? imageUrl)
+    {
+        var normalized = ResourceUrlHelper.Normalize(imageUrl, _apiOptions.BaseUrl);
+        return string.IsNullOrWhiteSpace(normalized) ? "https://placehold.co/1200x600/png?text=Travel+App" : normalized;
     }
 
     private void ApplySearch()

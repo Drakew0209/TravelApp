@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using TravelApp.Admin.Web.Models;
 
@@ -25,6 +26,8 @@ public sealed class PoiEditorViewModel
 
     [StringLength(1024)]
     public string? ImageUrl { get; set; }
+
+    public IFormFile? ImageFile { get; set; }
 
     public string? QrContent { get; set; }
     public string? QrImageUrl { get; set; }

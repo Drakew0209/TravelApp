@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -19,6 +20,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "TravelApp.Admin.Auth";
         options.SlidingExpiration = true;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            var appState = context.HttpContext.RequestServices.GetRequiredService<AdminSessionState>();
+            if (context.Properties.IssuedUtc.HasValue && context.Properties.IssuedUtc.Value < appState.StartedAtUtc)
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -29,6 +39,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.Configure<AdminCredentialsOptions>(builder.Configuration.GetSection("AdminCredentials"));
+builder.Services.AddSingleton<AdminSessionState>();
 
 builder.Services.Configure<TravelAppApiOptions>(builder.Configuration.GetSection("TravelAppApi"));
 builder.Services.AddHttpClient<ITravelAppApiClient, TravelAppApiClient>((sp, client) =>

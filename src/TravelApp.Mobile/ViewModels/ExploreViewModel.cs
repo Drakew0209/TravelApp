@@ -18,9 +18,34 @@ public class ExploreViewModel : INotifyPropertyChanged
     private readonly IBookmarkHistoryService _bookmarkHistoryService;
     private int _offlineDownloadsCount;
     private string _selectedBottomTab = "Explore";
+    private string _forYouSectionTitle = "Featured tours";
+    private string _editorsChoiceSectionTitle = "More tours";
 
     public ObservableCollection<PoiModel> ForYouItems { get; }
     public ObservableCollection<PoiModel> EditorsChoiceItems { get; }
+    public ObservableCollection<RouteSectionItem> RouteSections { get; }
+    public ObservableCollection<PoiModel> ExploreMapItems { get; }
+    public string ForYouSectionTitle
+    {
+        get => _forYouSectionTitle;
+        private set
+        {
+            if (_forYouSectionTitle == value) return;
+            _forYouSectionTitle = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string EditorsChoiceSectionTitle
+    {
+        get => _editorsChoiceSectionTitle;
+        private set
+        {
+            if (_editorsChoiceSectionTitle == value) return;
+            _editorsChoiceSectionTitle = value;
+            OnPropertyChanged();
+        }
+    }
 
     public bool IsMenuOpen
     {
@@ -97,6 +122,8 @@ public class ExploreViewModel : INotifyPropertyChanged
         IsLoggedIn = AuthStateService.IsLoggedIn;
         ForYouItems = [];
         EditorsChoiceItems = [];
+        RouteSections = [];
+        ExploreMapItems = [];
 
         _audioLibraryService.LibraryChanged += async (_, _) => await RefreshOfflineDownloadsCountAsync();
 
@@ -225,54 +252,105 @@ public class ExploreViewModel : INotifyPropertyChanged
             var language = UserProfileService.PreferredLanguage;
             var routes = await _tourRouteCatalogService.GetAllRoutesAsync(language, cancellationToken);
 
-            var orderedRoutes = routes.OrderBy(x => x.Id).ToList();
-            var forYouRoute = orderedRoutes.FirstOrDefault();
-            var editorsChoiceRoute = orderedRoutes.Skip(1).FirstOrDefault();
+            var orderedRoutes = routes
+                .OrderByDescending(x => x.Id)
+                .ToList();
 
-            var forYou = BuildRouteItems(forYouRoute);
-            var editors = BuildRouteItems(editorsChoiceRoute);
+            var sections = orderedRoutes
+                .Select(route => new RouteSectionItem
+                {
+                    SectionTitle = GetSectionTitle(route),
+                    Items = new ObservableCollection<PoiModel>(BuildRouteItems(route))
+                })
+                .ToList();
+
+            var allItems = sections
+                .SelectMany(section => section.Items)
+                .GroupBy(x => x.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            var mapItems = allItems;
+
+            var forYou = sections.FirstOrDefault();
+            var editors = sections.Skip(1).FirstOrDefault();
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                RouteSections.Clear();
+                foreach (var section in sections)
+                {
+                    RouteSections.Add(section);
+                }
+
                 ForYouItems.Clear();
-                foreach (var item in forYou)
+                foreach (var item in forYou?.Items ?? [])
                 {
                     ForYouItems.Add(item);
                 }
 
                 EditorsChoiceItems.Clear();
-                foreach (var item in editors)
+                foreach (var item in editors?.Items ?? [])
                 {
                     EditorsChoiceItems.Add(item);
                 }
+
+                ExploreMapItems.Clear();
+                foreach (var item in mapItems)
+                {
+                    ExploreMapItems.Add(item);
+                }
+
+                ForYouSectionTitle = forYou?.SectionTitle ?? "Featured tours";
+                EditorsChoiceSectionTitle = editors?.SectionTitle ?? "More tours";
             });
         }
         catch
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                RouteSections.Clear();
+                ExploreMapItems.Clear();
                 ForYouItems.Clear();
                 EditorsChoiceItems.Clear();
+                ForYouSectionTitle = "Featured tours";
+                EditorsChoiceSectionTitle = "More tours";
 
             });
         }
     }
 
-    private static List<PoiModel> BuildRouteItems(TourRouteDto? route)
+    private static List<PoiModel> BuildRouteItems(TourRouteDto route)
     {
-        if (route is null)
+        if (route.Waypoints.Count == 0)
         {
             return [];
         }
 
         return route.Waypoints
-            .Select(waypoint => MapPoi(waypoint.Poi, route.Name))
+            .Select(waypoint => MapPoi(waypoint.Poi, route))
             .GroupBy(x => x.Id)
             .Select(g => g.First())
             .ToList();
     }
 
-    private static PoiModel MapPoi(PoiMobileDto dto, string? tourName)
+    private static string GetSectionTitle(TourRouteDto route)
+    {
+        if (!string.IsNullOrWhiteSpace(route.Name))
+        {
+            return route.Name.Trim();
+        }
+
+        var category = GetRouteCategoryKey(route);
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            return category;
+        }
+
+        return "Featured tours";
+    }
+
+    private static PoiModel MapPoi(PoiMobileDto dto, TourRouteDto route)
     {
         return new PoiModel
         {
@@ -287,9 +365,24 @@ public class ExploreViewModel : INotifyPropertyChanged
             Duration = string.Empty,
             Description = dto.Description,
             Provider = string.Empty,
-            Credit = string.IsNullOrWhiteSpace(tourName) ? string.Empty : tourName,
-            SpeechText = dto.SpeechText
+            Credit = string.IsNullOrWhiteSpace(route.Name) ? string.Empty : route.Name,
+            SpeechText = dto.SpeechText,
+            Category = dto.Category ?? GetRouteCategoryKey(route)
         };
+    }
+
+    private static string GetRouteCategoryKey(TourRouteDto route)
+    {
+        var category = route.Waypoints
+            .Select(x => x.Poi.Category)
+            .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            return category.Trim();
+        }
+
+        return string.IsNullOrWhiteSpace(route.Name) ? "Featured tours" : route.Name.Trim();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -298,4 +391,10 @@ public class ExploreViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+}
+
+public sealed class RouteSectionItem
+{
+    public required string SectionTitle { get; set; }
+    public ObservableCollection<PoiModel> Items { get; set; } = [];
 }

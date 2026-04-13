@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SQLite;
 using TravelApp.Models.Contracts;
+using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.Services.Runtime;
@@ -13,7 +14,13 @@ public class LocalDatabaseService : ILocalDatabaseService
     private readonly SemaphoreSlim _initGate = new(1, 1);
     private readonly SemaphoreSlim _writeGate = new(1, 1);
     private readonly string _databasePath = Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
+    private readonly ApiClientOptions _apiOptions;
     private SQLiteAsyncConnection? _database;
+
+    public LocalDatabaseService(ApiClientOptions apiOptions)
+    {
+        _apiOptions = apiOptions;
+    }
 
     public async Task<IReadOnlyList<PoiMobileDto>> GetPoisAsync(
         string? languageCode,
@@ -60,7 +67,7 @@ public class LocalDatabaseService : ILocalDatabaseService
                 Description = selectedLocalization?.Description ?? poi.Description,
                 LanguageCode = selectedLocalization?.LanguageCode ?? NormalizeLanguage(poi.PrimaryLanguage),
                 PrimaryLanguage = NormalizeLanguage(poi.PrimaryLanguage),
-                ImageUrl = poi.ImageUrl,
+                ImageUrl = NormalizeResourceUrl(poi.ImageUrl),
                 Location = poi.Location,
                 Latitude = poi.Latitude,
                 Longitude = poi.Longitude,
@@ -120,7 +127,7 @@ public class LocalDatabaseService : ILocalDatabaseService
                     SpeechTextsJson = SerializeSpeechTexts((poi.SpeechTexts?.Count ?? 0) > 0 ? poi.SpeechTexts : CreateSpeechTextsFromLegacy(poi)),
                     SpeechTextLanguageCode = NormalizeLanguage(poi.SpeechTextLanguageCode),
                     PrimaryLanguage = NormalizeLanguage(poi.PrimaryLanguage),
-                    ImageUrl = poi.ImageUrl,
+                    ImageUrl = NormalizeResourceUrl(poi.ImageUrl),
                     Location = poi.Location,
                     Latitude = poi.Latitude,
                     Longitude = poi.Longitude,
@@ -372,6 +379,11 @@ public class LocalDatabaseService : ILocalDatabaseService
         return string.IsNullOrWhiteSpace(languageCode)
             ? "en"
             : languageCode.Trim().ToLowerInvariant();
+    }
+
+    private string NormalizeResourceUrl(string? url)
+    {
+        return ResourceUrlHelper.Normalize(url, _apiOptions.BaseUrl);
     }
 
     private static LocalPoiLocalizationEntity? ResolveLocalization(

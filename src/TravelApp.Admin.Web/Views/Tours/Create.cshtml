@@ -15,12 +15,11 @@
         </div>
     </div>
 
-    <form asp-action="Create" method="post" class="content-grid" data-live-preview-form>
+    <form asp-action="Create" method="post" enctype="multipart/form-data" class="content-grid" data-live-preview-form>
         <script type="application/json" data-anchor-poi-details>@Html.Raw(Model.AnchorPoiDetailsJson)</script>
         <input asp-for="Title" type="hidden" data-live-preview-input="Title" />
         <input asp-for="Subtitle" type="hidden" data-live-preview-input="Subtitle" />
         <input asp-for="Description" type="hidden" data-live-preview-input="Description" />
-        <input asp-for="CoverImageUrl" type="hidden" data-live-preview-input="CoverImageUrl" />
         <input asp-for="ImageUrl" type="hidden" data-live-preview-input="ImageUrl" />
         <input asp-for="Location" type="hidden" data-live-preview-input="Location" />
         <input asp-for="Latitude" type="hidden" data-live-preview-input="Latitude" />
@@ -123,6 +122,23 @@
                 </div>
             </div>
 
+            <div class="admin-card p-4">
+                <div class="section-header mb-3">
+                    <div>
+                        <h2 class="section-title">Ảnh tour</h2>
+                        <p class="section-subtitle">Chọn ảnh bìa từ máy tính hoặc nhập URL trực tiếp.</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label asp-for="CoverImageUrl" class="form-label">Cover image URL</label>
+                        <input asp-for="CoverImageUrl" class="form-control" data-live-preview-input="CoverImageUrl" />
+                        <div class="form-text">Hoặc chọn file ảnh để upload lên server.</div>
+                        <input asp-for="CoverImageFile" type="file" accept="image/*" class="form-control mt-2" data-image-upload-input="true" data-image-upload-folder="tours" data-image-upload-target="CoverImageUrl" />
+                    </div>
+                </div>
+            </div>
+
             <div class="admin-card p-4 mb-4">
                 <div class="section-header mb-3">
                     <div>
@@ -160,7 +176,7 @@
                 <div class="section-header mb-3">
                     <div>
                         <h2 class="section-title">Audio assets</h2>
-                        <p class="section-subtitle">Liên kết audio theo từng ngôn ngữ.</p>
+                        <p class="section-subtitle">Liên kết audio theo từng ngôn ngữ. Audio URL không bắt buộc; có thể để trống nếu chưa có file.</p>
                     </div>
                     <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="audio-rows" data-prefix="AudioAssets">+ Add row</button>
                 </div>

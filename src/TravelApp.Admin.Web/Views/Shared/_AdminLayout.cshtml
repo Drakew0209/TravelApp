@@ -66,6 +66,18 @@
             </header>
 
             <main class="admin-content">
+                @if (TempData["SuccessMessage"] is string successMessage && !string.IsNullOrWhiteSpace(successMessage))
+                {
+                    <div class="alert alert-success mb-3" role="alert">@successMessage</div>
+                }
+                @if (TempData["InfoMessage"] is string infoMessage && !string.IsNullOrWhiteSpace(infoMessage))
+                {
+                    <div class="alert alert-info mb-3" role="alert">@infoMessage</div>
+                }
+                @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="alert alert-danger mb-3" role="alert">@errorMessage</div>
+                }
                 @RenderBody()
             </main>
         </div>

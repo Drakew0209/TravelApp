@@ -120,7 +120,20 @@ public class ToursController : Controller
     public async Task<IActionResult> Create(TourEditorViewModel model, CancellationToken cancellationToken)
     {
         model = await BuildTourEditorModelFromFormAsync(model, cancellationToken);
-        ValidateMinimumPois(model);
+        if (model.CoverImageFile is not null && model.CoverImageFile.Length > 0)
+        {
+            var uploadedUrl = await _apiClient.UploadImageAsync(model.CoverImageFile, "tours", cancellationToken);
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                ModelState.AddModelError(nameof(model.CoverImageFile), "Không thể upload ảnh tour.");
+            }
+            else
+            {
+                model.CoverImageUrl = uploadedUrl;
+            }
+        }
+
+        ValidateTourEditorModel(model);
 
         if (!ModelState.IsValid)
         {
@@ -157,7 +170,20 @@ public class ToursController : Controller
     public async Task<IActionResult> Edit(int id, TourEditorViewModel model, CancellationToken cancellationToken)
     {
         model = await BuildTourEditorModelFromFormAsync(model, cancellationToken);
-        ValidateMinimumPois(model);
+        if (model.CoverImageFile is not null && model.CoverImageFile.Length > 0)
+        {
+            var uploadedUrl = await _apiClient.UploadImageAsync(model.CoverImageFile, "tours", cancellationToken);
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                ModelState.AddModelError(nameof(model.CoverImageFile), "Không thể upload ảnh tour.");
+            }
+            else
+            {
+                model.CoverImageUrl = uploadedUrl;
+            }
+        }
+
+        ValidateTourEditorModel(model);
 
         if (!ModelState.IsValid)
         {
@@ -305,12 +331,43 @@ public class ToursController : Controller
         }
     }
 
-    private void ValidateMinimumPois(TourEditorViewModel model)
+    private void ValidateTourEditorModel(TourEditorViewModel model)
     {
+        if (string.IsNullOrWhiteSpace(model.Name))
+        {
+            ModelState.AddModelError(nameof(model.Name), "Vui lòng nhập tên tour.");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Title))
+        {
+            ModelState.AddModelError(nameof(model.Title), "Vui lòng nhập tiêu đề tour.");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Description))
+        {
+            ModelState.AddModelError(nameof(model.Description), "Vui lòng nhập mô tả tour.");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.PrimaryLanguage))
+        {
+            ModelState.AddModelError(nameof(model.PrimaryLanguage), "Vui lòng chọn ngôn ngữ chính.");
+        }
+
+        if (model.AnchorPoiId <= 0)
+        {
+            ModelState.AddModelError(nameof(model.AnchorPoiId), "Vui lòng chọn Anchor POI.");
+        }
+
         var validPoiCount = model.Pois.Count(x => x.PoiId > 0);
         if (validPoiCount < 2)
         {
             ModelState.AddModelError(nameof(model.Pois), "Tour phải có tối thiểu 2 POI.");
+        }
+
+        var hasAnyAudioMetadata = model.AudioAssets.Any(x => !string.IsNullOrWhiteSpace(x.AudioUrl) || !string.IsNullOrWhiteSpace(x.Transcript));
+        if (!hasAnyAudioMetadata)
+        {
+            TempData["InfoMessage"] = "Audio URL trong Audio assets không bắt buộc. Có thể để trống nếu chưa có file audio.";
         }
     }
 
@@ -363,7 +420,10 @@ public class ToursController : Controller
         model.Longitude = anchorPoi.Longitude;
         model.Category = anchorPoi.Category;
         model.ImageUrl = anchorPoi.ImageUrl;
-        model.CoverImageUrl = string.IsNullOrWhiteSpace(anchorPoi.ImageUrl) ? model.CoverImageUrl : anchorPoi.ImageUrl;
+        if (string.IsNullOrWhiteSpace(model.CoverImageUrl) && !string.IsNullOrWhiteSpace(anchorPoi.ImageUrl))
+        {
+            model.CoverImageUrl = anchorPoi.ImageUrl;
+        }
     }
 
     private static UpsertTourRequestDto ToRequest(TourEditorViewModel model)
@@ -389,11 +449,13 @@ public class ToursController : Controller
                 SortOrder = x.SortOrder,
                 DistanceFromPreviousMeters = x.DistanceFromPreviousMeters
             }).Where(x => x.PoiId > 0).ToList(),
-            AudioAssets = model.AudioAssets.Select(x => new TourAudioAssetDto
+            AudioAssets = model.AudioAssets
+                .Where(x => !string.IsNullOrWhiteSpace(x.AudioUrl) || !string.IsNullOrWhiteSpace(x.Transcript))
+                .Select(x => new TourAudioAssetDto
             {
                 LanguageCode = x.LanguageCode,
-                AudioUrl = x.AudioUrl,
-                Transcript = x.Transcript,
+                AudioUrl = string.IsNullOrWhiteSpace(x.AudioUrl) ? null : x.AudioUrl.Trim(),
+                Transcript = string.IsNullOrWhiteSpace(x.Transcript) ? null : x.Transcript.Trim(),
                 IsGenerated = false
             }).ToList(),
             SpeechTexts = model.SpeechTexts.Select(x => new TourSpeechTextDto

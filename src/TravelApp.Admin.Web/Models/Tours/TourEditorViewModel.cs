@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using TravelApp.Admin.Web.Models;
 
@@ -58,6 +59,8 @@ public sealed class TourEditorViewModel
     [StringLength(1024)]
     [Display(Name = "Image URL")]
     public string? ImageUrl { get; set; }
+
+    public IFormFile? CoverImageFile { get; set; }
 
     public string AnchorPoiDetailsJson { get; set; } = "[]";
     public List<SelectListItem> AvailablePois { get; set; } = [];
