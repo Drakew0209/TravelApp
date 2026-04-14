@@ -27,6 +27,7 @@ TravelApp là ứng dụng du lịch thông minh gồm ba thành phần chính:
 
 ---
 
+
 ## 2. Sơ Đồ Use Case
 
 ```
