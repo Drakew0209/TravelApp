@@ -74,7 +74,8 @@ public sealed class UserAdminService : IUserAdminService
         var user = new User
         {
             UserName = request.UserName.Trim(),
-            Email = request.Email.Trim(),
+            FullName = request.UserName.Trim(),
+            Email = NormalizeEmail(request.Email),
             PasswordHash = password,
             IsActive = request.IsActive,
             CreatedAtUtc = DateTimeOffset.UtcNow
@@ -104,7 +105,8 @@ public sealed class UserAdminService : IUserAdminService
         }
 
         user.UserName = request.UserName.Trim();
-        user.Email = request.Email.Trim();
+        user.FullName = request.UserName.Trim();
+        user.Email = NormalizeEmail(request.Email);
         user.IsActive = request.IsActive;
 
         if (!string.IsNullOrWhiteSpace(request.Password))
@@ -135,7 +137,7 @@ public sealed class UserAdminService : IUserAdminService
     private async Task<bool> IsUniqueAsync(Guid? currentId, UpsertUserRequestDto request, CancellationToken cancellationToken)
     {
         var normalizedUserName = request.UserName.Trim();
-        var normalizedEmail = request.Email.Trim();
+        var normalizedEmail = NormalizeEmail(request.Email);
 
         return !await _dbContext.Users.AnyAsync(x =>
             (!currentId.HasValue || x.Id != currentId.Value) &&
@@ -174,5 +176,10 @@ public sealed class UserAdminService : IUserAdminService
                 .OrderBy(x => x.Name)
                 .ToList()
         };
+    }
+
+    private static string NormalizeEmail(string email)
+    {
+        return email.Trim().ToLowerInvariant();
     }
 }

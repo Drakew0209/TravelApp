@@ -1,17 +1,17 @@
 @model TravelApp.Admin.Web.Models.Tours.TourEditorViewModel
 
 @{
-    ViewData["Title"] = "Create Tour";
+    ViewData["Title"] = AdminText.T("Create Tour", "ツアーを作成", "Tour erstellen");
 }
 
 <div class="dashboard-grid">
     <div class="section-header">
         <div>
-            <h1 class="section-title">Tạo tour mới</h1>
-            <p class="section-subtitle">Lưu trực tiếp vào API để cập nhật database thật.</p>
+            <h1 class="section-title">@AdminText.T("Tạo tour mới", "新しいツアーを作成", "Neuen Tour erstellen")</h1>
+            <p class="section-subtitle">@AdminText.T("Lưu trực tiếp vào API để cập nhật database thật.", "API に直接保存して実データベースを更新します。", "Direkt an die API speichern, um die echte Datenbank zu aktualisieren.")</p>
         </div>
         <div class="section-actions">
-            <span class="soft-badge">Tour • Create</span>
+            <span class="soft-badge">@AdminText.T("Tour • Create", "ツアー • 作成", "Tour • Erstellen")</span>
         </div>
     </div>
 
@@ -19,7 +19,7 @@
         <script type="application/json" data-anchor-poi-details>@Html.Raw(Model.AnchorPoiDetailsJson)</script>
         <input asp-for="Title" type="hidden" data-live-preview-input="Title" />
         <input asp-for="Subtitle" type="hidden" data-live-preview-input="Subtitle" />
-        <input asp-for="Description" type="hidden" data-live-preview-input="Description" />
+        <input asp-for="Description" type="hidden" data-live-preview-input="Description" data-sync-description-from-speech="true" />
         <input asp-for="ImageUrl" type="hidden" data-live-preview-input="ImageUrl" />
         <input asp-for="Location" type="hidden" data-live-preview-input="Location" />
         <input asp-for="Latitude" type="hidden" data-live-preview-input="Latitude" />
@@ -30,17 +30,17 @@
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
                 <div class="section-header mb-3">
                     <div>
-                        <h2 class="section-title">Thông tin cơ bản</h2>
-                        <p class="section-subtitle">Tên tour và ngôn ngữ.</p>
+                        <h2 class="section-title">@AdminText.T("Thông tin cơ bản", "基本情報", "Grundinformationen")</h2>
+                        <p class="section-subtitle">@AdminText.T("Tên tour và ngôn ngữ.", "ツアー名と言語。", "Tourname und Sprache.")</p>
                     </div>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label asp-for="Name" class="form-label">Tour name</label>
+                        <label asp-for="Name" class="form-label">@AdminText.T("Tour name", "ツアー名", "Tourname")</label>
                         <input asp-for="Name" class="form-control" data-live-preview-input="Name" />
                     </div>
                     <div class="col-md-6">
-                        <label asp-for="PrimaryLanguage" class="form-label">Primary language</label>
+                        <label asp-for="PrimaryLanguage" class="form-label">@AdminText.T("Primary language", "主要言語", "Primärsprache")</label>
                         <select asp-for="PrimaryLanguage" asp-items="Model.LanguageOptions" class="form-select" data-live-preview-input="PrimaryLanguage"></select>
                     </div>
                 </div>
@@ -49,70 +49,307 @@
             <div class="admin-card p-4">
                 <div class="section-header mb-3">
                     <div>
-                        <h2 class="section-title">POI & định vị</h2>
-                        <p class="section-subtitle">Thông tin này tự đồng bộ từ Anchor POI.</p>
+                        <h2 class="section-title">@AdminText.T("POI & định vị", "POI と位置情報", "POI & Standort")</h2>
+                        <p class="section-subtitle">@AdminText.T("Thông tin này tự đồng bộ từ Anchor POI.", "この情報はアンカー POI から自動同期されます。", "Diese Informationen werden automatisch vom Anker-POI synchronisiert.")</p>
                     </div>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label asp-for="AnchorPoiId" class="form-label">Anchor POI</label>
+                        <label asp-for="AnchorPoiId" class="form-label">@AdminText.T("Anchor POI", "アンカー POI", "Anker-POI")</label>
                         <select asp-for="AnchorPoiId" asp-items="Model.AvailablePois" class="form-select" data-live-preview-input="AnchorPoiId" data-anchor-poi-select="true"></select>
-                        <div class="form-hint">Chọn POI gốc. Các trường bên dưới sẽ tự cập nhật và khóa chỉnh sửa.</div>
+                        <div class="form-hint">@AdminText.T("Chọn POI gốc. Các trường bên dưới sẽ tự cập nhật và khóa chỉnh sửa.", "元の POI を選択します。下の項目は自動更新され、編集がロックされます。", "Wählen Sie den Basis-POI. Die Felder unten werden automatisch aktualisiert und gesperrt.")</div>
                     </div>
                     <div class="col-md-6 d-flex align-items-end">
                         <div class="form-check">
                             <input asp-for="IsPublished" class="form-check-input" data-live-preview-input="IsPublished" />
-                            <label asp-for="IsPublished" class="form-check-label">Published</label>
+                                <label asp-for="IsPublished" class="form-check-label">@AdminText.T("Published", "公開", "Veröffentlicht")</label>
+        <div class="accordion" id="tourContentAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="basicInfoHeading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="true" aria-controls="basicInfoCollapse">
+                        <span>
+                            <span class="d-block section-title">Thông tin cơ bản</span>
+                            <span class="d-block section-subtitle">Tên tour và ngôn ngữ.</span>
+                        </span>
+                    </button>
+                </h2>
+                <div id="basicInfoCollapse" class="accordion-collapse collapse show" aria-labelledby="basicInfoHeading" data-bs-parent="#tourContentAccordion">
+                    <div class="accordion-body">
+                        <div class="d-grid gap-4">
+                            <div class="admin-card p-4">
+                                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="Name" class="form-label">Tour name</label>
+                                        <input asp-for="Name" class="form-control" data-live-preview-input="Name" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="PrimaryLanguage" class="form-label">Primary language</label>
+                                        <select asp-for="PrimaryLanguage" asp-items="Model.LanguageOptions" class="form-select" data-live-preview-input="PrimaryLanguage"></select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="poiInfoHeading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#poiInfoCollapse" aria-expanded="false" aria-controls="poiInfoCollapse">
+                        <span>
+                            <span class="d-block section-title">POI & định vị</span>
+                            <span class="d-block section-subtitle">Thông tin này tự đồng bộ từ Anchor POI.</span>
+                        </span>
+                    </button>
+                </h2>
+                <div id="poiInfoCollapse" class="accordion-collapse collapse" aria-labelledby="poiInfoHeading" data-bs-parent="#tourContentAccordion">
+                    <div class="accordion-body">
+                        <div class="admin-card p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="AnchorPoiId" class="form-label">Anchor POI</label>
+                                    <select asp-for="AnchorPoiId" asp-items="Model.AvailablePois" class="form-select" data-live-preview-input="AnchorPoiId" data-anchor-poi-select="true"></select>
+                                    <div class="form-hint">Chọn POI gốc. Các trường bên dưới sẽ tự cập nhật và khóa chỉnh sửa.</div>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <div class="form-check">
+                                        <input asp-for="IsPublished" class="form-check-input" data-live-preview-input="IsPublished" />
+                                        <label asp-for="IsPublished" class="form-check-label">Published</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card admin-card p-3">
+                                        <div class="section-header mb-2">
+                                            <div>
+                                                <h3 class="section-title" style="font-size: 16px;">Thông tin đồng bộ từ POI</h3>
+                                                <p class="section-subtitle mb-0">Các giá trị này được lấy tự động và chỉ để hiển thị.</p>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="preview-stat">
+                                                    <div class="label">Title</div>
+                                                    <div class="value" data-anchor-poi-summary="Title" data-live-preview="title" data-live-preview-source="Title">@Model.Title</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="preview-stat">
+                                                    <div class="label">Subtitle</div>
+                                                    <div class="value" data-anchor-poi-summary="Subtitle" data-live-preview="subtitle" data-live-preview-source="Subtitle">@Model.Subtitle</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="preview-stat">
+                                                    <div class="label">@AdminText.T("Description", "説明", "Beschreibung")</div>
+                                                    <div class="value" data-anchor-poi-summary="Description">@Model.Description</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="preview-stat">
+                                                    <div class="label">@AdminText.T("Location", "場所", "Ort")</div>
+                                                    <div class="value" data-anchor-poi-summary="Location" data-live-preview="location" data-live-preview-source="Location">@Model.Location</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="preview-stat">
+                                                    <div class="label">@AdminText.T("Latitude", "緯度", "Breitengrad")</div>
+                                                    <div class="value" data-anchor-poi-summary="Latitude">@(Model.Latitude?.ToString() ?? "—")</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="preview-stat">
+                                                    <div class="label">@AdminText.T("Longitude", "経度", "Längengrad")</div>
+                                                    <div class="value" data-anchor-poi-summary="Longitude">@(Model.Longitude?.ToString() ?? "—")</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="preview-stat">
+                                                    <div class="label">@AdminText.T("Category", "カテゴリ", "Kategorie")</div>
+                                                    <div class="value" data-anchor-poi-summary="Category" data-live-preview="category" data-live-preview-source="Category">@(Model.Category ?? "—")</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="coverImageHeading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#coverImageCollapse" aria-expanded="false" aria-controls="coverImageCollapse">
+                        <span>
+                            <span class="d-block section-title">Ảnh tour</span>
+                            <span class="d-block section-subtitle">Chỉnh sửa ảnh bìa của tour bằng file từ máy tính hoặc URL.</span>
+                        </span>
+                    </button>
+                </h2>
+                <div id="coverImageCollapse" class="accordion-collapse collapse" aria-labelledby="coverImageHeading" data-bs-parent="#tourContentAccordion">
+                    <div class="accordion-body">
+                        <div class="admin-card p-4">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label asp-for="CoverImageUrl" class="form-label">Cover image URL</label>
+                                    <details class="mt-1">
+                                        <summary class="form-text">Cover image URL (tùy chọn)</summary>
+                                        <input asp-for="CoverImageUrl" class="form-control mt-2" data-live-preview-input="CoverImageUrl" />
+                                    </details>
+                                    <div class="form-text">Ưu tiên chọn ảnh mới để upload lên server.</div>
+                                    <input asp-for="CoverImageFile" type="file" accept="image/*" class="form-control mt-2" data-image-upload-input="true" data-image-upload-folder="tours" data-image-upload-target="CoverImageUrl" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="poiListHeading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#poiListCollapse" aria-expanded="false" aria-controls="poiListCollapse">
+                        <span>
+                            <span class="d-block section-title">Danh sách POI trong tour</span>
+                            <span class="d-block section-subtitle">Dùng nút Add row để bổ sung waypoint.</span>
+                        </span>
+                    </button>
+                </h2>
+                <div id="poiListCollapse" class="accordion-collapse collapse" aria-labelledby="poiListHeading" data-bs-parent="#tourContentAccordion">
+                    <div class="accordion-body">
+                        <div class="admin-card p-4 mb-4">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="pois-rows" data-prefix="Pois">+ Add row</button>
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>POI</th>
+                                            <th>Sort</th>
+                                            <th>Distance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pois-rows" data-next-index="@Model.Pois.Count">
+                                        @for (var i = 0; i < Model.Pois.Count; i++)
+                                        {
+                                            <tr data-repeat-row>
+                                                <td>
+                                                    <select asp-for="Pois[@i].PoiId" asp-items="Model.AvailablePois" class="form-select"></select>
+                                                </td>
+                                                <td><input asp-for="Pois[@i].SortOrder" class="form-control" type="number" /></td>
+                                                <td><input asp-for="Pois[@i].DistanceFromPreviousMeters" class="form-control" type="number" step="0.1" /></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="languageAssetsHeading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#languageAssetsCollapse" aria-expanded="false" aria-controls="languageAssetsCollapse">
+                        <span>
+                                    <span class="d-block section-title">@AdminText.T("Language assets", "言語アセット", "Sprach-Assets")</span>
+                                    <span class="d-block section-subtitle">@AdminText.T("Gom audio và speech text vào một khối cho gọn.", "音声と読み上げテキストを 1 つのセクションにまとめます。", "Audio und Speech-Text übersichtlich in einem Block zusammenführen.")</span>
+                        </span>
+                    </button>
+                </h2>
+                <div id="languageAssetsCollapse" class="accordion-collapse collapse" aria-labelledby="languageAssetsHeading" data-bs-parent="#tourContentAccordion">
+                    <div class="accordion-body">
+                        <div class="row g-4">
+                            <div class="col-12 col-xl-6">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <div>
+                                                <h3 class="section-title" style="font-size: 16px;">@AdminText.T("Audio assets", "音声アセット", "Audio-Assets")</h3>
+                                                <p class="section-subtitle mb-0">@AdminText.T("Liên kết audio theo từng ngôn ngữ. Audio URL có thể để trống.", "言語ごとの音声を紐付けます。Audio URL は空欄でも可。", "Audio pro Sprache verknüpfen. Audio-URL darf leer sein.")</p>
+                                    </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="audio-rows" data-prefix="AudioAssets">@AdminText.T("+ Add row", "+ 行を追加", "+ Zeile hinzufügen")</button>
+                                </div>
+                                <div id="audio-rows" data-next-index="@Model.AudioAssets.Count">
+                                    @for (var i = 0; i < Model.AudioAssets.Count; i++)
+                                    {
+                                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="AudioAssets">
+                                            <div class="col-md-3"><input asp-for="AudioAssets[@i].LanguageCode" class="form-control" placeholder="vi-VN" /></div>
+                                            <div class="col-md-9"><input asp-for="AudioAssets[@i].AudioUrl" class="form-control" placeholder="@AdminText.T("Audio URL", "音声 URL", "Audio-URL")" /></div>
+                                            <div class="col-12 mt-2"><input asp-for="AudioAssets[@i].Transcript" class="form-control" placeholder="@AdminText.T("Transcript", "書き起こし", "Transkript")" /></div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-xl-6">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <div>
+                                                <h3 class="section-title" style="font-size: 16px;">@AdminText.T("Speech texts", "読み上げテキスト", "Speech-Texte")</h3>
+                                                <p class="section-subtitle mb-0">@AdminText.T("Nội dung đọc tự động cho tour.", "ツアー用の読み上げ内容。", "Automatisch vorgelesener Inhalt für die Tour.")</p>
+                                    </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="speech-rows" data-prefix="SpeechTexts">@AdminText.T("+ Add row", "+ 行を追加", "+ Zeile hinzufügen")</button>
+                                </div>
+                                <div id="speech-rows" data-next-index="@Model.SpeechTexts.Count">
+                                    @for (var i = 0; i < Model.SpeechTexts.Count; i++)
+                                    {
+                                        <div class="row g-2 mb-3" data-repeat-row>
+                                            <div class="col-md-3"><input asp-for="SpeechTexts[@i].LanguageCode" class="form-control" placeholder="vi-VN" /></div>
+                                            <div class="col-md-9"><textarea asp-for="SpeechTexts[@i].Text" rows="2" class="form-control"></textarea></div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
                     <div class="col-12">
                         <div class="card admin-card p-3">
                             <div class="section-header mb-2">
                                 <div>
-                                    <h3 class="section-title" style="font-size: 16px;">Thông tin đồng bộ từ POI</h3>
-                                    <p class="section-subtitle mb-0">Các giá trị này được lấy tự động và chỉ để hiển thị.</p>
+                                    <h3 class="section-title" style="font-size: 16px;">@AdminText.T("Thông tin đồng bộ từ POI", "POI から同期された情報", "Vom POI synchronisierte Informationen")</h3>
+                                    <p class="section-subtitle mb-0">@AdminText.T("Các giá trị này được lấy tự động và chỉ để hiển thị.", "これらの値は自動取得され、表示専用です。", "Diese Werte werden automatisch übernommen und dienen nur zur Anzeige.")</p>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <div class="preview-stat">
-                                        <div class="label">Title</div>
+                                        <div class="label">@AdminText.T("Title", "タイトル", "Titel")</div>
                                         <div class="value" data-anchor-poi-summary="Title" data-live-preview="title" data-live-preview-source="Title">@Model.Title</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="preview-stat">
-                                        <div class="label">Subtitle</div>
+                                        <div class="label">@AdminText.T("Subtitle", "サブタイトル", "Untertitel")</div>
                                         <div class="value" data-anchor-poi-summary="Subtitle" data-live-preview="subtitle" data-live-preview-source="Subtitle">@Model.Subtitle</div>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="preview-stat">
-                                        <div class="label">Description</div>
+                                        <div class="label">@AdminText.T("Description", "説明", "Beschreibung")</div>
                                         <div class="value" data-anchor-poi-summary="Description">@Model.Description</div>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="preview-stat">
-                                        <div class="label">Location</div>
+                                        <div class="label">@AdminText.T("Location", "場所", "Ort")</div>
                                         <div class="value" data-anchor-poi-summary="Location" data-live-preview="location" data-live-preview-source="Location">@Model.Location</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="preview-stat">
-                                        <div class="label">Latitude</div>
+                                        <div class="label">@AdminText.T("Latitude", "緯度", "Breitengrad")</div>
                                         <div class="value" data-anchor-poi-summary="Latitude">@(Model.Latitude?.ToString() ?? "—")</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="preview-stat">
-                                        <div class="label">Longitude</div>
+                                        <div class="label">@AdminText.T("Longitude", "経度", "Längengrad")</div>
                                         <div class="value" data-anchor-poi-summary="Longitude">@(Model.Longitude?.ToString() ?? "—")</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="preview-stat">
-                                        <div class="label">Category</div>
+                                        <div class="label">@AdminText.T("Category", "カテゴリ", "Kategorie")</div>
                                         <div class="value" data-anchor-poi-summary="Category" data-live-preview="category" data-live-preview-source="Category">@(Model.Category ?? "—")</div>
                                     </div>
                                 </div>
@@ -131,9 +368,12 @@
                 </div>
                 <div class="row g-3">
                     <div class="col-12">
-                        <label asp-for="CoverImageUrl" class="form-label">Cover image URL</label>
-                        <input asp-for="CoverImageUrl" class="form-control" data-live-preview-input="CoverImageUrl" />
-                        <div class="form-text">Hoặc chọn file ảnh để upload lên server.</div>
+                                    <label asp-for="CoverImageUrl" class="form-label">@AdminText.T("Cover image URL", "カバー画像 URL", "Coverbild-URL")</label>
+                        <details class="mt-1">
+                                        <summary class="form-text">@AdminText.T("Cover image URL (tùy chọn)", "カバー画像 URL（任意）", "Coverbild-URL (optional)")</summary>
+                            <input asp-for="CoverImageUrl" class="form-control mt-2" data-live-preview-input="CoverImageUrl" />
+                        </details>
+                        <div class="form-text">Ưu tiên chọn file ảnh để upload lên server.</div>
                         <input asp-for="CoverImageFile" type="file" accept="image/*" class="form-control mt-2" data-image-upload-input="true" data-image-upload-folder="tours" data-image-upload-target="CoverImageUrl" />
                     </div>
                 </div>
@@ -142,18 +382,18 @@
             <div class="admin-card p-4 mb-4">
                 <div class="section-header mb-3">
                     <div>
-                        <h2 class="section-title">Danh sách POI trong tour</h2>
-                        <p class="section-subtitle">Dùng nút Add row để bổ sung waypoint.</p>
+                        <h2 class="section-title">@AdminText.T("Danh sách POI trong tour", "ツアー内の POI 一覧", "POI-Liste in der Tour")</h2>
+                        <p class="section-subtitle">@AdminText.T("Dùng nút Add row để bổ sung waypoint.", "「行を追加」ボタンでウェイポイントを追加します。", "Mit der Schaltfläche „Zeile hinzufügen“ können Wegpunkte ergänzt werden.")</p>
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="pois-rows" data-prefix="Pois">+ Add row</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="pois-rows" data-prefix="Pois">@AdminText.T("+ Add row", "+ 行を追加", "+ Zeile hinzufügen")</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table align-middle">
                         <thead>
                             <tr>
-                                <th>POI</th>
-                                <th>Sort</th>
-                                <th>Distance</th>
+                                <th>@AdminText.T("POI", "POI", "POI")</th>
+                                <th>@AdminText.T("Sort", "並び順", "Sortierung")</th>
+                                <th>@AdminText.T("Distance", "距離", "Entfernung")</th>
                             </tr>
                         </thead>
                         <tbody id="pois-rows" data-next-index="@Model.Pois.Count">
@@ -175,39 +415,50 @@
             <div class="admin-card p-4 mb-4">
                 <div class="section-header mb-3">
                     <div>
-                        <h2 class="section-title">Audio assets</h2>
-                        <p class="section-subtitle">Liên kết audio theo từng ngôn ngữ. Audio URL không bắt buộc; có thể để trống nếu chưa có file.</p>
+                        <h2 class="section-title">@AdminText.T("Language assets", "言語アセット", "Sprach-Assets")</h2>
+                        <p class="section-subtitle">@AdminText.T("Gom audio và speech text vào một khối cho gọn.", "音声と読み上げテキストを 1 つのセクションにまとめます。", "Audio und Speech-Text übersichtlich in einem Block zusammenführen.")</p>
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="audio-rows" data-prefix="AudioAssets">+ Add row</button>
                 </div>
-                <div id="audio-rows" data-next-index="@Model.AudioAssets.Count">
-                    @for (var i = 0; i < Model.AudioAssets.Count; i++)
-                    {
-                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="AudioAssets">
-                            <div class="col-md-2"><select asp-for="AudioAssets[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
-                            <div class="col-md-5"><input asp-for="AudioAssets[@i].AudioUrl" class="form-control" placeholder="Audio URL" /></div>
-                            <div class="col-md-5"><input asp-for="AudioAssets[@i].Transcript" class="form-control" placeholder="Transcript" /></div>
-                        </div>
-                    }
-                </div>
-            </div>
 
-            <div class="admin-card p-4">
-                <div class="section-header mb-3">
-                    <div>
-                        <h2 class="section-title">Speech texts</h2>
-                        <p class="section-subtitle">Nội dung đọc tự động cho tour.</p>
-                    </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="speech-rows" data-prefix="SpeechTexts">+ Add row</button>
-                </div>
-                <div id="speech-rows" data-next-index="@Model.SpeechTexts.Count">
-                    @for (var i = 0; i < Model.SpeechTexts.Count; i++)
-                    {
-                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="SpeechTexts">
-                            <div class="col-md-2"><select asp-for="SpeechTexts[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
-                            <div class="col-md-10"><textarea asp-for="SpeechTexts[@i].Text" rows="2" class="form-control"></textarea></div>
+                <div class="row g-4">
+                    <div class="col-12 col-xl-6">
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <div>
+                                                <h3 class="section-title" style="font-size: 16px;">@AdminText.T("Audio assets", "音声アセット", "Audio-Assets")</h3>
+                                                <p class="section-subtitle mb-0">@AdminText.T("Liên kết audio theo từng ngôn ngữ. Audio URL có thể để trống.", "言語ごとの音声を紐付けます。Audio URL は空欄でも可。", "Audio pro Sprache verknüpfen. Audio-URL darf leer sein.")</p>
+                            </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="audio-rows" data-prefix="AudioAssets">@AdminText.T("+ Add row", "+ 行を追加", "+ Zeile hinzufügen")</button>
                         </div>
-                    }
+                        <div id="audio-rows" data-next-index="@Model.AudioAssets.Count">
+                            @for (var i = 0; i < Model.AudioAssets.Count; i++)
+                            {
+                                <div class="row g-2 mb-3" data-repeat-row data-repeat-group="AudioAssets">
+                                    <div class="col-md-3"><select asp-for="AudioAssets[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select"></select></div>
+                                    <div class="col-md-9"><input asp-for="AudioAssets[@i].AudioUrl" class="form-control" placeholder="Audio URL" /></div>
+                                    <div class="col-12 mt-2"><input asp-for="AudioAssets[@i].Transcript" class="form-control" placeholder="Transcript" /></div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-xl-6">
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <div>
+                                                <h3 class="section-title" style="font-size: 16px;">@AdminText.T("Speech texts", "読み上げテキスト", "Speech-Texte")</h3>
+                                                <p class="section-subtitle mb-0">@AdminText.T("Nội dung đọc tự động cho tour.", "ツアー用の読み上げ内容。", "Automatisch vorgelesener Inhalt für die Tour.")</p>
+                            </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" data-add-row data-target="speech-rows" data-prefix="SpeechTexts">@AdminText.T("+ Add row", "+ 行を追加", "+ Zeile hinzufügen")</button>
+                        </div>
+                        <div id="speech-rows" data-next-index="@Model.SpeechTexts.Count">
+                            @for (var i = 0; i < Model.SpeechTexts.Count; i++)
+                            {
+                                        <div class="row g-2 mb-3" data-repeat-row data-repeat-group="SpeechTexts" data-speech-text-row="true">
+                                            <div class="col-md-3"><select asp-for="SpeechTexts[@i].LanguageCode" asp-items="Model.LanguageOptions" class="form-select" data-speech-text-row-language="true"></select></div>
+                                            <div class="col-md-9"><textarea asp-for="SpeechTexts[@i].Text" rows="2" class="form-control" data-speech-text-row-text="true"></textarea></div>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -218,24 +469,24 @@
                 <div class="preview-overlay"></div>
                 <div class="preview-meta">
                     <div>
-                        <div class="preview-title" data-live-preview="title" data-live-preview-source="Title">@(string.IsNullOrWhiteSpace(Model.Title) ? "Tour Preview" : Model.Title)</div>
-                        <div class="preview-subtitle" data-live-preview="subtitle" data-live-preview-source="Subtitle">@(string.IsNullOrWhiteSpace(Model.Subtitle) ? "Nhập thông tin để xem preview" : Model.Subtitle)</div>
+                        <div class="preview-title" data-live-preview="title" data-live-preview-source="Title">@(string.IsNullOrWhiteSpace(Model.Title) ? AdminText.T("Tour Preview", "ツアープレビュー", "Tour-Vorschau") : Model.Title)</div>
+                        <div class="preview-subtitle" data-live-preview="subtitle" data-live-preview-source="Subtitle">@(string.IsNullOrWhiteSpace(Model.Subtitle) ? AdminText.T("Nhập thông tin để xem preview", "情報を入力するとプレビューを表示します", "Daten eingeben, um die Vorschau anzuzeigen") : Model.Subtitle)</div>
                     </div>
-                    <span class="soft-badge" data-live-preview="published-badge" data-live-preview-source="IsPublished">@(Model.IsPublished ? "Published" : "Draft")</span>
+                    <span class="soft-badge" data-live-preview="published-badge" data-live-preview-source="IsPublished">@(Model.IsPublished ? AdminText.T("Published", "公開", "Veröffentlicht") : AdminText.T("Draft", "下書き", "Entwurf"))</span>
                 </div>
             </div>
             <div class="preview-body">
                 <div class="preview-stats">
                     <div class="preview-stat">
-                        <div class="label">Anchor POI</div>
+                        <div class="label">@AdminText.T("Anchor POI", "アンカー POI", "Anker-POI")</div>
                         <div class="value" data-live-preview="anchor-poi" data-live-preview-source="AnchorPoiId">@Model.AnchorPoiId</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Language</div>
+                        <div class="label">@AdminText.T("Language", "言語", "Sprache")</div>
                         <div class="value" data-live-preview="language" data-live-preview-source="PrimaryLanguage">@(string.IsNullOrWhiteSpace(Model.PrimaryLanguage) ? "—" : Model.PrimaryLanguage)</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">POIs</div>
+                        <div class="label">@AdminText.T("POIs", "POI 数", "POIs")</div>
                         <div class="value">@Model.Pois.Count</div>
                     </div>
                 </div>
@@ -245,8 +496,8 @@
                 </div>
 
                 <ul class="preview-list">
-                    <li><span>Location</span><strong data-live-preview="location" data-live-preview-source="Location">@(string.IsNullOrWhiteSpace(Model.Location) ? "—" : Model.Location)</strong></li>
-                    <li><span>Route assets</span><strong data-live-preview="route-assets">@Model.AudioAssets.Count audio · @Model.SpeechTexts.Count text</strong></li>
+                    <li><span>@AdminText.T("Location", "場所", "Ort")</span><strong data-live-preview="location" data-live-preview-source="Location">@(string.IsNullOrWhiteSpace(Model.Location) ? "—" : Model.Location)</strong></li>
+                    <li><span>@AdminText.T("Route assets", "ルートアセット", "Routen-Assets")</span><strong data-live-preview="route-assets">@Model.AudioAssets.Count audio · @Model.SpeechTexts.Count text</strong></li>
                 </ul>
 
                 <div class="d-grid gap-2 mt-4">

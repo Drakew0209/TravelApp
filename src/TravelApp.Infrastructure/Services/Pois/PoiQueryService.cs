@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TravelApp.Application.Abstractions.Pois;
 using TravelApp.Application.Dtos.Pois;
+using TravelApp.Application.Utilities;
 using TravelApp.Domain.Entities;
 using TravelApp.Infrastructure.Persistence;
 
@@ -191,6 +192,29 @@ public class PoiQueryService : IPoiQueryService
         return true;
     }
 
+    public async Task<int> BackfillSpeechTextsAsync(CancellationToken cancellationToken = default)
+    {
+        var pois = await _dbContext.Pois
+            .Include(x => x.Localizations)
+            .ToListAsync(cancellationToken);
+
+        var updatedCount = 0;
+        foreach (var poi in pois)
+        {
+            if (BackfillSpeechTexts(poi))
+            {
+                updatedCount++;
+            }
+        }
+
+        if (updatedCount > 0)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return updatedCount;
+    }
+
     private static PoiMobileDto MapToMobileDto(Poi poi, string? requestedLanguageCode, IReadOnlyDictionary<int, double>? distanceByPoiId = null, ISet<int>? usedPoiIds = null)
     {
         var requestedLanguage = NormalizeLanguageCode(requestedLanguageCode);
@@ -201,7 +225,7 @@ public class PoiQueryService : IPoiQueryService
         var speechTexts = DeserializeSpeechTexts(poi.SpeechTextsJson);
         var preferredSpeechLanguage = NormalizeLanguageCode(poi.SpeechTextLanguageCode);
         var speechLanguage = string.IsNullOrWhiteSpace(preferredSpeechLanguage) ? requestedLanguage : preferredSpeechLanguage;
-        var speech = ResolveSpeechText(speechTexts, speechLanguage, primaryLanguage, poi.SpeechText, poi.Description);
+        var speech = ResolveSpeechText(speechTexts, speechLanguage, primaryLanguage, poi.SpeechText);
 
         var dto = new PoiMobileDto
         {
@@ -295,18 +319,149 @@ public class PoiQueryService : IPoiQueryService
                ?? poi.Localizations.FirstOrDefault(x => string.Equals(x.LanguageCode, "en", StringComparison.OrdinalIgnoreCase));
     }
 
+    private static bool BackfillSpeechTexts(Poi poi)
+    {
+        var existingSpeechTexts = DeserializeSpeechTexts(poi.SpeechTextsJson);
+        var merged = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(poi.SpeechText))
+        {
+            var legacyLanguage = NormalizeLanguageCode(string.IsNullOrWhiteSpace(poi.SpeechTextLanguageCode) ? poi.PrimaryLanguage : poi.SpeechTextLanguageCode);
+            if (!string.IsNullOrWhiteSpace(legacyLanguage))
+            {
+                merged[legacyLanguage] = poi.SpeechText.Trim();
+            }
+        }
+
+        foreach (var speechText in existingSpeechTexts)
+        {
+            var languageCode = NormalizeLanguageCode(speechText.LanguageCode);
+            if (string.IsNullOrWhiteSpace(languageCode) || string.IsNullOrWhiteSpace(speechText.Text) || merged.ContainsKey(languageCode))
+            {
+                continue;
+            }
+
+            merged[languageCode] = speechText.Text.Trim();
+        }
+
+        foreach (var languageCode in GetBackfillLanguageCandidates(poi))
+        {
+            if (merged.ContainsKey(languageCode))
+            {
+                continue;
+            }
+
+            var fallback = BuildFallbackSpeechText(poi, languageCode);
+            if (!string.IsNullOrWhiteSpace(fallback))
+            {
+                merged[languageCode] = fallback;
+            }
+        }
+
+        if (merged.Count == 0)
+        {
+            return false;
+        }
+
+        var normalizedPrimaryLanguage = NormalizeLanguageCode(poi.SpeechTextLanguageCode);
+        if (string.IsNullOrWhiteSpace(normalizedPrimaryLanguage) || !merged.ContainsKey(normalizedPrimaryLanguage))
+        {
+            normalizedPrimaryLanguage = NormalizeLanguageCode(poi.PrimaryLanguage);
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedPrimaryLanguage) || !merged.ContainsKey(normalizedPrimaryLanguage))
+        {
+            normalizedPrimaryLanguage = merged.Keys.First();
+        }
+
+        var primarySpeechText = merged[normalizedPrimaryLanguage];
+        var orderedSpeechTexts = merged
+            .OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(x => new PoiSpeechTextMobileDto
+            {
+                LanguageCode = x.Key,
+                Text = x.Value
+            })
+            .ToList();
+
+        var newJson = JsonSerializer.Serialize(orderedSpeechTexts);
+        var changed = !string.Equals(poi.SpeechTextsJson, newJson, StringComparison.Ordinal) ||
+                      !string.Equals(poi.SpeechText, primarySpeechText, StringComparison.Ordinal) ||
+                      !string.Equals(NormalizeLanguageCode(poi.SpeechTextLanguageCode), normalizedPrimaryLanguage, StringComparison.OrdinalIgnoreCase);
+
+        if (!changed)
+        {
+            return false;
+        }
+
+        poi.SpeechTextsJson = newJson;
+        poi.SpeechText = primarySpeechText;
+        poi.SpeechTextLanguageCode = normalizedPrimaryLanguage;
+        poi.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        return true;
+    }
+
+    private static IEnumerable<string> GetBackfillLanguageCandidates(Poi poi)
+    {
+        var languages = new[]
+        {
+            poi.PrimaryLanguage,
+            poi.SpeechTextLanguageCode,
+            "vi-VN",
+            "en-US",
+            "ja-JP",
+            "de-DE"
+        };
+
+        foreach (var localizationLanguage in poi.Localizations.Select(x => x.LanguageCode))
+        {
+            languages = languages.Append(localizationLanguage).ToArray();
+        }
+
+        return languages
+            .Select(NormalizeLanguageCode)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string BuildFallbackSpeechText(Poi poi, string languageCode)
+    {
+        var localization = poi.Localizations.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), languageCode, StringComparison.OrdinalIgnoreCase))
+                           ?? poi.Localizations.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), NormalizeLanguageCode(poi.PrimaryLanguage), StringComparison.OrdinalIgnoreCase))
+                           ?? poi.Localizations.FirstOrDefault();
+
+        var parts = new[]
+            {
+                localization?.Title ?? poi.Title,
+                localization?.Subtitle ?? poi.Subtitle,
+                localization?.Description ?? poi.Description
+            }
+            .Select(x => x?.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return parts.Length == 0 ? string.Empty : string.Join(". ", parts);
+    }
+
     private static string NormalizeLanguageCode(string? languageCode)
     {
-        return string.IsNullOrWhiteSpace(languageCode)
-            ? "en"
-            : languageCode.Trim().ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(LanguageCodeNormalizer.NormalizeToLocaleCode(languageCode))
+            ? "en-US"
+            : LanguageCodeNormalizer.NormalizeToLocaleCode(languageCode);
     }
 
     private static void ApplyRequest(Poi poi, UpsertPoiRequestDto request)
     {
         poi.Title = request.Title;
         poi.Subtitle = request.Subtitle;
-        poi.Description = request.Description;
+        var speechTexts = NormalizeSpeechTexts(request.SpeechTexts, request.SpeechText, request.SpeechTextLanguageCode, request.PrimaryLanguage);
+        var primarySpeechLanguage = ResolvePrimarySpeechLanguage(request.SpeechTextLanguageCode, request.PrimaryLanguage, speechTexts);
+        var primarySpeechText = ResolvePrimarySpeechText(request.Description, request.SpeechText, speechTexts, primarySpeechLanguage);
+
+        poi.Description = primarySpeechText;
         poi.Category = request.Category;
         poi.Location = request.Location;
         poi.ImageUrl = request.ImageUrl;
@@ -314,22 +469,22 @@ public class PoiQueryService : IPoiQueryService
         poi.Longitude = request.Longitude;
         poi.GeofenceRadiusMeters = request.GeofenceRadiusMeters;
         poi.PrimaryLanguage = NormalizeLanguageCode(request.PrimaryLanguage);
-        var speechTexts = NormalizeSpeechTexts(request.SpeechTexts, request.SpeechText, request.SpeechTextLanguageCode, request.PrimaryLanguage);
         poi.SpeechTextsJson = JsonSerializer.Serialize(speechTexts);
-        poi.SpeechText = ResolveLegacySpeechText(speechTexts, poi.PrimaryLanguage, request.Description);
-        poi.SpeechTextLanguageCode = NormalizeLanguageCode(request.SpeechTextLanguageCode ?? request.PrimaryLanguage);
+        poi.SpeechText = primarySpeechText;
+        poi.SpeechTextLanguageCode = primarySpeechLanguage;
 
         if (request.Localizations.Count > 0)
         {
             poi.Localizations.Clear();
             foreach (var localization in request.Localizations)
             {
+                var languageCode = NormalizeLanguageCode(localization.LanguageCode);
                 poi.Localizations.Add(new PoiLocalization
                 {
-                    LanguageCode = NormalizeLanguageCode(localization.LanguageCode),
-                    Title = localization.Title,
-                    Subtitle = localization.Subtitle,
-                    Description = localization.Description
+                    LanguageCode = languageCode,
+                    Title = request.Title,
+                    Subtitle = request.Subtitle,
+                    Description = ResolveSpeechTextForLanguage(speechTexts, languageCode, localization.Description, primarySpeechText)
                 });
             }
         }
@@ -366,8 +521,7 @@ public class PoiQueryService : IPoiQueryService
         IReadOnlyList<PoiSpeechTextMobileDto> speechTexts,
         string requestedLanguage,
         string primaryLanguage,
-        string? legacySpeechText,
-        string? fallbackDescription)
+        string? legacySpeechText)
     {
         var selected = speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), requestedLanguage, StringComparison.OrdinalIgnoreCase))
                        ?? speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), "vi", StringComparison.OrdinalIgnoreCase))
@@ -382,11 +536,6 @@ public class PoiQueryService : IPoiQueryService
         if (!string.IsNullOrWhiteSpace(legacySpeechText))
         {
             return (legacySpeechText!, primaryLanguage);
-        }
-
-        if (!string.IsNullOrWhiteSpace(fallbackDescription))
-        {
-            return (fallbackDescription!, primaryLanguage);
         }
 
         return (string.Empty, primaryLanguage);
@@ -422,7 +571,7 @@ public class PoiQueryService : IPoiQueryService
         return [];
     }
 
-    private static string ResolveLegacySpeechText(IReadOnlyList<PoiSpeechTextMobileDto> speechTexts, string primaryLanguage, string? fallbackDescription)
+    private static string ResolveLegacySpeechText(IReadOnlyList<PoiSpeechTextMobileDto> speechTexts, string primaryLanguage, string? legacySpeechText, string? fallbackDescription)
     {
         var byPrimary = speechTexts.FirstOrDefault(x => string.Equals(x.LanguageCode, primaryLanguage, StringComparison.OrdinalIgnoreCase));
         if (byPrimary is not null && !string.IsNullOrWhiteSpace(byPrimary.Text))
@@ -442,6 +591,60 @@ public class PoiQueryService : IPoiQueryService
             return first.Text;
         }
 
-        return fallbackDescription ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(legacySpeechText)
+            && !string.Equals(legacySpeechText.Trim(), fallbackDescription?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return legacySpeechText.Trim();
+        }
+
+        return string.Empty;
+    }
+
+    private static string ResolvePrimarySpeechText(string? description, string? legacySpeechText, IReadOnlyList<PoiSpeechTextMobileDto> speechTexts, string primaryLanguage)
+    {
+        var selected = speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), primaryLanguage, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(x.Text))
+                       ?? speechTexts.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Text));
+        if (selected is not null)
+        {
+            return selected.Text.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(legacySpeechText))
+        {
+            return legacySpeechText.Trim();
+        }
+
+        return description?.Trim() ?? string.Empty;
+    }
+
+    private static string ResolvePrimarySpeechLanguage(string? preferredLanguage, string? primaryLanguage, IReadOnlyList<PoiSpeechTextMobileDto> speechTexts)
+    {
+        var preferred = NormalizeLanguageCode(preferredLanguage);
+        if (!string.IsNullOrWhiteSpace(preferred) && speechTexts.Any(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), preferred, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(x.Text)))
+        {
+            return preferred;
+        }
+
+        var primary = NormalizeLanguageCode(primaryLanguage);
+        if (!string.IsNullOrWhiteSpace(primary) && speechTexts.Any(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), primary, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(x.Text)))
+        {
+            return primary;
+        }
+
+        return speechTexts.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Text))?.LanguageCode is { } languageCode
+            ? NormalizeLanguageCode(languageCode)
+            : primary;
+    }
+
+    private static string ResolveSpeechTextForLanguage(IReadOnlyList<PoiSpeechTextMobileDto> speechTexts, string languageCode, string? fallbackText, string primarySpeechText)
+    {
+        var normalized = NormalizeLanguageCode(languageCode);
+        var selected = speechTexts.FirstOrDefault(x => string.Equals(NormalizeLanguageCode(x.LanguageCode), normalized, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(x.Text));
+        if (selected is not null)
+        {
+            return selected.Text.Trim();
+        }
+
+        return !string.IsNullOrWhiteSpace(fallbackText) ? fallbackText.Trim() : primarySpeechText;
     }
 }

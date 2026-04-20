@@ -2,18 +2,18 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelApp.DebugRuntimeConsolePage"
-             Title="Debug Runtime Console"
+              Title="{Binding PageTitle}"
              BackgroundColor="{AppThemeBinding Light=Black, Dark=Black}">
 
     <Grid RowDefinitions="Auto,Auto,*" Padding="12">
         <HorizontalStackLayout Spacing="10">
-            <Label Text="Debug mode"
+            <Label Text="{Binding DebugModeText}"
                    TextColor="White"
                    VerticalTextAlignment="Center" />
             <Switch x:Name="DebugModeSwitch" />
-            <Button Text="Clear"
+            <Button Text="{Binding ClearText}"
                     Clicked="OnClearClicked"
-                    AutomationProperties.Name="Clear logs"
+                    AutomationProperties.Name="{Binding ClearLogsA11yText}"
                     BackgroundColor="#333333"
                     TextColor="White"
                     Padding="10,4" />

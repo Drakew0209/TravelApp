@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -85,6 +85,46 @@
 </head>
 <body class="auth-body">
     <main role="main">
+        <div class="position-absolute top-0 end-0 p-3">
+            <div class="dropdown auth-language-switcher">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle auth-language-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    @(System.Globalization.CultureInfo.CurrentUICulture.Name switch
+                    {
+                        "vi-VN" => "VI",
+                        "en-US" => "EN",
+                        "ja-JP" => "日本語",
+                        "de-DE" => "DE",
+                        _ => "Lang"
+                    })
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end auth-language-menu list-unstyled p-2 m-0">
+                    <li>
+                        <form asp-controller="Culture" asp-action="Set" method="post">
+                            <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                            <button type="submit" name="culture" value="vi-VN" class="dropdown-item w-100 text-start @(System.Globalization.CultureInfo.CurrentUICulture.Name == "vi-VN" ? "active" : string.Empty)">VI · Tiếng Việt</button>
+                        </form>
+                    </li>
+                    <li>
+                        <form asp-controller="Culture" asp-action="Set" method="post">
+                            <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                            <button type="submit" name="culture" value="en-US" class="dropdown-item w-100 text-start @(System.Globalization.CultureInfo.CurrentUICulture.Name == "en-US" ? "active" : string.Empty)">EN · English</button>
+                        </form>
+                    </li>
+                    <li>
+                        <form asp-controller="Culture" asp-action="Set" method="post">
+                            <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                            <button type="submit" name="culture" value="ja-JP" class="dropdown-item w-100 text-start @(System.Globalization.CultureInfo.CurrentUICulture.Name == "ja-JP" ? "active" : string.Empty)">日本語</button>
+                        </form>
+                    </li>
+                    <li>
+                        <form asp-controller="Culture" asp-action="Set" method="post">
+                            <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                            <button type="submit" name="culture" value="de-DE" class="dropdown-item w-100 text-start @(System.Globalization.CultureInfo.CurrentUICulture.Name == "de-DE" ? "active" : string.Empty)">DE · Deutsch</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
         @RenderBody()
     </main>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

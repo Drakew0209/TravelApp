@@ -1,4 +1,5 @@
 using TravelApp.Models.Contracts;
+using TravelApp.Models.Runtime;
 
 namespace TravelApp.Services.Abstractions;
 
@@ -15,11 +16,18 @@ public interface ILocalDatabaseService
 
     Task<string?> GetOfflineAudioPathAsync(int poiId, string languageCode, CancellationToken cancellationToken = default);
 
+    Task<AudioDownloadCacheState?> GetAudioDownloadCacheStateAsync(int poiId, string languageCode, CancellationToken cancellationToken = default);
+
     Task SaveAudioMetadataAsync(
         int poiId,
         string languageCode,
         string? audioUrl,
         string? localFilePath,
+        string? tempFilePath = null,
+        string? cacheVersionToken = null,
+        string? contentHash = null,
+        long bytesDownloaded = 0,
+        bool isCompleted = true,
         CancellationToken cancellationToken = default);
 
     Task<string> ExportDatabaseAsync(string destinationDirectory, string? fileName = null, CancellationToken cancellationToken = default);

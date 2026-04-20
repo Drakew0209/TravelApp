@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using TravelApp.Admin.Web.Models;
 using TravelApp.Admin.Web.Models.Users;
 using TravelApp.Admin.Web.Services;
 using TravelApp.Application.Dtos.Users;
 
 namespace TravelApp.Admin.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Owner,Admin,SuperAdmin")]
 public class UsersController : Controller
 {
     private readonly ITravelAppApiClient _apiClient;
@@ -34,7 +35,7 @@ public class UsersController : Controller
     {
         if (string.IsNullOrWhiteSpace(model.Password))
         {
-            ModelState.AddModelError(nameof(model.Password), "Password is required for new user.");
+            ModelState.AddModelError(nameof(model.Password), AdminText.T("Password is required for new user.", "新しいユーザーにはパスワードが必要です。", "Für einen neuen Benutzer ist ein Passwort erforderlich."));
         }
 
         if (!ModelState.IsValid)
@@ -45,7 +46,7 @@ public class UsersController : Controller
         var created = await _apiClient.CreateUserAsync(ToRequest(model), cancellationToken);
         if (created is null)
         {
-            ModelState.AddModelError(string.Empty, "Username, email or password is invalid.");
+            ModelState.AddModelError(string.Empty, AdminText.T("Username, email or password is invalid.", "ユーザー名、メール、またはパスワードが無効です。", "Benutzername, E-Mail oder Passwort ist ungültig."));
             return View(await BuildEditorModelAsync(model, null, cancellationToken));
         }
 
@@ -82,7 +83,7 @@ public class UsersController : Controller
                 return NotFound();
             }
 
-            ModelState.AddModelError(string.Empty, "Username or email is already in use.");
+            ModelState.AddModelError(string.Empty, AdminText.T("Username or email is already in use.", "ユーザー名またはメールアドレスはすでに使用されています。", "Benutzername oder E-Mail wird bereits verwendet."));
             return View(await BuildEditorModelAsync(model, existing, cancellationToken));
         }
 

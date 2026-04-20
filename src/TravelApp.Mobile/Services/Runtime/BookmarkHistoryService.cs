@@ -14,14 +14,16 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
 
     private readonly ILocalDatabaseService _localDatabaseService;
     private readonly IPoiApiClient _poiApiClient;
+    private readonly IBookmarkHistoryApiClient _bookmarkHistoryApiClient;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public event EventHandler? Changed;
 
-    public BookmarkHistoryService(ILocalDatabaseService localDatabaseService, IPoiApiClient poiApiClient)
+    public BookmarkHistoryService(ILocalDatabaseService localDatabaseService, IPoiApiClient poiApiClient, IBookmarkHistoryApiClient bookmarkHistoryApiClient)
     {
         _localDatabaseService = localDatabaseService;
         _poiApiClient = poiApiClient;
+        _bookmarkHistoryApiClient = bookmarkHistoryApiClient;
     }
 
     public async Task<IReadOnlyList<PoiModel>> GetBookmarksAsync(string? languageCode, CancellationToken cancellationToken = default)
@@ -29,6 +31,7 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
         await _gate.WaitAsync(cancellationToken);
         try
         {
+            await SyncBookmarksFromApiAsync(cancellationToken);
             var bookmarkStates = ReadBookmarks();
             if (bookmarkStates.Count == 0)
             {
@@ -48,6 +51,7 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
         await _gate.WaitAsync(cancellationToken);
         try
         {
+            await SyncHistoryFromApiAsync(cancellationToken);
             var historyStates = ReadHistory();
             if (historyStates.Count == 0)
             {
@@ -124,6 +128,17 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
             _gate.Release();
         }
 
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+        {
+            try
+            {
+                await _bookmarkHistoryApiClient.ToggleBookmarkAsync(poi.Id, cancellationToken);
+            }
+            catch
+            {
+            }
+        }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -148,6 +163,17 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
             _gate.Release();
         }
 
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+        {
+            try
+            {
+                await _bookmarkHistoryApiClient.AddHistoryAsync(poi.Id, cancellationToken);
+            }
+            catch
+            {
+            }
+        }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -165,6 +191,17 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
             _gate.Release();
         }
 
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+        {
+            try
+            {
+                await _bookmarkHistoryApiClient.RemoveHistoryAsync(poiId, cancellationToken);
+            }
+            catch
+            {
+            }
+        }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -180,7 +217,62 @@ public sealed class BookmarkHistoryService : IBookmarkHistoryService
             _gate.Release();
         }
 
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+        {
+            try
+            {
+                await _bookmarkHistoryApiClient.ClearHistoryAsync(cancellationToken);
+            }
+            catch
+            {
+            }
+        }
+
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task SyncBookmarksFromApiAsync(CancellationToken cancellationToken)
+    {
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            return;
+        }
+
+        try
+        {
+            var remoteBookmarks = await _bookmarkHistoryApiClient.GetBookmarksAsync(cancellationToken);
+            if (remoteBookmarks is null)
+            {
+                return;
+            }
+
+            SaveBookmarks(remoteBookmarks.Select(x => new BookmarkState(x.PoiId, x.SavedAtUtc)).ToList());
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SyncHistoryFromApiAsync(CancellationToken cancellationToken)
+    {
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            return;
+        }
+
+        try
+        {
+            var remoteHistory = await _bookmarkHistoryApiClient.GetHistoryAsync(cancellationToken);
+            if (remoteHistory is null)
+            {
+                return;
+            }
+
+            SaveHistory(remoteHistory.Select(x => new HistoryState(x.PoiId, x.VisitedAtUtc)).ToList());
+        }
+        catch
+        {
+        }
     }
 
     private async Task<IReadOnlyList<PoiModel>> ResolvePoisAsync(IEnumerable<int> poiIds, string? languageCode, CancellationToken cancellationToken)

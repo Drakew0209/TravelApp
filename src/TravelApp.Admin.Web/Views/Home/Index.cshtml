@@ -1,10 +1,10 @@
 ﻿@{
-    ViewData["Title"] = "Home";
+    ViewData["Title"] = AdminText.T("Trang chủ", "Home", "ホーム", "Startseite");
 }
 
 <div class="card admin-card shadow-sm">
     <div class="card-body">
-        <h1 class="h4 fw-bold mb-2">Đang chuyển hướng</h1>
-        <p class="text-muted mb-0">Trang chủ sẽ tự động đưa bạn tới dashboard quản trị.</p>
+        <h1 class="h4 fw-bold mb-2">@AdminText.T("Đang chuyển hướng", "Redirecting", "リダイレクトしています", "Weiterleitung läuft")</h1>
+        <p class="text-muted mb-0">@AdminText.T("Trang chủ sẽ tự động đưa bạn tới dashboard quản trị.", "The home page will automatically take you to the admin dashboard.", "ホームは自動的に管理ダッシュボードへ移動します。", "Die Startseite leitet Sie automatisch zum Admin-Dashboard weiter.")</p>
     </div>
 </div>

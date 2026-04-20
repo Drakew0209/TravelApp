@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using TravelApp.Application.Abstractions.Auth;
 using System.Security.Claims;
+using TravelApp.Application.Dtos.Auth;
 
 namespace TravelApp.Api.Controllers;
 
@@ -31,12 +32,41 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var result = await _authService.LoginAsync(request.Email, request.Password);
+        var result = await _authService.LoginAsync(request.Email.Trim(), request.Password);
 
         if (result is null)
             return Unauthorized(new { message = "Invalid email or password" });
 
-        return Ok(result);
+        return Ok(ToApiResult(result));
+    }
+
+    /// <summary>
+    /// Register a new account with the default User role.
+    /// </summary>
+    [HttpPost("register")]
+    public async Task<ActionResult<AuthResultDto>> RegisterAsync([FromBody] RegisterRequestDto request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var result = await _authService.RegisterAsync(request);
+            if (result is null)
+            {
+                return BadRequest(new { message = "Unable to register user." });
+            }
+
+            return Ok(ToApiResult(result));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>
@@ -66,7 +96,7 @@ public class AuthController : ControllerBase
         if (result is null)
             return Unauthorized(new { message = "Invalid or expired refresh token" });
 
-        return Ok(result);
+        return Ok(ToApiResult(result));
     }
 
     /// <summary>
@@ -86,6 +116,18 @@ public class AuthController : ControllerBase
 
         return Ok(profile);
     }
+
+    private static AuthResultDto ToApiResult(TravelApp.Application.Abstractions.Auth.AuthResultDto result)
+    {
+        return new AuthResultDto(
+            result.AccessToken,
+            result.RefreshToken,
+            result.ExpiresAtUtc,
+            result.TokenType,
+            result.UserId,
+            result.Roles,
+            result.FullName);
+    }
 }
 
 public record LoginRequestDto(string Email, string Password);
@@ -96,9 +138,11 @@ public record AuthResultDto(
     DateTimeOffset? ExpiresAtUtc = null,
     string TokenType = "Bearer",
     string? UserId = null,
-    IReadOnlyList<string>? Roles = null);
+    IReadOnlyList<string>? Roles = null,
+    string? FullName = null);
 public record UserProfileDto(
     Guid Id,
     string UserName,
     string Email,
     string FullName = "");
+

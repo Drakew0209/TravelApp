@@ -56,7 +56,7 @@
                         StrokeThickness="0"
                         BackgroundColor="#33FFFFFF"
                         StrokeShape="RoundRectangle 20"
-                        AutomationProperties.Name="Open navigation menu"
+                        AutomationProperties.Name="{Binding OpenNavigationMenuA11yText}"
                         VerticalOptions="Center"
                         HorizontalOptions="Center">
                     <Border.GestureRecognizers>
@@ -76,17 +76,28 @@
                         StrokeThickness="2"
                         StrokeShape="RoundRectangle 22"
                         BackgroundColor="{AppThemeBinding Light=White, Dark=#202635}"
-                        Padding="14,0,4,0"
-                        HeightRequest="48"
+                        Padding="14,4,4,4"
+                        HeightRequest="54"
                         VerticalOptions="Center">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding OpenSearchCommand}" />
                     </Border.GestureRecognizers>
                     <Grid ColumnDefinitions="*,40" ColumnSpacing="0">
-                        <Label Text="Explore destinations"
-                               TextColor="{AppThemeBinding Light=#5D6D79, Dark=#B4BDCF}"
-                               FontSize="14"
-                               VerticalTextAlignment="Center" />
+                <VerticalStackLayout Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
+                    <Label Text="{Binding SearchPlaceholder}"
+                           TextColor="{AppThemeBinding Light=#5D6D79, Dark=#B4BDCF}"
+                           FontSize="14"
+                           MaxLines="1"
+                           LineBreakMode="TailTruncation"
+                           VerticalTextAlignment="Center" />
+                    <Label Text="{Binding CurrentLanguageText}"
+                           TextColor="#D9E5FF"
+                           FontSize="11"
+                           MaxLines="1"
+                           LineBreakMode="TailTruncation"
+                           FontAttributes="Bold"
+                           VerticalTextAlignment="Center" />
+                </VerticalStackLayout>
 
                         <Border Grid.Column="1"
                                 StrokeThickness="0"
@@ -116,7 +127,7 @@
                         StrokeShape="RoundRectangle 20"
                         WidthRequest="40"
                         HeightRequest="40"
-                        AutomationProperties.Name="Scan QR code"
+                        AutomationProperties.Name="{Binding ScanQrCodeA11yText}"
                         VerticalOptions="Center"
                         HorizontalOptions="Center">
                     <Border.GestureRecognizers>
@@ -136,7 +147,7 @@
                         StrokeShape="RoundRectangle 20"
                         WidthRequest="40"
                         HeightRequest="40"
-                        AutomationProperties.Name="Current location indicator"
+                        AutomationProperties.Name="{Binding CurrentLocationIndicatorA11yText}"
                         VerticalOptions="Center"
                         HorizontalOptions="Center">
                     <Border Stroke="#CCFFFFFF"
@@ -156,7 +167,7 @@
             <VerticalStackLayout Padding="14,14,14,8" Spacing="14">
 
                 <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                    <Label Text="Around me" Style="{StaticResource SectionTitleStyle}" />
+                    <Label Text="{Binding AroundMeTitle}" Style="{StaticResource SectionTitleStyle}" />
 
                     <Border Grid.Column="1"
                             StrokeThickness="0"
@@ -165,7 +176,7 @@
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding OpenMapCommand}" />
                         </Border.GestureRecognizers>
-                        <Label Text="POI Map"
+                        <Label Text="{Binding PoiMapText}"
                                FontSize="14"
                                FontAttributes="Bold"
                                TextColor="{StaticResource PrimaryAccent}"
@@ -180,7 +191,7 @@
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding OpenTourMapRouteCommand}" />
                         </Border.GestureRecognizers>
-                        <Label Text="Map view"
+                        <Label Text="{Binding MapViewText}"
                                FontSize="14"
                                FontAttributes="Bold"
                                TextColor="{StaticResource PrimaryAccent}"
@@ -209,7 +220,7 @@
                     </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="2">
                         <Label x:Name="AudioStatusTextLabel"
-                               Text="Đang phát audio"
+                               Text="{Binding AudioStatusText}"
                                FontSize="13"
                                FontAttributes="Bold"
                                TextColor="White" />
@@ -389,7 +400,7 @@
                             <TapGestureRecognizer Command="{Binding OpenMapCommand}" />
                         </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="*,Auto" Padding="0,0,18,0">
-                            <Label Text="Start"
+                            <Label Text="{Binding StartText}"
                                    TextColor="White"
                                    FontSize="18"
                                    FontAttributes="Bold"
@@ -437,7 +448,7 @@
                             </Path.Triggers>
                         </Path>
                     </Border>
-                    <Label Text="Explore" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#8C8C97, Dark=#9AA4B8}" IsVisible="False">
+                    <Label Text="{Binding ExploreTabText}" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#8C8C97, Dark=#9AA4B8}" IsVisible="False">
                         <Label.Triggers>
                             <DataTrigger TargetType="Label" Binding="{Binding IsExploreTabActive}" Value="True">
                                 <Setter Property="IsVisible" Value="True" />
@@ -471,7 +482,7 @@
                             </Path.Triggers>
                         </Path>
                     </Border>
-                    <Label Text="Free Walk" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#8C8C97, Dark=#9AA4B8}" IsVisible="False">
+                    <Label Text="{Binding FreeWalkTabText}" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#8C8C97, Dark=#9AA4B8}" IsVisible="False">
                         <Label.Triggers>
                             <DataTrigger TargetType="Label" Binding="{Binding IsDiscoverTabActive}" Value="True">
                                 <Setter Property="IsVisible" Value="True" />

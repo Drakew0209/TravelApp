@@ -1,0 +1,11 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = PublicText.T("Error", "エラー", "Fehler", "Error");
+}
+
+<section class="card hero-card">
+    <div class="badge">TravelApp Public</div>
+    <h1>@PublicText.T("Đã xảy ra lỗi", "エラーが発生しました", "Ein Fehler ist aufgetreten", "An error occurred")</h1>
+    <p>@PublicText.T("Không thể tải nội dung public lúc này. Vui lòng thử lại sau.", "現在、公開コンテンツを読み込めません。しばらくしてからもう一度お試しください。", "Die öffentlichen Inhalte können derzeit nicht geladen werden. Bitte versuchen Sie es später erneut.", "Could not load public content right now. Please try again later.")</p>
+</section>

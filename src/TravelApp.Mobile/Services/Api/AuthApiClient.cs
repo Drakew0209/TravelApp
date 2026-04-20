@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using TravelApp.Models.Contracts;
+using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.Services.Api;
@@ -33,6 +34,12 @@ public class AuthApiClient : ApiClientBase, IAuthApiClient
         {
             Content = JsonContent.Create(request, options: JsonOptions)
         }, cancellationToken: cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(await ReadFriendlyErrorMessageAsync(response, cancellationToken) ?? "Could not create your account.");
+        }
+
         var result = await ReadAsAsync<AuthResultDto>(response, cancellationToken);
 
         PersistToken(result);
@@ -78,10 +85,7 @@ public class AuthApiClient : ApiClientBase, IAuthApiClient
         }
         finally
         {
-            _tokenStore.AccessToken = null;
-            _tokenStore.RefreshToken = null;
-            _tokenStore.ExpiresAtUtc = null;
-            _tokenStore.TokenType = "Bearer";
+            ClearSessionState();
         }
     }
 
@@ -94,5 +98,22 @@ public class AuthApiClient : ApiClientBase, IAuthApiClient
         _tokenStore.RefreshToken = result.RefreshToken;
         _tokenStore.ExpiresAtUtc = result.ExpiresAtUtc;
         _tokenStore.TokenType = string.IsNullOrWhiteSpace(result.TokenType) ? "Bearer" : result.TokenType;
+    }
+
+    private static async Task<string?> ReadFriendlyErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(JsonOptions, cancellationToken);
+            if (payload is not null && payload.TryGetValue("message", out var message) && !string.IsNullOrWhiteSpace(message))
+            {
+                return message;
+            }
+        }
+        catch
+        {
+        }
+
+        return response.ReasonPhrase;
     }
 }

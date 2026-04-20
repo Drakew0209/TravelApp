@@ -24,13 +24,17 @@
                       VerticalOptions="Center" />
             </Border>
 
-            <Label Grid.Column="1"
-                   Text="Bookmarks &amp; History"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
-                   LineBreakMode="TailTruncation"
-                   VerticalTextAlignment="Center" />
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="{Binding PageTitle}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
+                       LineBreakMode="TailTruncation" />
+                <Label Text="{Binding CurrentLanguageText}"
+                       FontSize="12"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" />
+            </VerticalStackLayout>
 
             <Border Grid.Column="2"
                     WidthRequest="40"
@@ -100,7 +104,10 @@
         </HorizontalStackLayout>
 
         <Grid Grid.Row="3">
-            <CollectionView ItemsSource="{Binding Bookmarks}" IsVisible="{Binding ShowBookmarks}" SelectionMode="None" EmptyView="No bookmarked tours yet">
+            <CollectionView ItemsSource="{Binding Bookmarks}" IsVisible="{Binding ShowBookmarks}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="{Binding NoBookmarkedToursYetText}" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" HorizontalTextAlignment="Center" />
+                </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
@@ -121,7 +128,7 @@
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout Grid.Column="2" Spacing="8" VerticalOptions="Center">
-                                    <Button Text="Open"
+                                     <Button Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenText}"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenBookmarkDetailCommand}"
                                             CommandParameter="{Binding .}"
                                             FontSize="12"
@@ -130,7 +137,7 @@
                                             BackgroundColor="#E31667"
                                             TextColor="White"
                                             WidthRequest="82" />
-                                    <Button Text="Unsave"
+                                     <Button Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.UnsaveText}"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleBookmarkCommand}"
                                             CommandParameter="{Binding .}"
                                             FontSize="12"
@@ -148,7 +155,10 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <CollectionView ItemsSource="{Binding History}" IsVisible="{Binding ShowHistory}" SelectionMode="None" EmptyView="No history yet">
+            <CollectionView ItemsSource="{Binding History}" IsVisible="{Binding ShowHistory}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="{Binding NoHistoryYetText}" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" HorizontalTextAlignment="Center" />
+                </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border Stroke="{AppThemeBinding Light=#E8EBF2, Dark=#2A2F3A}"
@@ -165,13 +175,13 @@
                                 <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                                     <Label Text="{Binding Poi.Title}" FontSize="16" FontAttributes="Bold" LineBreakMode="TailTruncation" />
                                     <Label Text="{Binding Poi.Location}" FontSize="13" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding VisitedAtUtc, StringFormat='Visited: {0:dd/MM HH:mm}'}"
+                                     <Label Text="{Binding VisitedText}"
                                            FontSize="12"
                                            TextColor="{AppThemeBinding Light=#8E96A8, Dark=#9BA5BB}" />
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout Grid.Column="2" Spacing="8" VerticalOptions="Center">
-                                    <Button Text="Open"
+                                     <Button Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenText}"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenHistoryDetailCommand}"
                                             CommandParameter="{Binding .}"
                                             FontSize="12"
@@ -180,7 +190,7 @@
                                             BackgroundColor="#E31667"
                                             TextColor="White"
                                             WidthRequest="82" />
-                                    <Button Text="Remove"
+                                     <Button Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveText}"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveHistoryItemCommand}"
                                             CommandParameter="{Binding .}"
                                             FontSize="12"

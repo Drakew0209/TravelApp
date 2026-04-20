@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Plugin.Maui.Audio;
 using TravelApp.Models.Contracts;
 using TravelApp.Services.Abstractions;
+using TravelApp.Services;
 
 namespace TravelApp.Services.Runtime;
 
@@ -16,6 +17,7 @@ public class AudioService : IAudioService, IDisposable
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILocalDatabaseService _localDatabaseService;
     private readonly ILogService _logService;
+    private readonly IAnalyticsTrackingService _analyticsTrackingService;
     private readonly ILogger<AudioService> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -29,6 +31,7 @@ public class AudioService : IAudioService, IDisposable
         IHttpClientFactory httpClientFactory,
         ILocalDatabaseService localDatabaseService,
         ILogService logService,
+        IAnalyticsTrackingService analyticsTrackingService,
         ILogger<AudioService> logger)
     {
         _poiGeofenceService = poiGeofenceService;
@@ -36,6 +39,7 @@ public class AudioService : IAudioService, IDisposable
         _httpClientFactory = httpClientFactory;
         _localDatabaseService = localDatabaseService;
         _logService = logService;
+        _analyticsTrackingService = analyticsTrackingService;
         _logger = logger;
 
         _poiGeofenceService.OnPoiEntered += OnPoiEntered;
@@ -73,6 +77,7 @@ public class AudioService : IAudioService, IDisposable
                     return;
                 }
 
+                _ = _analyticsTrackingService.TrackPoiListenedAsync(poi, languageCode, cancellationToken);
                 PlaybackEnded?.Invoke(this, EventArgs.Empty);
                 LogSource("local-tts", poi, languageCode, speechText);
                 return;
@@ -83,6 +88,7 @@ public class AudioService : IAudioService, IDisposable
             {
                 var fileStream = File.OpenRead(offlineSource);
                 StartPlayer(fileStream);
+                _ = _analyticsTrackingService.TrackPoiListenedAsync(poi, languageCode, cancellationToken);
                 LogSource("offline-local", poi, languageCode, offlineSource);
                 return;
             }
@@ -98,10 +104,11 @@ public class AudioService : IAudioService, IDisposable
                     Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
                     await File.WriteAllBytesAsync(localPath, bytes, cancellationToken);
 
-                    await _localDatabaseService.SaveAudioMetadataAsync(poi.Id, languageCode, preGeneratedUrl, localPath, cancellationToken);
+                    await _localDatabaseService.SaveAudioMetadataAsync(poi.Id, languageCode, preGeneratedUrl, localPath, cancellationToken: cancellationToken);
 
                     var stream = File.OpenRead(localPath);
                     StartPlayer(stream);
+                    _ = _analyticsTrackingService.TrackPoiListenedAsync(poi, languageCode, cancellationToken);
                     LogSource("pre-generated-server-cached", poi, languageCode, localPath);
                     return;
                 }
@@ -113,11 +120,13 @@ public class AudioService : IAudioService, IDisposable
 
             if (await TryPlayCloudTtsSimulatedAsync(poi, languageCode, cancellationToken))
             {
+                _ = _analyticsTrackingService.TrackPoiListenedAsync(poi, languageCode, cancellationToken);
                 LogSource("cloud-tts-simulated", poi, languageCode, "simulated");
                 return;
             }
 
             await PlayWithLocalTtsAsync(poi, languageCode, cancellationToken);
+            _ = _analyticsTrackingService.TrackPoiListenedAsync(poi, languageCode, cancellationToken);
             PlaybackEnded?.Invoke(this, EventArgs.Empty);
             LogSource("local-tts", poi, languageCode, "TextToSpeech.Default");
         }
@@ -212,7 +221,7 @@ public class AudioService : IAudioService, IDisposable
             return fromMetadata;
         }
 
-        var cacheDirectory = Path.Combine(FileSystem.CacheDirectory, "audio");
+        var cacheDirectory = GetAudioCacheDirectory();
         var selectedUrl = SelectPreGeneratedAudioUrl(poi, languageCode);
 
         var candidates = new List<string>
@@ -253,6 +262,11 @@ public class AudioService : IAudioService, IDisposable
         }
 
         return Path.Combine(cacheDirectory, $"poi-{poiId}-{languageCode}{extension}");
+    }
+
+    private static string GetAudioCacheDirectory()
+    {
+        return Path.Combine(FileSystem.CacheDirectory, "audio");
     }
 
     private static string? SelectPreGeneratedAudioUrl(PoiMobileDto poi, string languageCode)
@@ -367,9 +381,7 @@ public class AudioService : IAudioService, IDisposable
 
     private static string NormalizeLanguage(string? languageCode)
     {
-        return string.IsNullOrWhiteSpace(languageCode)
-            ? string.Empty
-            : languageCode.Trim().ToLowerInvariant();
+        return LanguageCodeNormalizer.NormalizeToLocaleCode(languageCode);
     }
 
     private void LogSource(string source, PoiMobileDto poi, string languageCode, string detail)

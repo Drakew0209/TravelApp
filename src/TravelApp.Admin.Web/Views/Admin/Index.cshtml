@@ -1,17 +1,36 @@
 @model TravelApp.Admin.Web.Models.AdminDashboardViewModel
 
 @{
-    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Title"] = AdminText.T("Bảng điều khiển quản trị", "Admin Dashboard", "管理ダッシュボード", "Admin-Dashboard");
+}
+
+@{
+    var analytics = Model.Analytics;
+    var maxSeriesValue = Math.Max(analytics.Series.Any() ? analytics.Series.Max(x => x.TotalEvents) : 0, 1);
 }
 
 <div class="dashboard-grid">
     <section class="section-header">
         <div>
-            <h1 class="section-title">Dashboard</h1>
-            <p class="section-subtitle">Theo dõi nhanh dữ liệu tour, POI và hoạt động quản trị.</p>
+            <h1 class="section-title">@AdminText.T("Bảng điều khiển", "Dashboard", "ダッシュボード", "Dashboard")</h1>
+            <p class="section-subtitle">@AdminText.T("Theo dõi nhanh dữ liệu tour, POI và hoạt động quản trị.", "Quickly monitor tour, POI, and admin activity.", "ツアー、POI、管理アクティビティをすばやく確認できます。", "Tour-, POI- und Verwaltungsaktivitäten schnell im Blick behalten.")</p>
         </div>
-        <div class="section-actions">
+        <div class="section-actions flex-wrap">
             <span class="soft-badge">API: @Model.ApiBaseUrl</span>
+            <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
+                <select name="range" class="form-select form-select-sm bg-dark text-white border-secondary" style="min-width: 120px;">
+                    <option value="7d" selected="@(Model.Range == "7d" ? "selected" : null)">@AdminText.T("7 ngày", "7 days", "7日", "7 Tage")</option>
+                    <option value="30d" selected="@(Model.Range == "30d" ? "selected" : null)">@AdminText.T("30 ngày", "30 days", "30日", "30 Tage")</option>
+                    <option value="90d" selected="@(Model.Range == "90d" ? "selected" : null)">@AdminText.T("90 ngày", "90 days", "90日", "90 Tage")</option>
+                    <option value="365d" selected="@(Model.Range == "365d" ? "selected" : null)">@AdminText.T("365 ngày", "365 days", "365日", "365 Tage")</option>
+                </select>
+                <select name="granularity" class="form-select form-select-sm bg-dark text-white border-secondary" style="min-width: 120px;">
+                    <option value="day" selected="@(Model.Granularity == "day" ? "selected" : null)">@AdminText.T("Theo ngày", "By day", "日別", "Täglich")</option>
+                    <option value="week" selected="@(Model.Granularity == "week" ? "selected" : null)">@AdminText.T("Theo tuần", "By week", "週別", "Wöchentlich")</option>
+                    <option value="month" selected="@(Model.Granularity == "month" ? "selected" : null)">@AdminText.T("Theo tháng", "By month", "月別", "Monatlich")</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">@AdminText.T("Lọc", "Filter", "フィルター", "Filtern")</button>
+            </form>
         </div>
     </section>
 
@@ -20,7 +39,7 @@
             <div class="stat-icon stat-icon-orange">📍</div>
             <div>
                 <div class="stat-value">@Model.PoiCount</div>
-                <div class="stat-label">Tổng POI</div>
+                <div class="stat-label">@AdminText.T("Tổng POI", "Total POIs", "POI 合計", "POIs gesamt")</div>
             </div>
         </article>
 
@@ -28,7 +47,7 @@
             <div class="stat-icon stat-icon-green">👥</div>
             <div>
                 <div class="stat-value">@Model.UserCount</div>
-                <div class="stat-label">User</div>
+                <div class="stat-label">@AdminText.T("User", "ユーザー", "Benutzer")</div>
             </div>
         </article>
 
@@ -36,7 +55,7 @@
             <div class="stat-icon stat-icon-blue">🎧</div>
             <div>
                 <div class="stat-value">@Model.PublishedTourCount</div>
-                <div class="stat-label">Published tour</div>
+                <div class="stat-label">@AdminText.T("Tour đã đăng", "Published tours", "公開ツアー", "Veröffentlichte Touren")</div>
             </div>
         </article>
 
@@ -44,7 +63,75 @@
             <div class="stat-icon stat-icon-purple">QR</div>
             <div>
                 <div class="stat-value">@Model.QrCount</div>
-                <div class="stat-label">QR code</div>
+                <div class="stat-label">@AdminText.T("QR code", "QR コード", "QR-Code")</div>
+            </div>
+        </article>
+    </section>
+
+    <section class="stats-row">
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-green">U</div>
+            <div>
+                <div class="stat-value">@Model.UniqueUsers</div>
+                <div class="stat-label">@AdminText.T("Unique users", "ユニークユーザー", "Eindeutige Benutzer")</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-blue">G</div>
+            <div>
+                <div class="stat-value">@Model.UniqueGuests</div>
+                <div class="stat-label">@AdminText.T("Unique guests", "ユニークゲスト", "Eindeutige Gäste")</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-orange">👁</div>
+            <div>
+                <div class="stat-value">@analytics.TotalEvents</div>
+                <div class="stat-label">@AdminText.T("Total events", "イベント合計", "Ereignisse gesamt")</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-purple">📝</div>
+            <div>
+                <div class="stat-value">@Model.DraftTourCount</div>
+                <div class="stat-label">@AdminText.T("Draft tour", "下書きツアー", "Entwurfs-Touren")</div>
+            </div>
+        </article>
+    </section>
+
+    <section class="stats-row">
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-orange">👁</div>
+            <div>
+                <div class="stat-value">@analytics.PoiViews</div>
+                <div class="stat-label">@AdminText.T("Lượt xem POI", "POI の閲覧数", "POI-Aufrufe")</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-blue">▶</div>
+            <div>
+                <div class="stat-value">@analytics.TourViews</div>
+                <div class="stat-label">@AdminText.T("Lượt xem tour", "ツアーの閲覧数", "Tour-Aufrufe")</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-green">🎧</div>
+            <div>
+                <div class="stat-value">@analytics.PoiListens</div>
+                <div class="stat-label">@AdminText.T("Số lần nghe POI", "POI の再生回数", "POI-Anhörungen")</div>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-purple">🎧</div>
+            <div>
+                <div class="stat-value">@analytics.TourListens</div>
+                <div class="stat-label">@AdminText.T("Số lần nghe tour", "ツアーの再生回数", "Tour-Anhörungen")</div>
             </div>
         </article>
     </section>
@@ -53,16 +140,105 @@
         <div class="panel-card panel-large">
             <div class="section-header mb-3">
                 <div>
-                    <h2 class="section-title">Tour hiện có</h2>
-                    <p class="section-subtitle">Danh sách tour đồng bộ từ API.</p>
+                    <h2 class="section-title">@AdminText.T("Biểu đồ cột tracking", "トラッキング棒グラフ", "Tracking-Säulendiagramm")</h2>
+                    <p class="section-subtitle">@AdminText.T("Tổng số event theo khoảng thời gian đã chọn.", "選択した期間ごとのイベント合計。", "Gesamtzahl der Ereignisse im ausgewählten Zeitraum.")</p>
+                </div>
+            </div>
+            <div class="analytics-chart-card">
+                <div class="analytics-chart-legend">
+                    <span class="legend-item"><i class="legend-dot legend-dot-total"></i>@AdminText.T("Tổng event", "イベント合計", "Ereignisse gesamt")</span>
+                    <span class="legend-item"><i class="legend-dot legend-dot-poi"></i>POI</span>
+                    <span class="legend-item"><i class="legend-dot legend-dot-tour"></i>@AdminText.T("Tour", "ツアー", "Tour")</span>
+                    <span class="legend-item"><i class="legend-dot legend-dot-qr"></i>QR</span>
+                </div>
+
+                @if (analytics.Series.Count == 0)
+                {
+                    <div class="heatmap-placeholder">@AdminText.T("Chưa có dữ liệu tracking trong khoảng thời gian này.", "この期間のトラッキングデータはありません。", "Für diesen Zeitraum liegen keine Tracking-Daten vor.")</div>
+                }
+                else
+                {
+                    <div class="analytics-column-chart">
+                        @foreach (var point in analytics.Series)
+                        {
+                            var heightPercent = Math.Max((point.TotalEvents * 100.0 / maxSeriesValue), 4);
+                            <div class="analytics-chart-column">
+                                <div class="analytics-column-value">@point.TotalEvents</div>
+                                <div class="analytics-column-track" title="@point.Label: @point.TotalEvents events">
+                                    <div class="analytics-column-bar" style="height: @heightPercent.ToString("0")%;"></div>
+                                    <div class="analytics-column-breakdown">
+                                        <span class="breakdown-poi" style="height: @Math.Max(point.PoiViews * 100.0 / maxSeriesValue, 2).ToString("0")%;"></span>
+                                        <span class="breakdown-tour" style="height: @Math.Max(point.TourViews * 100.0 / maxSeriesValue, 2).ToString("0")%;"></span>
+                                        <span class="breakdown-qr" style="height: @Math.Max(point.QrScans * 100.0 / maxSeriesValue, 2).ToString("0")%;"></span>
+                                    </div>
+                                </div>
+                                <div class="analytics-column-label">@point.Label</div>
+                                <div class="analytics-column-meta">POI @point.PoiListens • Tour @point.TourListens</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="analytics-chart-summary mt-3">
+                    <span class="soft-badge">@AdminText.T("View POI", "POI 閲覧", "POI ansehen"): @analytics.PoiViews</span>
+                    <span class="soft-badge">@AdminText.T("View Tour", "ツアー閲覧", "Tour ansehen"): @analytics.TourViews</span>
+                    <span class="soft-badge">@AdminText.T("Listen POI", "POI 再生", "POI anhören"): @analytics.PoiListens</span>
+                    <span class="soft-badge">@AdminText.T("Listen Tour", "ツアー再生", "Tour anhören"): @analytics.TourListens</span>
+                    <span class="soft-badge">QR: @analytics.QrScans</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-card panel-large">
+            <div class="section-header mb-3">
+                <div>
+                    <h2 class="section-title">@AdminText.T("Top tour / POI", "人気ツアー / POI", "Top-Touren / POIs")</h2>
+                    <p class="section-subtitle">@AdminText.T("Các mục được tương tác nhiều nhất.", "最も多く操作された項目。", "Am häufigsten interagierte Elemente.")</p>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-12">
+                    <h3 class="h6 text-uppercase text-muted mb-2">@AdminText.T("Top POI", "人気 POI", "Top-POIs")</h3>
+                    <div class="activity-list">
+                        @foreach (var item in analytics.TopPois)
+                        {
+                            <div class="activity-item">
+                                <span class="pill">@item.Count</span>
+                                <span>@item.Name</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-12">
+                    <h3 class="h6 text-uppercase text-muted mb-2">@AdminText.T("Top Tour", "人気ツアー", "Top-Touren")</h3>
+                    <div class="activity-list">
+                        @foreach (var item in analytics.TopTours)
+                        {
+                            <div class="activity-item">
+                                <span class="pill">@item.Count</span>
+                                <span>@item.Name</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="dashboard-panels">
+        <div class="panel-card panel-large">
+            <div class="section-header mb-3">
+                <div>
+                    <h2 class="section-title">@AdminText.T("Lịch sử xem / quét / nghe gần đây", "最近の閲覧 / スキャン / 再生履歴", "Neuere Ansichten / Scans / Anhörungen")</h2>
+                    <p class="section-subtitle">@AdminText.T("Dữ liệu tracking thật từ app và web.", "アプリと Web の実際のトラッキングデータ。", "Echte Tracking-Daten aus App und Web.")</p>
                 </div>
             </div>
             <div class="activity-list">
-                @foreach (var tour in Model.RecentTours)
+                @foreach (var item in analytics.RecentEvents)
                 {
                     <div class="activity-item">
-                        <span class="pill">@(tour.IsPublished ? "Published" : "Draft")</span>
-                        <span>@tour.Name • @tour.PoiCount POI</span>
+                        <span class="pill">@item.EventType</span>
+                        <span>@item.ActorLabel @(item.PoiId is not null ? $"• POI #{item.PoiId}" : string.Empty) @(item.TourId is not null ? $"• Tour #{item.TourId}" : string.Empty)</span>
                     </div>
                 }
             </div>
@@ -71,29 +247,11 @@
         <div class="panel-card panel-large">
             <div class="section-header mb-3">
                 <div>
-                    <h2 class="section-title">POI hiện có</h2>
-                    <p class="section-subtitle">Các POI đang đồng bộ giữa web và app.</p>
+                    <h2 class="section-title">@AdminText.T("Tổng quan đồng bộ", "同期ビュー", "Synchronisierte Übersicht")</h2>
+                    <p class="section-subtitle">@AdminText.T("Dashboard lấy dữ liệu thật từ API, tracking và CRUD hiện hữu.", "ダッシュボードは API、トラッキング、既存 CRUD から実データを取得します。", "Das Dashboard nutzt echte Daten aus API, Tracking und vorhandenem CRUD.")</p>
                 </div>
             </div>
-            <div class="activity-list">
-                @foreach (var poi in Model.RecentPois)
-                {
-                    <div class="activity-item">
-                        <span class="pill">@(poi.IsUsedInTour ? "Used" : "Free")</span>
-                        <span>@poi.Title @(string.IsNullOrWhiteSpace(poi.Category) ? "" : $"• {poi.Category}")</span>
-                    </div>
-                }
-            </div>
+            <div class="heatmap-placeholder">@Model.PoiCount POI • @Model.TourCount @AdminText.T("tour", "ツアー", "Touren") • @Model.UserCount @AdminText.T("user", "ユーザー", "Benutzer") • @analytics.QrScans QR</div>
         </div>
-    </section>
-
-    <section class="panel-card">
-        <div class="section-header mb-3">
-            <div>
-                <h2 class="section-title">Tổng quan đồng bộ</h2>
-                <p class="section-subtitle">Dashboard hiện đang lấy dữ liệu thật từ API, không còn số giả.</p>
-            </div>
-        </div>
-        <div class="heatmap-placeholder">@Model.PoiCount POI • @Model.TourCount tour • @Model.UserCount user</div>
     </section>
 </div>

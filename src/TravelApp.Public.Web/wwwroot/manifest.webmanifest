@@ -1,0 +1,9 @@
+{
+  "name": "TravelApp Public Audio",
+  "short_name": "TravelApp Public",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1220",
+  "theme_color": "#d31963",
+  "scope": "/"
+}

@@ -5,7 +5,7 @@ using TravelApp.Admin.Web.Services;
 
 namespace TravelApp.Admin.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Owner,Admin,SuperAdmin")]
 [Route("[controller]/[action]")]
 public class MediaController : Controller
 {

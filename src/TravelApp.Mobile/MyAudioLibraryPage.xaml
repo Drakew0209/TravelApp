@@ -24,12 +24,16 @@
                       VerticalOptions="Center" />
             </Border>
 
-            <Label Grid.Column="1"
-                   Text="My Audio Library"
-                   FontSize="28"
-                   FontAttributes="Bold"
-                   TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
-                   VerticalTextAlignment="Center" />
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="{Binding PageTitleText}"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}" />
+                <Label Text="{Binding CurrentLanguageText}"
+                       FontSize="12"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" />
+            </VerticalStackLayout>
 
             <Border Grid.Column="2"
                     WidthRequest="40"

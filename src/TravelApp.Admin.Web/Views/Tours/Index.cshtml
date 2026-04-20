@@ -1,18 +1,18 @@
 @model IReadOnlyList<TourAdminDto>
 
 @{
-    ViewData["Title"] = "Tours";
+    ViewData["Title"] = AdminText.T("Tours", "ツアー", "Touren");
 }
 
 <div class="dashboard-grid">
     <div class="section-header">
         <div>
-            <h1 class="section-title">Quản lý Tour</h1>
-            <p class="section-subtitle">Danh sách tour, trạng thái phát hành và hành động chỉnh sửa.</p>
+            <h1 class="section-title">@AdminText.T("Quản lý Tour", "ツアー管理", "Tourverwaltung")</h1>
+            <p class="section-subtitle">@AdminText.T("Danh sách tour, trạng thái phát hành và hành động chỉnh sửa.", "ツアー一覧、公開状態、編集アクション。", "Tourliste, Veröffentlichungsstatus und Bearbeitungsaktionen.")</p>
         </div>
         <div class="section-actions">
-            <span class="soft-badge">@Model.Count tour</span>
-            <a class="btn btn-primary" asp-action="Create">Tạo tour mới</a>
+            <span class="soft-badge">@($"{Model.Count} {AdminText.T("tour", "ツアー", "Touren")}")</span>
+            <a class="btn btn-primary" asp-action="Create">@AdminText.T("Tạo tour mới", "新しいツアーを作成", "Neuen Tour erstellen")</a>
         </div>
     </div>
 
@@ -21,9 +21,9 @@
             @if (Model.Count == 0)
             {
                 <div class="admin-card p-4">
-                    <div class="poi-no-results" style="height: 100%;">
-                        <h5 class="mb-2">Chưa có tour nào</h5>
-                        <p class="mb-0 text-muted">Hệ thống đang không có dữ liệu tour. Hãy tạo tour đầu tiên hoặc kiểm tra seed database.</p>
+                        <div class="poi-no-results" style="height: 100%;">
+                            <h5 class="mb-2">@AdminText.T("Chưa có tour nào", "ツアーがありません", "Noch keine Touren")</h5>
+                            <p class="mb-0 text-muted">@AdminText.T("Hệ thống đang không có dữ liệu tour. Hãy tạo tour đầu tiên hoặc kiểm tra seed database.", "ツアーデータがありません。最初のツアーを作成するか、シードデータを確認してください。", "Es sind keine Tourdaten vorhanden. Erstellen Sie zuerst eine Tour oder prüfen Sie die Seed-Daten.")</p>
                     </div>
                 </div>
             }
@@ -35,26 +35,26 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start gap-3">
                                 <div>
-                                    <div class="soft-badge mb-2">Tour #@item.Id</div>
+                                    <div class="soft-badge mb-2">@($"{AdminText.T("Tour", "ツアー", "Tour")} #{item.Id}")</div>
                                     <h5 class="card-title mb-1">@item.Name</h5>
                                     <div class="text-muted small">@item.Title</div>
                                 </div>
-                                <span class="soft-badge">@(item.IsPublished ? "Published" : "Draft")</span>
+                                <span class="soft-badge">@(item.IsPublished ? AdminText.T("Published", "公開", "Veröffentlicht") : AdminText.T("Draft", "下書き", "Entwurf"))</span>
                             </div>
 
                             <p class="mt-3 mb-3">@item.Description</p>
 
                             <div class="preview-stats mb-3">
                                 <div class="preview-stat">
-                                    <div class="label">Anchor POI</div>
+                                    <div class="label">@AdminText.T("Anchor POI", "アンカー POI", "Anker-POI")</div>
                                     <div class="value">@item.AnchorPoiId</div>
                                 </div>
                                 <div class="preview-stat">
-                                    <div class="label">Language</div>
+                                    <div class="label">@AdminText.T("Language", "言語", "Sprache")</div>
                                     <div class="value">@item.PrimaryLanguage</div>
                                 </div>
                                 <div class="preview-stat">
-                                    <div class="label">POIs</div>
+                                    <div class="label">@AdminText.T("POIs", "POI 数", "POIs")</div>
                                     <div class="value">@item.Pois.Count</div>
                                 </div>
                             </div>
@@ -64,9 +64,9 @@
                             </div>
 
                             <div class="d-flex gap-2 flex-wrap">
-                                <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                                <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@item.Id">@AdminText.T("Edit", "編集", "Bearbeiten")</a>
                                 <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this tour?');">Delete</button>
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick='return confirm("@AdminText.T("Delete this tour?", "このツアーを削除しますか？", "Diese Tour löschen?")");'>@AdminText.T("Delete", "削除", "Löschen")</button>
                                 </form>
                             </div>
                         </div>
@@ -81,24 +81,24 @@
                 <div class="preview-overlay"></div>
                 <div class="preview-meta">
                     <div>
-                        <div class="preview-title">@(Model.FirstOrDefault()?.Name ?? "No tours")</div>
-                        <div class="preview-subtitle">@(Model.FirstOrDefault()?.Subtitle ?? "Tạo tour đầu tiên để xem preview")</div>
+                        <div class="preview-title">@(Model.FirstOrDefault()?.Name ?? AdminText.T("No tours", "ツアーなし", "Keine Touren"))</div>
+                        <div class="preview-subtitle">@(Model.FirstOrDefault()?.Subtitle ?? AdminText.T("Tạo tour đầu tiên để xem preview", "最初のツアーを作成するとプレビューが表示されます", "Erstellen Sie zuerst eine Tour, um die Vorschau zu sehen"))</div>
                     </div>
-                    <span class="soft-badge">Index</span>
+                    <span class="soft-badge">@AdminText.T("Index", "一覧", "Index")</span>
                 </div>
             </div>
             <div class="preview-body">
                 <div class="preview-stats">
                     <div class="preview-stat">
-                        <div class="label">Total tours</div>
+                        <div class="label">@AdminText.T("Total tours", "ツアー総数", "Touren gesamt")</div>
                         <div class="value">@Model.Count</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Published</div>
+                        <div class="label">@AdminText.T("Published", "公開", "Veröffentlicht")</div>
                         <div class="value">@Model.Count(x => x.IsPublished)</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Draft</div>
+                        <div class="label">@AdminText.T("Draft", "下書き", "Entwurf")</div>
                         <div class="value">@Model.Count(x => !x.IsPublished)</div>
                     </div>
                 </div>
@@ -108,9 +108,9 @@
                 </div>
 
                 <ul class="preview-list">
-                    <li><span>Anchor POI</span><strong>@(Model.FirstOrDefault()?.AnchorPoiId.ToString() ?? "—")</strong></li>
-                    <li><span>Language</span><strong>@(Model.FirstOrDefault()?.PrimaryLanguage ?? "—")</strong></li>
-                    <li><span>Assets</span><strong>@(Model.FirstOrDefault() is null ? "—" : $"{Model.First().AudioAssets.Count} audio · {Model.First().SpeechTexts.Count} text")</strong></li>
+                    <li><span>@AdminText.T("Anchor POI", "アンカー POI", "Anker-POI")</span><strong>@(Model.FirstOrDefault()?.AnchorPoiId.ToString() ?? "—")</strong></li>
+                    <li><span>@AdminText.T("Language", "言語", "Sprache")</span><strong>@(Model.FirstOrDefault()?.PrimaryLanguage ?? "—")</strong></li>
+                    <li><span>@AdminText.T("Assets", "アセット", "Assets")</span><strong>@(Model.FirstOrDefault() is null ? "—" : $"{Model.First().AudioAssets.Count} audio · {Model.First().SpeechTexts.Count} text")</strong></li>
                 </ul>
             </div>
         </div>

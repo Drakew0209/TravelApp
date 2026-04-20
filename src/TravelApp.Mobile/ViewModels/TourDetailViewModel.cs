@@ -3,8 +3,12 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 using TravelApp.Models;
 using TravelApp.Models.Contracts;
+using TravelApp.Models.Runtime;
+using TravelApp.Resources.Strings;
 using TravelApp.Services;
 using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
@@ -26,14 +30,28 @@ public class TourDetailViewModel : INotifyPropertyChanged
     private bool _isBookmarked;
     private bool _canEditSpeechText;
     private int? _currentTourId;
+    private string _lastLoadedPreferredLanguage = string.Empty;
     private CancellationTokenSource? _speechTextAutoSaveCts;
+    private readonly HashSet<int> _tourDownloadPoiIds = [];
+    private readonly HashSet<int> _tourDownloadCompletedPoiIds = [];
+    private int _tourDownloadTotalCount;
+    private int _tourDownloadSeenEventCount;
+    private bool _isTourDownloading;
+    private double _tourDownloadProgress;
+    private string _tourDownloadStatusText = string.Empty;
     private readonly IPoiApiClient _poiApiClient;
     private readonly ILocalDatabaseService _localDatabaseService;
     private readonly IAudioLibraryService _audioLibraryService;
     private readonly IBookmarkHistoryService _bookmarkHistoryService;
+    private readonly IAnalyticsTrackingService _analyticsTrackingService;
+    private readonly IPoiQrCodeService _poiQrCodeService;
+    private readonly IEndpointSettingsService _endpointSettingsService;
     private readonly ITourRouteCatalogService _tourRouteCatalogService;
     private readonly TravelApp.Services.Runtime.TourRouteCacheService _tourRouteCacheService;
     private readonly ApiClientOptions _apiOptions;
+    private ImageSource? _qrCodeImageSource;
+    private string _qrShareLink = string.Empty;
+    private string _qrShareWarningText = string.Empty;
 
     public PoiModel? Tour
     {
@@ -46,6 +64,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(Description));
             OnPropertyChanged(nameof(Credit));
             OnPropertyChanged(nameof(SpeechTextInput));
+            OnPropertyChanged(nameof(CanDownloadTour));
         }
     }
 
@@ -123,6 +142,133 @@ public class TourDetailViewModel : INotifyPropertyChanged
     public string Credit => Tour?.Credit ?? string.Empty;
     public string SelectedSpeechLanguageDisplayText => GetLanguageDisplayText(SelectedSpeechLanguageCode);
     public ObservableCollection<SpeechLanguageOption> SpeechLanguages => _speechLanguages;
+    public string BookmarkedLabel => AppStrings.BookmarkedBadge;
+    public string DownloadTourText => AppStrings.DownloadTour;
+    public string DownloadingAllTourText => AppStrings.DownloadingAllTour;
+    public string QrShareTitleText => AppStrings.QrShareTitle;
+    public string QrShareSubtitleText => AppStrings.QrShareSubtitle;
+    public string WebAdminPayloadText => AppStrings.WebAdminPayload;
+    public string ShareLinkText => AppStrings.ShareLink;
+    public string CopyLinkText => AppStrings.CopyLink;
+    public string DescriptionSectionText => AppStrings.Description;
+    public string ProvidedByText => AppStrings.ProvidedBy;
+    public string SpeechLanguageText => AppStrings.SpeechLanguage;
+    public string SaveTtsText => AppStrings.SaveTtsText;
+    public string SpeechTextPlaceholder => AppStrings.EnterSpeechTextPlaceholder;
+    public string OwnerSpeechTextNotice => AppStrings.SpeechTextPermissionNotice;
+    public string ViewTourText => AppStrings.ViewTour;
+    public string ChooseSpeechLanguageText => AppStrings.ChooseTtsLanguage;
+    public string BookmarkSavedMessageText => AppStrings.BookmarkSavedMessage;
+    public string BookmarkRemovedMessageText => AppStrings.BookmarkRemovedMessage;
+    public string CouldNotUpdateBookmarkText => AppStrings.CouldNotUpdateBookmark;
+    public string CouldNotDownloadTourText => AppStrings.CouldNotDownloadTour;
+    public ImageSource? QrCodeImageSource
+    {
+        get => _qrCodeImageSource;
+        private set
+        {
+            if (ReferenceEquals(_qrCodeImageSource, value))
+            {
+                return;
+            }
+
+            _qrCodeImageSource = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string QrShareLink
+    {
+        get => _qrShareLink;
+        private set
+        {
+            if (_qrShareLink == value)
+            {
+                return;
+            }
+
+            _qrShareLink = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string QrShareWarningText
+    {
+        get => _qrShareWarningText;
+        private set
+        {
+            if (_qrShareWarningText == value)
+            {
+                return;
+            }
+
+            _qrShareWarningText = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasQrShareWarning));
+        }
+    }
+
+    public bool HasQrCode => !string.IsNullOrWhiteSpace(QrShareLink) && QrCodeImageSource is not null;
+    public bool HasQrShareWarning => !string.IsNullOrWhiteSpace(QrShareWarningText);
+    public bool HasQrShareSection => HasQrCode || HasQrShareWarning;
+
+    public bool IsTourDownloading
+    {
+        get => _isTourDownloading;
+        private set
+        {
+            if (_isTourDownloading == value)
+            {
+                return;
+            }
+
+            _isTourDownloading = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanDownloadTour));
+        }
+    }
+
+    public bool CanDownloadTour => Tour is not null && !IsTourDownloading;
+
+    public double TourDownloadProgress
+    {
+        get => _tourDownloadProgress;
+        private set
+        {
+            var clamped = Math.Clamp(value, 0d, 1d);
+            if (Math.Abs(_tourDownloadProgress - clamped) < 0.0001)
+            {
+                return;
+            }
+
+            _tourDownloadProgress = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TourDownloadProgressText));
+        }
+    }
+
+    public string TourDownloadProgressText => _tourDownloadTotalCount <= 0
+        ? string.Empty
+        : string.Format(CultureInfo.CurrentUICulture, AppStrings.AudioQueueText, _tourDownloadCompletedPoiIds.Count, _tourDownloadTotalCount);
+
+    public string TourDownloadSeenText => _tourDownloadTotalCount <= 0
+        ? string.Empty
+        : $"{_tourDownloadSeenEventCount}/{_tourDownloadTotalCount}";
+
+    public string TourDownloadStatusText
+    {
+        get => _tourDownloadStatusText;
+        private set
+        {
+            if (_tourDownloadStatusText == value)
+            {
+                return;
+            }
+
+            _tourDownloadStatusText = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ICommand BackCommand { get; }
     public ICommand ViewTourCommand { get; }
@@ -132,6 +278,8 @@ public class TourDetailViewModel : INotifyPropertyChanged
     public ICommand ToggleSpeechLanguageMenuCommand { get; }
     public ICommand CloseSpeechLanguageMenuCommand { get; }
     public ICommand SelectSpeechLanguageCommand { get; }
+    public ICommand ShareLinkCommand { get; }
+    public ICommand CopyLinkCommand { get; }
 
     public string SelectedSpeechLanguageCode
     {
@@ -161,11 +309,11 @@ public class TourDetailViewModel : INotifyPropertyChanged
         {
             await _bookmarkHistoryService.ToggleBookmarkAsync(Tour, CancellationToken.None);
             IsBookmarked = await _bookmarkHistoryService.IsBookmarkedAsync(Tour.Id, CancellationToken.None);
-            await Shell.Current.DisplayAlert("Bookmarks", IsBookmarked ? "Tour đã được lưu vào bookmarks." : "Tour đã được xóa khỏi bookmarks.", "OK");
+            await Shell.Current.DisplayAlert(AppStrings.Bookmarks, IsBookmarked ? AppStrings.BookmarkSavedMessage : AppStrings.BookmarkRemovedMessage, "OK");
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Error", $"Không thể cập nhật bookmark: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlert(AppStrings.ValidationTitle, string.Format(CultureInfo.CurrentUICulture, AppStrings.CouldNotUpdateBookmark, ex.Message), "OK");
         }
     }
 
@@ -184,15 +332,22 @@ public class TourDetailViewModel : INotifyPropertyChanged
         }
     }
 
-    public TourDetailViewModel(ITourRouteCatalogService tourRouteCatalogService, IPoiApiClient poiApiClient, ILocalDatabaseService localDatabaseService, IAudioLibraryService audioLibraryService, IBookmarkHistoryService bookmarkHistoryService, TravelApp.Services.Runtime.TourRouteCacheService tourRouteCacheService, ApiClientOptions apiOptions)
+    public TourDetailViewModel(ITourRouteCatalogService tourRouteCatalogService, IPoiApiClient poiApiClient, ILocalDatabaseService localDatabaseService, IAudioLibraryService audioLibraryService, IBookmarkHistoryService bookmarkHistoryService, IAnalyticsTrackingService analyticsTrackingService, IPoiQrCodeService poiQrCodeService, IEndpointSettingsService endpointSettingsService, TravelApp.Services.Runtime.TourRouteCacheService tourRouteCacheService, ApiClientOptions apiOptions)
     {
         _tourRouteCatalogService = tourRouteCatalogService;
         _poiApiClient = poiApiClient;
         _localDatabaseService = localDatabaseService;
         _audioLibraryService = audioLibraryService;
         _bookmarkHistoryService = bookmarkHistoryService;
+        _analyticsTrackingService = analyticsTrackingService;
+        _poiQrCodeService = poiQrCodeService;
+        _endpointSettingsService = endpointSettingsService;
         _tourRouteCacheService = tourRouteCacheService;
         _apiOptions = apiOptions;
+        _lastLoadedPreferredLanguage = NormalizeLanguageCode(UserProfileService.PreferredLanguage);
+        _audioLibraryService.DownloadProgressChanged += OnDownloadProgressChanged;
+        _endpointSettingsService.SettingsChanged += OnEndpointSettingsChanged;
+        UserProfileService.ProfileChanged += OnUserProfileChanged;
         BackCommand = new Command(async () =>
         {
             await StopAsync();
@@ -214,30 +369,45 @@ public class TourDetailViewModel : INotifyPropertyChanged
         ToggleSpeechLanguageMenuCommand = new Command(() => IsSpeechLanguageMenuOpen = !IsSpeechLanguageMenuOpen);
         CloseSpeechLanguageMenuCommand = new Command(() => IsSpeechLanguageMenuOpen = false);
         SelectSpeechLanguageCommand = new Command<SpeechLanguageOption>(async option => await SelectSpeechLanguageAsync(option));
+        ShareLinkCommand = new Command(async () => await ShareLinkAsync());
+        CopyLinkCommand = new Command(async () => await CopyLinkAsync());
 
         UpdateSpeechTextPermission();
-        UserProfileService.ProfileChanged += OnUserProfileChanged;
     }
 
     private async Task DownloadTourAsync()
     {
-        if (Tour is null)
+        if (Tour is null || IsTourDownloading)
         {
             return;
         }
 
         try
         {
-            var downloaded = await _audioLibraryService.DownloadAsync(Tour.Id, SelectedSpeechLanguageCode, CancellationToken.None);
-            var message = downloaded
-                ? $"Tour '{Tour.Title}' đã được thêm vào mục download."
-                : $"Tour '{Tour.Title}' đã có trong download hoặc đang chờ tải.";
+            var requestedLanguage = string.IsNullOrWhiteSpace(SelectedSpeechLanguageCode)
+                ? UserProfileService.PreferredLanguage
+                : SelectedSpeechLanguageCode;
 
-            await Shell.Current.DisplayAlert("Download tour", message, "OK");
+            var route = await _tourRouteCatalogService.GetRouteAsync(Tour.Id, requestedLanguage, CancellationToken.None);
+            var poiIds = route?.Waypoints.Select(x => x.Poi.Id).Distinct().ToList() ?? [Tour.Id];
+
+            BeginTourDownloadSession(poiIds);
+            TourDownloadStatusText = string.Format(CultureInfo.CurrentUICulture, AppStrings.ToQueueFormat, TourDownloadProgressText);
+
+            var queued = await _audioLibraryService.DownloadManyAsync(poiIds, requestedLanguage, CancellationToken.None);
+            TourDownloadStatusText = queued > 0
+                ? string.Format(CultureInfo.CurrentUICulture, AppStrings.QueuedFormat, queued, _tourDownloadTotalCount)
+                : AppStrings.AudioAlreadyAvailable;
+
+            if (_tourDownloadCompletedPoiIds.Count >= _tourDownloadTotalCount && _tourDownloadTotalCount > 0)
+            {
+                CompleteTourDownloadSession(AppStrings.TourDownloadCompleted);
+            }
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Error", $"Không thể download tour: {ex.Message}", "OK");
+            EndTourDownloadSession();
+            await Shell.Current.DisplayAlert(AppStrings.ValidationTitle, string.Format(CultureInfo.CurrentUICulture, AppStrings.CouldNotDownloadTour, ex.Message), "OK");
         }
     }
 
@@ -263,13 +433,120 @@ public class TourDetailViewModel : INotifyPropertyChanged
         await SaveSpeechTextAsync(showConfirmation: false);
     }
 
-    public void Load(string? tourId)
+    private void BeginTourDownloadSession(IEnumerable<int> poiIds)
+    {
+        _tourDownloadPoiIds.Clear();
+        _tourDownloadCompletedPoiIds.Clear();
+        foreach (var poiId in poiIds.Distinct())
+        {
+            _tourDownloadPoiIds.Add(poiId);
+        }
+
+        _tourDownloadTotalCount = _tourDownloadPoiIds.Count;
+        _tourDownloadSeenEventCount = 0;
+        IsTourDownloading = _tourDownloadTotalCount > 0;
+        TourDownloadProgress = 0;
+        TourDownloadStatusText = _tourDownloadTotalCount > 0
+            ? string.Format(CultureInfo.CurrentUICulture, AppStrings.AudioQueueText, 0, _tourDownloadTotalCount)
+            : string.Empty;
+        OnPropertyChanged(nameof(TourDownloadProgressText));
+        OnPropertyChanged(nameof(TourDownloadSeenText));
+    }
+
+    private void EndTourDownloadSession()
+    {
+        _tourDownloadPoiIds.Clear();
+        _tourDownloadCompletedPoiIds.Clear();
+        _tourDownloadTotalCount = 0;
+        _tourDownloadSeenEventCount = 0;
+        IsTourDownloading = false;
+        TourDownloadProgress = 0;
+        TourDownloadStatusText = string.Empty;
+        OnPropertyChanged(nameof(TourDownloadProgressText));
+        OnPropertyChanged(nameof(TourDownloadSeenText));
+    }
+
+    private void CompleteTourDownloadSession(string statusText)
+    {
+        TourDownloadProgress = 1;
+        TourDownloadStatusText = statusText;
+        IsTourDownloading = false;
+        OnPropertyChanged(nameof(TourDownloadProgressText));
+        OnPropertyChanged(nameof(TourDownloadSeenText));
+    }
+
+    private void OnDownloadProgressChanged(object? sender, AudioDownloadProgressChangedEventArgs e)
+    {
+        if (_tourDownloadTotalCount <= 0 || e.PoiId == 0 || !_tourDownloadPoiIds.Contains(e.PoiId))
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(e.Message))
+            {
+                TourDownloadStatusText = e.Message;
+            }
+
+            if (e.IsCompleted && _tourDownloadCompletedPoiIds.Add(e.PoiId))
+            {
+                _tourDownloadSeenEventCount++;
+                TourDownloadProgress = (double)_tourDownloadCompletedPoiIds.Count / _tourDownloadTotalCount;
+                OnPropertyChanged(nameof(TourDownloadProgressText));
+                OnPropertyChanged(nameof(TourDownloadSeenText));
+            }
+
+            if (_tourDownloadCompletedPoiIds.Count >= _tourDownloadTotalCount)
+            {
+                CompleteTourDownloadSession(AppStrings.TourDownloadCompleted);
+            }
+        });
+    }
+
+    private async void OnUserProfileChanged(object? sender, EventArgs e)
+    {
+        var currentPreferredLanguage = NormalizeLanguageCode(UserProfileService.PreferredLanguage);
+        if (_currentTourId.HasValue && !string.Equals(_lastLoadedPreferredLanguage, currentPreferredLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            _lastLoadedPreferredLanguage = currentPreferredLanguage;
+            await RefreshAsync();
+            return;
+        }
+
+        OnPropertyChanged(nameof(ProviderName));
+        OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(Credit));
+        OnPropertyChanged(nameof(SelectedSpeechLanguageDisplayText));
+        OnPropertyChanged(nameof(BookmarkedLabel));
+        OnPropertyChanged(nameof(DownloadTourText));
+        OnPropertyChanged(nameof(DownloadingAllTourText));
+        OnPropertyChanged(nameof(QrShareTitleText));
+        OnPropertyChanged(nameof(QrShareSubtitleText));
+        OnPropertyChanged(nameof(WebAdminPayloadText));
+        OnPropertyChanged(nameof(ShareLinkText));
+        OnPropertyChanged(nameof(CopyLinkText));
+        OnPropertyChanged(nameof(DescriptionSectionText));
+        OnPropertyChanged(nameof(ProvidedByText));
+        OnPropertyChanged(nameof(SpeechLanguageText));
+        OnPropertyChanged(nameof(SaveTtsText));
+        OnPropertyChanged(nameof(SpeechTextPlaceholder));
+        OnPropertyChanged(nameof(OwnerSpeechTextNotice));
+        OnPropertyChanged(nameof(ViewTourText));
+        OnPropertyChanged(nameof(ChooseSpeechLanguageText));
+        OnPropertyChanged(nameof(TourDownloadProgressText));
+        OnPropertyChanged(nameof(TourDownloadSeenText));
+        OnPropertyChanged(nameof(TourDownloadStatusText));
+    }
+
+    public void Load(string? tourId, string? languageCode = null)
     {
         if (!int.TryParse(tourId, out var id))
             return;
 
         _currentTourId = id;
-        _ = LoadAsync(id);
+        _lastLoadedPreferredLanguage = NormalizeLanguageCode(languageCode ?? UserProfileService.PreferredLanguage);
+        _ = LoadAsync(id, _lastLoadedPreferredLanguage);
     }
 
     public Task RefreshAsync()
@@ -285,7 +562,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
     private async Task RefreshAndRestoreSelectionAsync(int tourId, string? selectedLanguage)
     {
-        await LoadAsync(tourId);
+        await LoadAsync(tourId, UserProfileService.PreferredLanguage);
 
         var normalized = NormalizeLanguageCode(selectedLanguage);
         if (!string.IsNullOrWhiteSpace(normalized) && _speechTextsByLanguage.ContainsKey(normalized))
@@ -296,21 +573,25 @@ public class TourDetailViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task LoadAsync(int id)
+    private async Task LoadAsync(int id, string? languageCode = null)
     {
+        var requestedLanguage = NormalizeLanguageCode(languageCode ?? UserProfileService.PreferredLanguage);
         _suppressSpeechTextAutoSave = true;
         try
         {
             try
             {
-                var dto = await _tourRouteCatalogService.ResolvePoiAsync(id, UserProfileService.PreferredLanguage);
+                var dto = await _tourRouteCatalogService.ResolvePoiAsync(id, requestedLanguage);
                 if (dto is not null)
                 {
                     _currentPoiDto = dto;
                     Tour = MapPoi(dto);
-                    SetLoadedSpeechTexts(dto.SpeechTexts, dto.SpeechTextLanguageCode, dto.SpeechText ?? dto.Description, dto.PrimaryLanguage);
+                    SetLoadedSpeechTexts(dto.SpeechTexts, dto.SpeechTextLanguageCode, dto.SpeechText ?? dto.Description, dto.PrimaryLanguage, dto.Localizations);
+                    RefreshQrShareData();
+                    _ = _analyticsTrackingService.TrackPoiViewedAsync(dto.Id, dto.PrimaryLanguage, CancellationToken.None);
                     _hasPendingSpeechTextChanges = false;
                     IsBookmarked = await _bookmarkHistoryService.IsBookmarkedAsync(id, CancellationToken.None);
+                    _lastLoadedPreferredLanguage = requestedLanguage;
                     return;
                 }
             }
@@ -321,7 +602,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
             PoiMobileDto? cachedPoi = null;
             try
             {
-                var localPois = await _localDatabaseService.GetPoisAsync(UserProfileService.PreferredLanguage, cancellationToken: CancellationToken.None);
+                var localPois = await _localDatabaseService.GetPoisAsync(requestedLanguage, cancellationToken: CancellationToken.None);
                 cachedPoi = localPois.FirstOrDefault(x => x.Id == id);
             }
             catch
@@ -371,9 +652,12 @@ public class TourDetailViewModel : INotifyPropertyChanged
                 };
 
                 Tour = cachedModel;
-                SetLoadedSpeechTexts(_currentPoiDto.SpeechTexts, _currentPoiDto.SpeechTextLanguageCode, _currentPoiDto.SpeechText ?? _currentPoiDto.Description, _currentPoiDto.PrimaryLanguage);
+                SetLoadedSpeechTexts(_currentPoiDto.SpeechTexts, _currentPoiDto.SpeechTextLanguageCode, _currentPoiDto.SpeechText ?? _currentPoiDto.Description, _currentPoiDto.PrimaryLanguage, []);
+                RefreshQrShareData();
+                _ = _analyticsTrackingService.TrackPoiViewedAsync(cachedPoi.Id, cachedPoi.PrimaryLanguage, CancellationToken.None);
                 _hasPendingSpeechTextChanges = false;
                 IsBookmarked = await _bookmarkHistoryService.IsBookmarkedAsync(id, CancellationToken.None);
+                _lastLoadedPreferredLanguage = requestedLanguage;
                 return;
             }
 
@@ -381,6 +665,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
             SpeechTextInput = string.Empty;
             _hasPendingSpeechTextChanges = false;
             IsBookmarked = false;
+            RefreshQrShareData();
         }
         finally
         {
@@ -424,7 +709,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
                 _currentPoiDto.Latitude,
                 _currentPoiDto.Longitude,
                 _currentPoiDto.GeofenceRadiusMeters,
-                _currentPoiDto.Description,
+                speechText,
                 _currentPoiDto.Category,
                 _currentPoiDto.PrimaryLanguage,
                 _currentPoiDto.Duration,
@@ -442,7 +727,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
                     Id = _currentPoiDto.Id,
                     Title = _currentPoiDto.Title,
                     Subtitle = _currentPoiDto.Subtitle,
-                    Description = _currentPoiDto.Description,
+                    Description = speechText,
                     LanguageCode = _currentPoiDto.PrimaryLanguage,
                     PrimaryLanguage = _currentPoiDto.PrimaryLanguage,
                     ImageUrl = _currentPoiDto.ImageUrl,
@@ -472,10 +757,12 @@ public class TourDetailViewModel : INotifyPropertyChanged
             await _tourRouteCacheService.InvalidateAsync(_currentPoiDto.Id, null, CancellationToken.None);
 
             _suppressSpeechTextAutoSave = true;
+            _currentPoiDto.Description = speechText;
             _currentPoiDto.SpeechText = speechText;
             _currentPoiDto.SpeechTextLanguageCode = selectedLanguage;
             _currentPoiDto.SpeechTexts = speechTexts;
             Tour.SpeechText = string.IsNullOrWhiteSpace(speechText) ? null : speechText;
+            Tour.Description = string.IsNullOrWhiteSpace(speechText) ? string.Empty : speechText;
             OnPropertyChanged(nameof(Tour));
             OnPropertyChanged(nameof(Description));
             SpeechTextInput = speechText ?? string.Empty;
@@ -483,12 +770,12 @@ public class TourDetailViewModel : INotifyPropertyChanged
             _suppressSpeechTextAutoSave = false;
             if (showConfirmation)
             {
-                await Shell.Current.DisplayAlert("Saved", "Text to speech đã được lưu.", "OK");
+                await Shell.Current.DisplayAlert(AppStrings.Save, AppStrings.TtsSavedMessage, "OK");
             }
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Error", $"Không lưu được text TTS: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlert(AppStrings.ValidationTitle, string.Format(CultureInfo.CurrentUICulture, AppStrings.CouldNotSaveTtsText, ex.Message), "OK");
         }
         finally
         {
@@ -529,7 +816,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
     private async Task SelectSpeechLanguageAsync(SpeechLanguageOption? option)
     {
-        if (option is null || !CanEditSpeechText)
+        if (option is null)
         {
             return;
         }
@@ -539,17 +826,14 @@ public class TourDetailViewModel : INotifyPropertyChanged
         {
             await PersistSpeechTextAsync();
         }
-        else if (_currentTourId.HasValue)
-        {
-            await RefreshAsync();
-        }
 
         SelectedSpeechLanguageCode = NormalizeLanguageCode(option.LanguageCode);
+        UserProfileService.PreferredLanguage = SelectedSpeechLanguageCode;
         UpdateSelectedLanguageFlags();
         ApplySpeechTextForSelectedLanguage();
     }
 
-    private void SetLoadedSpeechTexts(IReadOnlyList<PoiSpeechTextDto> speechTexts, string? selectedLanguageHint, string? fallbackText, string? primaryLanguage)
+    private void SetLoadedSpeechTexts(IReadOnlyList<PoiSpeechTextDto> speechTexts, string? selectedLanguageHint, string? fallbackText, string? primaryLanguage, IReadOnlyList<PoiLocalizationDto>? localizations)
     {
         _speechTextsByLanguage.Clear();
 
@@ -564,16 +848,35 @@ public class TourDetailViewModel : INotifyPropertyChanged
             _speechTextsByLanguage[languageCode] = speechText.Text.Trim();
         }
 
+        foreach (var localization in localizations ?? [])
+        {
+            var languageCode = NormalizeLanguageCode(localization.LanguageCode);
+            if (string.IsNullOrWhiteSpace(languageCode) || _speechTextsByLanguage.ContainsKey(languageCode))
+            {
+                continue;
+            }
+
+            var generatedText = BuildGeneratedSpeechText(localization.Title, localization.Subtitle, localization.Description);
+            if (!string.IsNullOrWhiteSpace(generatedText))
+            {
+                _speechTextsByLanguage[languageCode] = generatedText;
+            }
+        }
+
         if (_speechTextsByLanguage.Count == 0 && !string.IsNullOrWhiteSpace(fallbackText))
         {
-            var defaultLanguage = NormalizeLanguageCode(selectedLanguageHint ?? primaryLanguage);
+            var defaultLanguage = NormalizeLanguageCode(UserProfileService.PreferredLanguage ?? selectedLanguageHint ?? primaryLanguage);
             _speechTextsByLanguage[defaultLanguage] = fallbackText.Trim();
         }
 
+        var preferredLanguage = NormalizeLanguageCode(UserProfileService.PreferredLanguage);
         var persistedLanguage = NormalizeLanguageCode(selectedLanguageHint ?? primaryLanguage);
-        SelectedSpeechLanguageCode = !string.IsNullOrWhiteSpace(persistedLanguage) && _speechTextsByLanguage.ContainsKey(persistedLanguage)
-            ? persistedLanguage
-            : NormalizeLanguageCode(_speechTextsByLanguage.Keys.FirstOrDefault());
+
+        SelectedSpeechLanguageCode = !string.IsNullOrWhiteSpace(preferredLanguage) && _speechTextsByLanguage.ContainsKey(preferredLanguage)
+            ? preferredLanguage
+            : !string.IsNullOrWhiteSpace(persistedLanguage) && _speechTextsByLanguage.ContainsKey(persistedLanguage)
+                ? persistedLanguage
+                : NormalizeLanguageCode(_speechTextsByLanguage.Keys.FirstOrDefault());
 
         UpdateSelectedLanguageFlags();
         ApplySpeechTextForSelectedLanguage();
@@ -594,6 +897,19 @@ public class TourDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(Tour));
             OnPropertyChanged(nameof(Description));
         }
+
+        RefreshQrShareData();
+    }
+
+    private static string BuildGeneratedSpeechText(string title, string? subtitle, string? description)
+    {
+        var parts = new[] { title, subtitle ?? string.Empty, description ?? string.Empty }
+            .Select(x => x?.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return parts.Length == 0 ? string.Empty : string.Join(". ", parts);
     }
 
     private string GetSpeechTextForLanguage(string languageCode)
@@ -622,18 +938,12 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
         try
         {
-            var locales = await TextToSpeech.Default.GetLocalesAsync();
             var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var items = new List<SpeechLanguageOption>();
 
-            foreach (var code in _speechTextsByLanguage.Keys.Concat([SelectedSpeechLanguageCode, UserProfileService.PreferredLanguage]))
+            foreach (var code in UserProfileService.SupportedLanguages)
             {
                 AddLanguageCode(code, items, codes);
-            }
-
-            foreach (var locale in locales)
-            {
-                AddLanguageCode(locale.Language, items, codes);
             }
 
             MainThread.BeginInvokeOnMainThread(() =>
@@ -651,7 +961,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 _speechLanguages.Clear();
-                foreach (var code in _speechTextsByLanguage.Keys.Concat([SelectedSpeechLanguageCode]).Distinct(StringComparer.OrdinalIgnoreCase))
+                foreach (var code in UserProfileService.SupportedLanguages)
                 {
                     _speechLanguages.Add(new SpeechLanguageOption
                     {
@@ -681,9 +991,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
 
     private static string NormalizeLanguageCode(string? languageCode)
     {
-        return string.IsNullOrWhiteSpace(languageCode)
-            ? string.Empty
-            : languageCode.Trim().ToLowerInvariant();
+        return LanguageCodeNormalizer.NormalizeToLocaleCode(languageCode);
     }
 
     private static string GetLanguageDisplayText(string? languageCode)
@@ -805,15 +1113,103 @@ public class TourDetailViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    private void OnUserProfileChanged(object? sender, EventArgs e)
+    private void OnEndpointSettingsChanged(object? sender, EventArgs e)
     {
-        UpdateSpeechTextPermission();
+        if (_currentPoiDto is null)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(RefreshQrShareData);
     }
 
     private string NormalizeImageUrl(string? imageUrl)
     {
         var normalized = ResourceUrlHelper.Normalize(imageUrl, _apiOptions.BaseUrl);
         return string.IsNullOrWhiteSpace(normalized) ? "https://placehold.co/1200x800/png?text=Tour+Preview" : normalized;
+    }
+
+    private void RefreshQrShareData()
+    {
+        if (_currentPoiDto is null || _currentPoiDto.Id <= 0)
+        {
+            QrShareLink = string.Empty;
+            QrCodeImageSource = null;
+            QrShareWarningText = string.Empty;
+            OnPropertyChanged(nameof(HasQrCode));
+            return;
+        }
+
+        try
+        {
+            var qrLanguage = GetQrLanguageCode();
+            var link = _poiQrCodeService.BuildPoiShareLink(_currentPoiDto.Id, qrLanguage);
+            var qrBytes = _poiQrCodeService.GeneratePoiQrCodePng(link);
+
+            QrShareLink = link;
+            QrCodeImageSource = ImageSource.FromStream(() => new MemoryStream(qrBytes));
+            QrShareWarningText = string.Empty;
+            OnPropertyChanged(nameof(HasQrCode));
+            OnPropertyChanged(nameof(HasQrShareSection));
+        }
+        catch (Exception ex)
+        {
+            QrShareLink = string.Empty;
+            QrCodeImageSource = null;
+            QrShareWarningText = ex.Message;
+            OnPropertyChanged(nameof(HasQrCode));
+            OnPropertyChanged(nameof(HasQrShareSection));
+        }
+    }
+
+    private string GetQrLanguageCode()
+    {
+        var selected = NormalizeLanguageCode(SelectedSpeechLanguageCode);
+        if (!string.IsNullOrWhiteSpace(selected))
+        {
+            return selected;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_currentPoiDto?.SpeechTextLanguageCode))
+        {
+            return NormalizeLanguageCode(_currentPoiDto.SpeechTextLanguageCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_currentPoiDto?.PrimaryLanguage))
+        {
+            return NormalizeLanguageCode(_currentPoiDto.PrimaryLanguage);
+        }
+
+        return NormalizeLanguageCode(UserProfileService.PreferredLanguage);
+    }
+
+    private async Task ShareLinkAsync()
+    {
+        if (string.IsNullOrWhiteSpace(QrShareLink))
+        {
+            return;
+        }
+
+        await Share.Default.RequestAsync(new ShareTextRequest
+        {
+            Title = Tour?.Title ?? AppStrings.AppName,
+            Uri = QrShareLink,
+            Text = QrShareLink
+        });
+    }
+
+    private async Task CopyLinkAsync()
+    {
+        if (string.IsNullOrWhiteSpace(QrShareLink))
+        {
+            return;
+        }
+
+        await Clipboard.Default.SetTextAsync(QrShareLink);
+        if (Shell.Current is not null)
+        {
+            await Shell.Current.DisplayAlert(AppStrings.CopyLink, QrShareLink, "OK");
+        }
     }
 
     private void UpdateSpeechTextPermission()
@@ -824,6 +1220,7 @@ public class TourDetailViewModel : INotifyPropertyChanged
     public void Dispose()
     {
         UserProfileService.ProfileChanged -= OnUserProfileChanged;
+        _audioLibraryService.DownloadProgressChanged -= OnDownloadProgressChanged;
     }
 }
 

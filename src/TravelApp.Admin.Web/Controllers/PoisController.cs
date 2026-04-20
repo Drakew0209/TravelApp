@@ -1,12 +1,16 @@
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TravelApp.Admin.Web.Models.Pois;
 using TravelApp.Admin.Web.Services;
 using TravelApp.Application.Dtos.Pois;
+using TravelApp.Application.Utilities;
 
 namespace TravelApp.Admin.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Owner,Admin,SuperAdmin")]
 public class PoisController : Controller
 {
     private readonly ITravelAppApiClient _apiClient;
@@ -18,7 +22,7 @@ public class PoisController : Controller
 
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var model = await _apiClient.GetPoisAsync("vi", cancellationToken);
+        var model = await _apiClient.GetPoisAsync(LanguageCodeNormalizer.NormalizeToLocaleCode("en-US"), cancellationToken);
         return View(model);
     }
 
@@ -67,7 +71,7 @@ public class PoisController : Controller
     [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
-        var poi = await _apiClient.GetPoiAsync(id, "vi", cancellationToken);
+        var poi = await _apiClient.GetPoiAsync(id, LanguageCodeNormalizer.NormalizeToLocaleCode("vi"), cancellationToken);
         if (poi is null)
         {
             return NotFound();
@@ -112,6 +116,16 @@ public class PoisController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+    public async Task<IActionResult> BackfillSpeechTexts(CancellationToken cancellationToken)
+    {
+        var updatedCount = await _apiClient.BackfillPoiSpeechTextsAsync(cancellationToken);
+        TempData["SuccessMessage"] = $"Đã bổ sung TTS cho {updatedCount} POI.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var deleted = await _apiClient.DeletePoiAsync(id, cancellationToken);
@@ -123,7 +137,7 @@ public class PoisController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private static PoiEditorViewModel ToEditorModel(PoiMobileDto poi)
+    private PoiEditorViewModel ToEditorModel(PoiMobileDto poi)
     {
         var qrContent = BuildPoiQrContent(poi.Id);
         var model = new PoiEditorViewModel
@@ -138,22 +152,22 @@ public class PoisController : Controller
             Latitude = poi.Latitude,
             Longitude = poi.Longitude,
             GeofenceRadiusMeters = poi.GeofenceRadiusMeters,
-            PrimaryLanguage = poi.PrimaryLanguage,
+            PrimaryLanguage = NormalizeLanguageCode(poi.PrimaryLanguage),
             SpeechText = poi.SpeechText,
-            SpeechTextLanguageCode = poi.SpeechTextLanguageCode ?? poi.LanguageCode,
+            SpeechTextLanguageCode = NormalizeLanguageCode(poi.SpeechTextLanguageCode ?? poi.LanguageCode),
             Localizations = poi.Localizations.Count > 0
                 ? poi.Localizations.Select(x => new PoiLocalizationEditorInput
                 {
-                    LanguageCode = x.LanguageCode,
+                    LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                     Title = x.Title,
                     Subtitle = x.Subtitle,
                     Description = x.Description
                 }).ToList()
-                : [new() { LanguageCode = poi.LanguageCode, Title = poi.Title, Subtitle = poi.Subtitle, Description = poi.Description }],
+                : [new() { LanguageCode = NormalizeLanguageCode(poi.LanguageCode), Title = poi.Title, Subtitle = poi.Subtitle, Description = poi.Description }],
             AudioAssets = poi.AudioAssets.Count > 0
                 ? poi.AudioAssets.Select(x => new PoiAudioEditorInput
                 {
-                    LanguageCode = x.LanguageCode,
+                    LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                     AudioUrl = x.AudioUrl,
                     Transcript = x.Transcript
                 }).ToList()
@@ -161,7 +175,7 @@ public class PoisController : Controller
             SpeechTexts = poi.SpeechTexts.Count > 0
                 ? poi.SpeechTexts.Select(x => new PoiSpeechTextEditorInput
                 {
-                    LanguageCode = x.LanguageCode,
+                    LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                     Text = x.Text
                 }).ToList()
                 : [new()]
@@ -176,7 +190,8 @@ public class PoisController : Controller
 
     private static PoiEditorViewModel CreateEmptyModel()
     {
-        var model = new PoiEditorViewModel { PrimaryLanguage = "vi", SpeechTextLanguageCode = "vi" };
+        var defaultLanguage = NormalizeLanguageCode("vi");
+        var model = new PoiEditorViewModel { PrimaryLanguage = defaultLanguage, SpeechTextLanguageCode = defaultLanguage };
         EnsureMinimumRows(model);
         return model;
     }
@@ -212,34 +227,127 @@ public class PoisController : Controller
             Latitude = model.Latitude,
             Longitude = model.Longitude,
             GeofenceRadiusMeters = model.GeofenceRadiusMeters,
-            PrimaryLanguage = model.PrimaryLanguage,
+            PrimaryLanguage = NormalizeLanguageCode(model.PrimaryLanguage),
             SpeechText = model.SpeechText,
-            SpeechTextLanguageCode = model.SpeechTextLanguageCode,
+            SpeechTextLanguageCode = NormalizeLanguageCode(model.SpeechTextLanguageCode),
             Localizations = model.Localizations.Select(x => new UpsertPoiLocalizationDto
             {
-                LanguageCode = x.LanguageCode,
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                 Title = x.Title,
                 Subtitle = x.Subtitle,
                 Description = x.Description
             }).Where(x => !string.IsNullOrWhiteSpace(x.Title)).ToList(),
             AudioAssets = model.AudioAssets.Select(x => new UpsertPoiAudioDto
             {
-                LanguageCode = x.LanguageCode,
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                 AudioUrl = x.AudioUrl,
                 Transcript = x.Transcript,
                 IsGenerated = false
             }).Where(x => !string.IsNullOrWhiteSpace(x.AudioUrl) || !string.IsNullOrWhiteSpace(x.Transcript)).ToList(),
             SpeechTexts = model.SpeechTexts.Select(x => new UpsertPoiSpeechTextDto
             {
-                LanguageCode = x.LanguageCode,
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                 Text = x.Text
             }).Where(x => !string.IsNullOrWhiteSpace(x.Text)).ToList()
         };
     }
 
-    private static string BuildPoiQrContent(int poiId)
+    private static string NormalizeLanguageCode(string? languageCode)
     {
-        return $"travelapp://poi/{poiId}";
+        var normalized = LanguageCodeNormalizer.NormalizeToLocaleCode(languageCode);
+        return string.IsNullOrWhiteSpace(normalized) ? "vi-VN" : normalized;
+    }
+
+    private string BuildPoiQrContent(int poiId)
+    {
+        var baseUrl = ResolvePublicWebBaseUrl();
+        var builder = new UriBuilder(baseUrl);
+        builder.Query = $"poiId={poiId}";
+        return builder.Uri.ToString();
+    }
+
+    private string ResolvePublicWebBaseUrl()
+    {
+        if (TryResolveConfiguredPublicWebBaseUrl(out var configuredUrl))
+        {
+            return configuredUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Request?.Host.Host) && !IsLocalHost(Request.Host.Host))
+        {
+            return new UriBuilder(Uri.UriSchemeHttp, Request.Host.Host, 5175, "/").Uri.ToString();
+        }
+
+        var lanIp = GetFirstLanIpv4Address();
+        if (!string.IsNullOrWhiteSpace(lanIp))
+        {
+            return new UriBuilder(Uri.UriSchemeHttp, lanIp, 5175, "/").Uri.ToString();
+        }
+
+        return "http://localhost:5175/";
+    }
+
+    private static bool TryResolveConfiguredPublicWebBaseUrl(out string normalizedUrl)
+    {
+        normalizedUrl = string.Empty;
+        var configured = Environment.GetEnvironmentVariable("TRAVELAPP_PUBLIC_WEB_BASE_URL");
+        if (string.IsNullOrWhiteSpace(configured) || !Uri.TryCreate(configured.Trim(), UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        if (IsLocalHost(uri.Host))
+        {
+            return false;
+        }
+
+        var builder = new UriBuilder(uri)
+        {
+            Path = uri.AbsolutePath.EndsWith('/') ? uri.AbsolutePath : uri.AbsolutePath + "/",
+            Query = string.Empty,
+            Fragment = string.Empty
+        };
+
+        normalizedUrl = builder.Uri.ToString();
+        return true;
+    }
+
+    private static bool IsLocalHost(string host)
+    {
+        return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(host, "10.0.2.2", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(host, "0.0.0.0", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? GetFirstLanIpv4Address()
+    {
+        foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (ni.OperationalStatus != OperationalStatus.Up)
+            {
+                continue;
+            }
+
+            var props = ni.GetIPProperties();
+            foreach (var address in props.UnicastAddresses)
+            {
+                if (address.Address.AddressFamily != AddressFamily.InterNetwork || IPAddress.IsLoopback(address.Address))
+                {
+                    continue;
+                }
+
+                var bytes = address.Address.GetAddressBytes();
+                if (bytes.Length == 4 && bytes[0] == 169 && bytes[1] == 254)
+                {
+                    continue;
+                }
+
+                return address.Address.ToString();
+            }
+        }
+
+        return null;
     }
 
     private static string BuildQrImageUrl(string qrContent)

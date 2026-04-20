@@ -23,13 +23,18 @@
                       VerticalOptions="Center" />
             </Border>
 
-            <Label Grid.Column="1"
-                   Text="Edit Profile"
-                   TextColor="White"
-                   FontAttributes="Bold"
-                   FontSize="30"
-                   HorizontalTextAlignment="Center"
-                   VerticalTextAlignment="Center" />
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="{Binding PageTitle}"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       FontSize="30"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="{Binding CurrentLanguageText}"
+                       TextColor="#FFF1F6"
+                       FontAttributes="Bold"
+                       FontSize="12"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
         </Grid>
 
         <ScrollView Grid.Row="1">
@@ -37,7 +42,7 @@
                 <Label FontSize="16" TextColor="{AppThemeBinding Light=#76767E, Dark=#B4BDCF}">
                     <Label.FormattedText>
                         <FormattedString>
-                            <Span Text="Email Address " />
+                            <Span Text="{Binding EmailAddressLabel}" />
                             <Span Text="*" TextColor="#D11A5B" />
                         </FormattedString>
                     </Label.FormattedText>
@@ -50,7 +55,7 @@
                         Padding="16,0"
                         HeightRequest="60">
                     <Entry Text="{Binding Email}"
-                           Placeholder="your@email.com"
+                            Placeholder="{Binding EmailPlaceholderText}"
                            PlaceholderColor="{AppThemeBinding Light=#7C7C84, Dark=#8E97AA}"
                            TextColor="{AppThemeBinding Light=#1C1C22, Dark=#F3F5FA}"
                            FontSize="18"
@@ -60,7 +65,7 @@
                 <Label FontSize="16" TextColor="{AppThemeBinding Light=#76767E, Dark=#B4BDCF}" Margin="0,8,0,0">
                     <Label.FormattedText>
                         <FormattedString>
-                            <Span Text="Full name " />
+                            <Span Text="{Binding FullNameLabel}" />
                             <Span Text="*" TextColor="#D11A5B" />
                         </FormattedString>
                     </Label.FormattedText>
@@ -73,14 +78,14 @@
                         Padding="16,0"
                         HeightRequest="60">
                     <Entry Text="{Binding FullName}"
-                           Placeholder="Your full name"
+                            Placeholder="{Binding FullNamePlaceholderText}"
                            PlaceholderColor="{AppThemeBinding Light=#7C7C84, Dark=#8E97AA}"
                            TextColor="{AppThemeBinding Light=#1C1C22, Dark=#F3F5FA}"
                            FontSize="18"
                            VerticalOptions="Center" />
                 </Border>
 
-                <Label Text="Mobile number"
+                <Label Text="{Binding MobileNumberLabel}"
                        FontSize="16"
                        TextColor="{AppThemeBinding Light=#76767E, Dark=#B4BDCF}"
                        Margin="0,8,0,0" />
@@ -112,7 +117,7 @@
 
                         <Entry Grid.Column="3"
                                Text="{Binding PhoneNumber}"
-                               Placeholder="Phone number"
+                               Placeholder="{Binding PhonePlaceholderText}"
                                PlaceholderColor="{AppThemeBinding Light=#7C7C84, Dark=#8E97AA}"
                                TextColor="{AppThemeBinding Light=#1C1C22, Dark=#F3F5FA}"
                                FontSize="18"
@@ -121,7 +126,7 @@
                     </Grid>
                 </Border>
 
-                <Button Text="Update Profile"
+                <Button Text="{Binding UpdateProfileText}"
                         Command="{Binding UpdateProfileCommand}"
                         IsEnabled="{Binding IsUpdateEnabled}"
                         BackgroundColor="{Binding UpdateButtonColor}"
@@ -132,7 +137,7 @@
                         CornerRadius="31"
                         Margin="0,24,0,0" />
 
-                <Label Text="Delete account"
+                <Label Text="{Binding DeleteAccountText}"
                        TextColor="#C91458"
                        FontSize="22"
                        TextDecorations="Underline"

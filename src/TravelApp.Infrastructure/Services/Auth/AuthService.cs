@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using TravelApp.Application.Abstractions.Auth;
 using TravelApp.Application.Abstractions.Persistence;
+using TravelApp.Application.Dtos.Auth;
 using TravelApp.Domain.Entities;
 
 namespace TravelApp.Infrastructure.Services.Auth;
@@ -25,6 +26,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResultDto?> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
+        email = NormalizeEmail(email);
+
         var user = await _dbContext.Users
             .AsNoTracking()
             .Include(x => x.UserRoles)
@@ -50,8 +53,45 @@ public class AuthService : IAuthService
                 .Where(x => x.Role is not null)
                 .Select(x => x.Role.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList()
+                .ToList(),
+            FullName: user.FullName
         );
+    }
+
+    public async Task<AuthResultDto?> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var email = NormalizeEmail(request.Email);
+        var fullName = NormalizeFullName(request.FullName);
+        ValidateRegistrationRequest(email, request.Password, fullName);
+
+        if (await _dbContext.Users.AnyAsync(x => x.Email == email, cancellationToken))
+        {
+            throw new InvalidOperationException("An account with this e-mail already exists.");
+        }
+
+        var defaultRole = await _dbContext.Roles.FirstOrDefaultAsync(x => string.Equals(x.Name, "User", StringComparison.OrdinalIgnoreCase), cancellationToken)
+            ?? throw new InvalidOperationException("Default user role is missing.");
+
+        var user = new User
+        {
+            UserName = await GenerateUniqueUserNameAsync(fullName, email, cancellationToken),
+            FullName = fullName,
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            IsActive = true,
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        };
+
+        user.UserRoles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = defaultRole.Id
+        });
+
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return await LoginAsync(email, request.Password, cancellationToken);
     }
 
     public async Task<AuthResultDto?> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
@@ -92,7 +132,8 @@ public class AuthService : IAuthService
                 .Where(x => x.Role is not null)
                 .Select(x => x.Role.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList());
+                .ToList(),
+            FullName: tokenRecord.User.FullName);
     }
 
     public async Task RevokeRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
@@ -126,12 +167,14 @@ public class AuthService : IAuthService
             Id: user.Id,
             UserName: user.UserName,
             Email: user.Email,
-            FullName: user.UserName
+            FullName: user.FullName
         );
     }
 
     public async Task<User?> FindUserByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
+        email = NormalizeEmail(email);
+
         return await _dbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
@@ -149,6 +192,7 @@ public class AuthService : IAuthService
             new Claim("sub", user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.GivenName, user.FullName),
             new Claim("email_verified", "true"),
         };
 
@@ -210,5 +254,96 @@ public class AuthService : IAuthService
         }
 
         return value;
+    }
+
+    private async Task<string> GenerateUniqueUserNameAsync(string fullName, string email, CancellationToken cancellationToken)
+    {
+        var baseName = NormalizeUserName(fullName);
+        if (string.IsNullOrWhiteSpace(baseName))
+        {
+            baseName = NormalizeUserName(email.Split('@', 2)[0]);
+        }
+
+        if (string.IsNullOrWhiteSpace(baseName))
+        {
+            baseName = "user";
+        }
+
+        baseName = Truncate(baseName, 80);
+        var candidate = baseName;
+        var suffix = 0;
+
+        while (await _dbContext.Users.AnyAsync(x => x.UserName == candidate, cancellationToken))
+        {
+            suffix++;
+            candidate = Truncate($"{baseName}-{suffix}", 100);
+        }
+
+        return candidate;
+    }
+
+    private static void ValidateRegistrationRequest(string email, string password, string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+        {
+            throw new ArgumentException("Please enter a valid e-mail address.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fullName) || fullName.Length < 3)
+        {
+            throw new ArgumentException("Please enter your full name.");
+        }
+
+        if (fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 2)
+        {
+            throw new ArgumentException("Please enter your full name with at least first and last name.");
+        }
+
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
+        {
+            throw new ArgumentException("Password must be at least 8 characters long.");
+        }
+
+        if (!password.Any(char.IsUpper))
+        {
+            throw new ArgumentException("Password must contain at least one uppercase letter.");
+        }
+
+        if (!password.Any(char.IsLower))
+        {
+            throw new ArgumentException("Password must contain at least one lowercase letter.");
+        }
+
+        if (!password.Any(char.IsDigit))
+        {
+            throw new ArgumentException("Password must contain at least one number.");
+        }
+
+        if (!password.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            throw new ArgumentException("Password must contain at least one special character.");
+        }
+    }
+
+    private static string NormalizeEmail(string email)
+    {
+        return email.Trim().ToLowerInvariant();
+    }
+
+    private static string NormalizeFullName(string fullName)
+    {
+        return string.Join(' ', fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static string NormalizeUserName(string value)
+    {
+        var normalized = value.Trim().ToLowerInvariant();
+        var chars = normalized.Where(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_').ToArray();
+        return new string(chars);
+    }
+
+    private static string Truncate(string value, int maxLength)
+    {
+        return value.Length <= maxLength ? value : value[..maxLength];
     }
 }

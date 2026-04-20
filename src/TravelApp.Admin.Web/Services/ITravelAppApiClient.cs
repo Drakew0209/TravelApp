@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using TravelApp.Application.Dtos.Analytics;
 using TravelApp.Application.Dtos.Pois;
 using TravelApp.Application.Dtos.Users;
 using TravelApp.Application.Dtos.Tours;
@@ -19,6 +20,7 @@ public interface ITravelAppApiClient
     Task<PoiMobileDto> CreatePoiAsync(UpsertPoiRequestDto request, CancellationToken cancellationToken = default);
     Task<bool> UpdatePoiAsync(int id, UpsertPoiRequestDto request, CancellationToken cancellationToken = default);
     Task<bool> DeletePoiAsync(int id, CancellationToken cancellationToken = default);
+    Task<int> BackfillPoiSpeechTextsAsync(CancellationToken cancellationToken = default);
     Task<string?> UploadImageAsync(IFormFile file, string folder, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<TourAdminDto>> GetToursAsync(CancellationToken cancellationToken = default);
@@ -26,4 +28,6 @@ public interface ITravelAppApiClient
     Task<TourAdminDto> CreateTourAsync(UpsertTourRequestDto request, CancellationToken cancellationToken = default);
     Task<bool> UpdateTourAsync(int id, UpsertTourRequestDto request, CancellationToken cancellationToken = default);
     Task<bool> DeleteTourAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<AnalyticsDashboardDto> GetAnalyticsDashboardAsync(AnalyticsDashboardQueryDto query, CancellationToken cancellationToken = default);
 }

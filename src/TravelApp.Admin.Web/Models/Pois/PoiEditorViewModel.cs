@@ -37,14 +37,14 @@ public sealed class PoiEditorViewModel
     public double Longitude { get; set; }
     public double GeofenceRadiusMeters { get; set; } = 100;
 
-    [Required, StringLength(10)]
-    public string PrimaryLanguage { get; set; } = "vi";
+    [Required, StringLength(15)]
+    public string PrimaryLanguage { get; set; } = "vi-VN";
 
     [StringLength(4000)]
     public string? SpeechText { get; set; }
 
-    [StringLength(10)]
-    public string? SpeechTextLanguageCode { get; set; } = "vi";
+    [StringLength(15)]
+    public string? SpeechTextLanguageCode { get; set; } = "vi-VN";
 
     public List<SelectListItem> LanguageOptions { get; set; } = LanguageCodeCatalog.Create();
     public List<PoiLocalizationEditorInput> Localizations { get; set; } = [new()];
@@ -54,8 +54,8 @@ public sealed class PoiEditorViewModel
 
 public sealed class PoiLocalizationEditorInput
 {
-    [Required, StringLength(10)]
-    public string LanguageCode { get; set; } = "vi";
+    [Required, StringLength(15)]
+    public string LanguageCode { get; set; } = "vi-VN";
 
     [Required, StringLength(256)]
     public string Title { get; set; } = string.Empty;
@@ -69,8 +69,8 @@ public sealed class PoiLocalizationEditorInput
 
 public sealed class PoiAudioEditorInput
 {
-    [Required, StringLength(10)]
-    public string LanguageCode { get; set; } = "vi";
+    [Required, StringLength(15)]
+    public string LanguageCode { get; set; } = "vi-VN";
 
     [StringLength(2048)]
     public string? AudioUrl { get; set; }
@@ -81,8 +81,8 @@ public sealed class PoiAudioEditorInput
 
 public sealed class PoiSpeechTextEditorInput
 {
-    [Required, StringLength(10)]
-    public string LanguageCode { get; set; } = "vi";
+    [Required, StringLength(15)]
+    public string LanguageCode { get; set; } = "vi-VN";
 
     [StringLength(4000)]
     public string Text { get; set; } = string.Empty;

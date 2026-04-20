@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Http;
+using TravelApp.Application.Dtos.Analytics;
 using TravelApp.Application.Dtos.Pois;
 using TravelApp.Application.Dtos.Users;
 using TravelApp.Application.Dtos.Tours;
@@ -123,6 +124,22 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         }
     }
 
+    public async Task<int> BackfillPoiSpeechTextsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync("api/admin/pois/backfill-speech-texts", null, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var payload = await response.Content.ReadFromJsonAsync<BackfillSpeechTextsResponseDto>(cancellationToken: cancellationToken);
+            return payload?.UpdatedCount ?? 0;
+        }
+        catch (HttpRequestException)
+        {
+            return 0;
+        }
+    }
+
     public async Task<string?> UploadImageAsync(IFormFile file, string folder, CancellationToken cancellationToken = default)
     {
         try
@@ -155,6 +172,11 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         {
             return null;
         }
+    }
+
+    private sealed class BackfillSpeechTextsResponseDto
+    {
+        public int UpdatedCount { get; set; }
     }
 
     public async Task<IReadOnlyList<UserAdminDto>> GetUsersAsync(CancellationToken cancellationToken = default)
@@ -318,6 +340,38 @@ public sealed class TravelAppApiClient : ITravelAppApiClient
         catch (HttpRequestException)
         {
             return false;
+        }
+    }
+
+    public async Task<AnalyticsDashboardDto> GetAnalyticsDashboardAsync(AnalyticsDashboardQueryDto query, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var parameters = new List<string>();
+
+            if (query.FromUtc.HasValue)
+            {
+                parameters.Add($"fromUtc={Uri.EscapeDataString(query.FromUtc.Value.ToString("O"))}");
+            }
+
+            if (query.ToUtc.HasValue)
+            {
+                parameters.Add($"toUtc={Uri.EscapeDataString(query.ToUtc.Value.ToString("O"))}");
+            }
+
+            parameters.Add($"granularity={Uri.EscapeDataString(query.Granularity.ToString())}");
+            parameters.Add($"recentLimit={Math.Clamp(query.RecentLimit, 1, 100)}");
+
+            var endpoint = $"api/analytics/dashboard?{string.Join('&', parameters)}";
+            return await _httpClient.GetFromJsonAsync<AnalyticsDashboardDto>(endpoint, cancellationToken) ?? new AnalyticsDashboardDto();
+        }
+        catch (OperationCanceledException)
+        {
+            return new AnalyticsDashboardDto();
+        }
+        catch (HttpRequestException)
+        {
+            return new AnalyticsDashboardDto();
         }
     }
 

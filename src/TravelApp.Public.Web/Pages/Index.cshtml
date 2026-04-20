@@ -1,0 +1,395 @@
+@page
+@model TravelApp.Public.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = Model.PageTitle;
+    var text = PublicPageText.Current;
+}
+
+<section class="card hero-card" id="overview-panel">
+    <div class="badge">@text.HeroBadge</div>
+    <h1>@Model.PageTitle</h1>
+    <p>@Model.PageSubtitle</p>
+
+    <div class="hero-meta">
+        @if (!string.IsNullOrWhiteSpace(Model.Poi?.Location))
+        {
+            <span>@Model.Poi.Location</span>
+        }
+        @if (Model.Poi is not null)
+        {
+            <span>@text.PoiLabel #@Model.Poi.Id</span>
+        }
+        @if (Model.Tour is not null)
+        {
+            <span>@text.TourLabel #@Model.Tour.Id</span>
+        }
+    </div>
+</section>
+
+<section class="card profile-card" id="profile-panel">
+    <div class="section-head">
+        <div>
+            <h2>@text.Profile</h2>
+            <p>@($"{text.CurrentLanguage}: {Model.CurrentLanguageDisplayText}")</p>
+        </div>
+        <span class="soft-badge">@text.MobileFriendly</span>
+    </div>
+
+    <div class="profile-stats">
+        <div class="profile-stat">
+            <span class="label">@text.CurrentLanguage</span>
+            <strong>@Model.CurrentLanguageDisplayText</strong>
+        </div>
+        <div class="profile-stat">
+            <span class="label">@text.Session</span>
+            <strong id="public-session-id">—</strong>
+        </div>
+        <div class="profile-stat">
+            <span class="label">@text.BookmarksCount</span>
+            <strong id="public-bookmarks-count">0</strong>
+        </div>
+        <div class="profile-stat">
+            <span class="label">@text.ListeningHistoryCount</span>
+            <strong id="public-history-count">0</strong>
+        </div>
+    </div>
+
+    <div class="profile-language-grid">
+        @foreach (var culture in Model.Cultures)
+        {
+            <form asp-controller="Culture" asp-action="Set" method="post" class="culture-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="redirectUri" value="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")" />
+                <button type="submit" name="culture" value="@culture.Code" class="culture-pill @(culture.IsSelected ? "active" : string.Empty)">
+                    @culture.DisplayName
+                </button>
+            </form>
+        }
+    </div>
+
+    <div class="profile-auth">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="profile-auth-card">
+                <div>
+                    <div class="profile-auth-kicker">@text.Account</div>
+                    <strong>@(User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? User.Identity?.Name ?? text.Account)</strong>
+                    <div class="muted">@(User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty)</div>
+                </div>
+                <div class="profile-auth-actions">
+                    <a class="map-action map-action-primary" asp-page="/Account/Index">@text.Account</a>
+                    <form asp-page="/Auth/Logout" method="post">
+                        <button type="submit" class="map-action">@text.Logout</button>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="profile-auth-card">
+                <div>
+                    <div class="profile-auth-kicker">@text.Login</div>
+                    <strong>@text.SignInToSyncBookmarksAndHistory</strong>
+                    <div class="muted">@text.RegisterToKeepASeparateWebAccount</div>
+                </div>
+                <div class="profile-auth-actions">
+                    <a class="map-action map-action-primary" asp-page="/Auth/Login" asp-route-returnUrl="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")">@text.Login</a>
+                    <a class="map-action" asp-page="/Auth/Register" asp-route-returnUrl="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")">@text.Register</a>
+                </div>
+            </div>
+        }
+    </div>
+
+</section>
+
+<section class="card activity-card" id="activity-panel">
+    <div class="section-head">
+        <div>
+            <h2>@text.BookmarksHistoryTitle</h2>
+            <p>@text.BookmarksHistoryDescription</p>
+        </div>
+        <button type="button" class="map-action" id="activity-clear-button" data-history-clear>@text.ClearHistory</button>
+    </div>
+
+    <div class="activity-tabs" role="tablist" aria-label="@text.BookmarksHistoryTitle">
+        <button type="button" class="activity-tab active" id="bookmarks-tab-button" data-activity-tab="bookmarks">@text.BookmarksTab <span class="activity-tab-count" id="bookmarks-tab-count">0</span></button>
+        <button type="button" class="activity-tab" id="history-tab-button" data-activity-tab="history">@text.HistoryTab <span class="activity-tab-count" id="history-tab-count">0</span></button>
+    </div>
+
+    <div class="activity-view" id="bookmarks-view" data-activity-view="bookmarks">
+        <div class="activity-list" id="bookmarks-list"></div>
+        <div class="activity-empty" id="bookmarks-empty">@text.BookmarksTab — @text.PublicDataOnly</div>
+    </div>
+
+    <div class="activity-view" id="history-view" data-activity-view="history" hidden>
+        <div class="activity-list" id="history-list"></div>
+        <div class="activity-empty" id="history-empty">@text.HistoryTab — @text.PublicDataOnly</div>
+    </div>
+</section>
+
+<div class="page-status" id="page-status" role="status" aria-live="polite">@text.LoadingPublicContent</div>
+<div class="page-error" id="page-error" role="alert" hidden></div>
+
+@if (Model.MapPoints.Any())
+{
+    <section class="map-layout" id="tour-map-panel">
+        <div class="card map-card">
+            <div class="section-head map-head">
+                <div>
+                    <h2>@text.MapTitle</h2>
+                    <p>@text.MapDescription</p>
+                </div>
+
+                <div class="map-actions">
+                    <a class="map-action" href="#poi-list">@text.ViewList</a>
+                    <button type="button" class="map-action map-action-primary" id="route-open-button">@text.ViewRoute</button>
+                </div>
+            </div>
+
+            <div id="tour-map" class="tour-map" aria-label="@text.MapAriaLabel"></div>
+        </div>
+
+        <aside class="card poi-list-card" id="poi-list">
+            <div class="section-head">
+                <h2>@text.PoiListTitle</h2>
+                <p>@Model.MapPoints.Count @text.PoiInRoute</p>
+            </div>
+
+            <div class="poi-list" id="poi-list-items"></div>
+        </aside>
+    </section>
+
+    <div class="poi-sheet" id="poi-sheet" aria-hidden="true">
+        <div class="poi-sheet-handle"></div>
+        <div class="poi-sheet-header">
+            <div>
+                <div class="poi-sheet-kicker">@text.PoiDetailsTitle</div>
+                <h3 id="poi-sheet-title">-</h3>
+                <p id="poi-sheet-subtitle" class="muted">-</p>
+            </div>
+            <button type="button" class="poi-sheet-close" id="poi-sheet-close" aria-label="@text.Close">×</button>
+        </div>
+
+        <div class="poi-sheet-meta" id="poi-sheet-meta"></div>
+
+        <div class="poi-sheet-actions">
+            <button type="button" class="primary-button" id="sheet-play-audio">@text.PlayAudio</button>
+            <button type="button" class="primary-button" id="sheet-open-route">@text.OpenRoute</button>
+            <button type="button" class="map-action" id="sheet-directions">@text.Directions</button>
+        </div>
+
+        <p class="audio-warning" id="poi-sheet-warning" hidden></p>
+    </div>
+}
+
+@if (Model.Poi is null && Model.Tour is null)
+{
+    <section class="card home-hero-card" id="search-panel">
+        <div class="home-hero-copy">
+            <div class="badge">@text.HeroBadge</div>
+            <h1>@Model.PageTitle</h1>
+            <p>@Model.PageSubtitle</p>
+        </div>
+
+        <div class="home-quick-actions">
+            <a class="quick-action" href="#featured-panel">@text.ViewList</a>
+            <a class="quick-action" href="#tour-map-panel">@text.ViewRoute</a>
+            <a class="quick-action" href="#audio-panel">@text.ListenAudio</a>
+            <a class="quick-action" href="#activity-panel">@text.ListeningHistory</a>
+        </div>
+
+        <div class="home-search-wrap">
+            <label class="home-search-label" for="home-search-input">@text.ViewList</label>
+            <input id="home-search-input" class="home-search-input" type="search" placeholder="@text.ScanQrToOpenContent" autocomplete="off" />
+        </div>
+    </section>
+
+    <section class="card" id="featured-panel">
+        <div class="section-head">
+            <div>
+                <h2>@text.TourPublic</h2>
+                <p>@text.PublicPageReceivesQr</p>
+            </div>
+            <span class="soft-badge">@text.MobileFriendly</span>
+        </div>
+
+        <div class="featured-tour-grid" id="home-featured-grid"></div>
+        <div class="home-empty-state" id="home-empty-state" hidden>@text.PublicPageReceivesQr</div>
+    </section>
+}
+else
+{
+    <section class="card detail-card">
+        <div class="detail-media">
+            <img src="@(Model.Poi?.ImageUrl ?? "https://placehold.co/1200x800/png?text=TravelApp")" alt="@Model.PageTitle" />
+        </div>
+
+        <div class="language-row">
+            @foreach (var language in Model.Languages)
+            {
+                <a class="language-pill @(language.IsSelected ? "active" : string.Empty)" href="@Model.BuildLanguageUrl(language.Code)">@language.DisplayName</a>
+            }
+        </div>
+
+        <div class="audio-panel" id="audio-panel">
+            <div class="audio-panel-head">
+                <div>
+                <h2>@text.ListenAudio</h2>
+                <p>@text.ChooseLanguagePlayAudio</p>
+                </div>
+                <span class="soft-badge">@Model.SelectedLanguageCode.ToUpperInvariant()</span>
+            </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.CurrentSpeechText))
+                {
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="primary-button" id="speak-button">@text.SpeakInBrowser</button>
+                        <button type="button" class="map-action" id="bookmark-toggle-button">@text.BookmarkCurrent</button>
+                        @if (Model.HasFallbackAudioBadge)
+                        {
+                            <span class="soft-badge">@text.FallbackBadge</span>
+                        }
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.CurrentSpeechText))
+                {
+                    <div class="audio-secondary">
+                        <label class="audio-secondary-label">@text.TtsContent</label>
+                        <p class="muted" style="margin:0; white-space:pre-wrap;">@Model.CurrentSpeechText</p>
+                    </div>
+                }
+
+                @if (Model.Tour is not null)
+                {
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <button type="button"
+                                class="map-action map-action-primary"
+                                id="auto-play-toggle"
+                                aria-pressed="false">
+                            @text.AutoPlayRouteOff
+                        </button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.CurrentAudioUrl))
+                {
+                    <div class="audio-secondary">
+                        <label class="audio-secondary-label">@text.AudioOriginal</label>
+                        <audio id="public-audio" controls preload="metadata" src="@Model.CurrentAudioUrl"></audio>
+                    </div>
+                }
+                else if (string.IsNullOrWhiteSpace(Model.CurrentSpeechText))
+                {
+                    <p class="muted">@text.NoAudioForSelectedLanguage</p>
+                }
+                else
+                {
+                    <p class="muted">@text.AudioNotReadyForLanguage</p>
+                }
+
+            @if (!string.IsNullOrWhiteSpace(Model.AudioNoticeMessage))
+            {
+                <p class="audio-warning">@Model.AudioNoticeMessage</p>
+            }
+        </div>
+    </section>
+
+    @if (Model.Tour is not null)
+    {
+        <section class="card" id="history-panel">
+            <div class="section-head">
+            <h2>@text.TourPublic</h2>
+            <p>@text.TapPoiForAudio</p>
+            </div>
+
+            <div class="waypoint-list">
+                @foreach (var waypoint in Model.Waypoints)
+                {
+                    <a class="waypoint-item @(Model.IsCurrentPoi(waypoint.Poi.Id) ? "active" : string.Empty)" href="@Model.BuildPoiUrl(waypoint.Poi.Id)">
+                        <div>
+                            <strong>@waypoint.Poi.Title</strong>
+                            <div class="muted">@waypoint.Poi.Subtitle</div>
+                        </div>
+                        <span>#@waypoint.SortOrder</span>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="card">
+        <div class="section-head">
+            <h2>@text.Notes</h2>
+            <p>@text.NotesDescription</p>
+        </div>
+        <div class="soft-grid">
+            <div class="soft-item">@text.PublicDataOnly</div>
+            <div class="soft-item">@text.MobileFriendly</div>
+            <div class="soft-item">@text.OfflineCache</div>
+        </div>
+    </section>
+}
+
+<script>
+    window.travelappPublicState = @Html.Raw(Model.PageStateJson);
+    window.travelappFeaturedTours = @Html.Raw(Model.FeaturedToursJson);
+    window.travelappPublicI18n = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        loadingPublicContent = PublicText.T("Đang tải nội dung public...", "公開コンテンツを読み込み中...", "Öffentliche Inhalte werden geladen...", "Loading public content..."),
+        scanQrToOpenContent = PublicText.T("Quét QR để mở nội dung", "QR をスキャンしてコンテンツを開く", "QR scannen, um Inhalte zu öffnen", "Scan QR to open content"),
+        search = PublicText.T("Tìm kiếm", "検索", "Suchen", "Search"),
+        open = PublicText.T("Mở", "開く", "Öffnen", "Open"),
+        remove = PublicText.T("Xóa", "削除", "Entfernen", "Remove"),
+        unsave = PublicText.T("Bỏ lưu", "保存解除", "Aus Liste entfernen", "Unsave"),
+        bookmarked = PublicText.T("Đã lưu", "保存済み", "Gespeichert", "Bookmarked"),
+        bookmarkCurrent = PublicText.T("Lưu hiện tại", "現在を保存", "Aktuell speichern", "Bookmark current"),
+        bookmarksTab = PublicText.T("Bookmarks", "ブックマーク", "Lesezeichen", "Bookmarks"),
+        historyTab = PublicText.T("History", "履歴", "Verlauf", "History"),
+        bookmarksHistoryTitle = PublicText.T("Bookmarks / History", "ブックマーク / 履歴", "Lesezeichen / Verlauf", "Bookmarks / history"),
+        bookmarksHistoryDescription = PublicText.T("Lưu POI yêu thích và xem lịch sử nghe giống trên mobile.", "モバイルと同じように POI を保存し、視聴履歴を確認できます。", "Speichern Sie bevorzugte POIs und sehen Sie den Hörverlauf wie auf dem Mobile-Gerät.", "Save favorite POIs and view listening history like on mobile."),
+        publicPageReceivedQr = PublicText.T("Trang public nhận `poiId` hoặc `tourId` từ QR/deep-link, hiển thị nội dung công khai và ghi nhận analytics.", "公開ページは QR/deep-link から `poiId` または `tourId` を受け取り、公開コンテンツを表示して analytics を記録します。", "Die öffentliche Seite empfängt `poiId` oder `tourId` aus QR/Deep-Link, zeigt öffentliche Inhalte an und zeichnet Analytics auf.", "The public page receives `poiId` or `tourId` from QR/deep links, shows public content, and records analytics."),
+        publicDataReady = PublicText.T("Nội dung public đã sẵn sàng.", "公開コンテンツの準備ができました。", "Die öffentlichen Inhalte sind bereit.", "Public content is ready."),
+        loadingPublicError = PublicText.T("Đang gặp lỗi khi tải nội dung public.", "公開コンテンツの読み込みで問題が発生しています。", "Beim Laden der öffentlichen Inhalte ist ein Fehler aufgetreten.", "There is an error loading public content."),
+        noPublicContent = PublicText.T("Chưa có nội dung công khai. Hãy quét QR để bắt đầu trải nghiệm.", "公開コンテンツはまだありません。QR をスキャンして開始してください。", "Es sind noch keine öffentlichen Inhalte vorhanden. Bitte scannen Sie einen QR-Code, um zu beginnen.", "No public content yet. Scan a QR code to begin."),
+        mapUnavailable = PublicText.T("Bản đồ đang tải hoặc không khả dụng trên trình duyệt này.", "地図は読み込み中か、このブラウザでは利用できません。", "Die Karte wird geladen oder ist in diesem Browser nicht verfügbar.", "The map is loading or unavailable in this browser."),
+        mapLoadFailed = PublicText.T("Không thể tải thư viện bản đồ. Đang dùng chế độ fallback.", "地図ライブラリを読み込めません。フォールバックモードを使用します。", "Die Kartenbibliothek konnte nicht geladen werden. Fallback-Modus wird verwendet.", "Could not load the map library. Using fallback mode."),
+        noValidPoiOnMap = PublicText.T("Chưa có POI hợp lệ để hiển thị trên bản đồ.", "地図に表示できる有効な POI がありません。", "Keine gültigen POIs für die Kartenanzeige vorhanden.", "No valid POIs to display on the map."),
+        noAudioForSelectedLanguage = PublicText.T("Hiện chưa có audio cho ngôn ngữ đã chọn.", "選択した言語の音声はまだありません。", "Für die ausgewählte Sprache ist noch kein Audio verfügbar.", "No audio is available yet for the selected language."),
+        audioNotReadyForLanguage = PublicText.T("Audio chưa sẵn sàng cho ngôn ngữ này, đang dùng text-to-speech của trình duyệt.", "この言語の音声はまだ準備できていないため、ブラウザの text-to-speech を使用しています。", "Audio ist für diese Sprache noch nicht verfügbar, daher wird die Browser-Sprachausgabe verwendet.", "Audio isn't ready for this language yet, so the browser text-to-speech is being used."),
+        chooseLanguagePlayAudio = PublicText.T("Chọn ngôn ngữ phù hợp rồi phát audio. Lịch sử nghe chỉ lưu trên phiên duyệt hiện tại.", "適切な言語を選んで音声を再生します。視聴履歴は現在のブラウジングセッションにのみ保存されます。", "Wählen Sie die passende Sprache und spielen Sie Audio ab. Der Hörverlauf wird nur in der aktuellen Sitzung gespeichert.", "Choose a suitable language and play audio. Listening history is saved only in the current browsing session."),
+        speakInBrowser = PublicText.T("Đọc bằng trình duyệt", "ブラウザで読み上げ", "Im Browser vorlesen", "Read in browser"),
+        audioOriginal = PublicText.T("Audio gốc", "元の音声", "Originalaudio", "Original audio"),
+        ttsContent = PublicText.T("Nội dung TTS", "TTS コンテンツ", "TTS-Inhalt", "TTS content"),
+        autoPlayRouteOff = PublicText.T("Tự động phát tuyến: Tắt", "自動再生ルート: オフ", "Automatische Routenwiedergabe: Aus", "Auto-play route: Off"),
+        autoPlayRouteOn = PublicText.T("Tự động phát tuyến: Bật", "自動再生ルート: オン", "Automatische Routenwiedergabe: An", "Auto-play route: On"),
+        autoPlayRouteEnabled = PublicText.T("Tự động phát tuyến đang bật.", "自動再生ルートが有効です。", "Die automatische Routenwiedergabe ist aktiviert.", "Auto-play route is on."),
+        autoPlayRouteDisabled = PublicText.T("Tự động phát tuyến đang tắt.", "自動再生ルートが無効です。", "Die automatische Routenwiedergabe ist deaktiviert.", "Auto-play route is off."),
+        autoPlayRouteFinished = PublicText.T("Đã nghe hết tour.", "ツアーを最後まで再生しました。", "Die Tour wurde vollständig angehört.", "You have finished the tour."),
+        autoPlayRouteNext = PublicText.T("Đang chuyển sang POI tiếp theo: {0}", "次の POI に移動しています: {0}", "Wechsel zum nächsten POI: {0}", "Moving to the next POI: {0}"),
+        ttsAutoplayBlocked = PublicText.T("Trình duyệt chưa cho phép phát tự động. Hãy nhấn Đọc bằng trình duyệt.", "ブラウザが自動再生を許可していません。『ブラウザで読み上げ』を押してください。", "Der Browser erlaubt keine automatische Wiedergabe. Bitte auf ‚Im Browser vorlesen‘ klicken.", "The browser hasn't allowed autoplay yet. Please press Read in browser."),
+        ttsAutoplaying = PublicText.T("Đang phát tự động nội dung TTS.", "TTS コンテンツを自動再生しています。", "TTS-Inhalt wird automatisch abgespielt.", "Auto-playing TTS content."),
+        historyNone = PublicText.T("Chưa có lịch sử nghe.", "聴取履歴はまだありません。", "Noch kein Hörverlauf.", "No listening history yet."),
+        playAudio = PublicText.T("Phát audio", "オーディオ再生", "Audio abspielen", "Play audio"),
+        openRoute = PublicText.T("Mở route", "ルートを開く", "Route öffnen", "Open route"),
+        directions = PublicText.T("Chỉ đường", "ルート案内", "Wegbeschreibung", "Directions"),
+        openPoi = PublicText.T("Mở POI", "POI を開く", "POI öffnen", "Open POI"),
+        poiLabel = PublicText.T("POI", "POI", "POI", "POI"),
+        overview = PublicText.T("Tổng quan", "概要", "Übersicht", "Overview"),
+        map = PublicText.T("Bản đồ", "地図", "Karte", "Map"),
+        listen = PublicText.T("Nghe", "再生", "Anhören", "Listen"),
+        history = PublicText.T("Lịch sử", "履歴", "Verlauf", "History"),
+        scanQrExperience = PublicText.T("Trải nghiệm QR công khai", "公開 QR 体験", "Öffentliche QR-Erfahrung", "Public QR experience"),
+        publicTour = PublicText.T("Tour public", "公開ツアー", "Öffentliche Tour", "Public tour"),
+        listeningHistory = PublicText.T("Lịch sử nghe", "聴取履歴", "Hörverlauf", "Listening history"),
+        notes = PublicText.T("Ghi chú", "備考", "Hinweis", "Notes"),
+        publicDataOnly = PublicText.T("Public data only", "公開データのみ", "Nur öffentliche Daten", "Public data only"),
+        mobileFriendly = PublicText.T("Mobile friendly", "モバイル対応", "Mobilfreundlich", "Mobile friendly"),
+        offlineCache = PublicText.T("Offline cache", "オフラインキャッシュ", "Offline-Cache", "Offline cache"),
+        fallback = PublicText.T("fallback", "フォールバック", "Fallback", "fallback"),
+        noAudioWarning = PublicText.T("Chưa có audio cho ngôn ngữ này.", "この言語の音声はまだありません。", "Für diese Sprache ist noch kein Audio verfügbar.", "No audio for this language yet."),
+        ttsWarning = PublicText.T("Chưa có audio cho ngôn ngữ này. Đang dùng TTS.", "この言語の音声はまだありません。TTS を使用しています。", "Für diese Sprache ist noch kein Audio verfügbar. TTS wird verwendet.", "No audio for this language yet. Using TTS."),
+        poiDetails = PublicText.T("Chi tiết POI", "POI 詳細", "POI-Details", "POI details"),
+        close = PublicText.T("Đóng", "閉じる", "Schließen", "Close")
+    }));
+</script>

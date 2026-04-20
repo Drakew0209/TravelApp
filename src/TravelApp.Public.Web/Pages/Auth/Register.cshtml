@@ -1,0 +1,47 @@
+@page
+@model TravelApp.Public.Web.Pages.Auth.RegisterModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = PublicText.T("Đăng ký", "登録", "Registrieren", "Register");
+    var text = PublicPageText.Current;
+}
+
+<section class="auth-shell">
+    <div class="auth-card">
+        <div class="auth-hero">
+            <div class="auth-logo">🍜</div>
+            <h1>@text.Register</h1>
+            <p>@text.RegisterToKeepASeparateWebAccount</p>
+        </div>
+
+        <form method="post" class="auth-form">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="auth-error"></div>
+
+            <div class="auth-field">
+                <label asp-for="Input.FullName" class="auth-label">@text.FullName</label>
+                <input asp-for="Input.FullName" class="auth-input" placeholder="TravelApp User" autocomplete="name" />
+                <span asp-validation-for="Input.FullName" class="auth-field-error"></span>
+            </div>
+
+            <div class="auth-field">
+                <label asp-for="Input.Email" class="auth-label">@text.Email</label>
+                <input asp-for="Input.Email" class="auth-input" placeholder="you@example.com" autocomplete="email" />
+                <span asp-validation-for="Input.Email" class="auth-field-error"></span>
+            </div>
+
+            <div class="auth-field">
+                <label asp-for="Input.Password" class="auth-label">@text.Password</label>
+                <input asp-for="Input.Password" class="auth-input" placeholder="••••••••" autocomplete="new-password" />
+                <span asp-validation-for="Input.Password" class="auth-field-error"></span>
+            </div>
+
+            <button type="submit" class="auth-button">@text.Register</button>
+        </form>
+
+        <div class="auth-links">
+            <span>@text.HaveAccountAlready</span>
+            <a asp-page="/Auth/Login">@text.Login</a>
+        </div>
+    </div>
+</section>

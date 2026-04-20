@@ -2,13 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Text.Json;
+using TravelApp.Admin.Web.Models;
 using TravelApp.Application.Dtos.Tours;
 using TravelApp.Admin.Web.Models.Tours;
 using TravelApp.Admin.Web.Services;
+using TravelApp.Application.Utilities;
 
 namespace TravelApp.Admin.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Owner,Admin,SuperAdmin")]
 public class ToursController : Controller
 {
     private readonly ITravelAppApiClient _apiClient;
@@ -103,13 +105,13 @@ public class ToursController : Controller
             if (!success)
             {
                 anyFailure = true;
-                TempData["ErrorMessage"] = $"Không thể cập nhật tour #{tourId}.";
+                TempData["ErrorMessage"] = string.Format(AdminText.T("Không thể cập nhật tour #{0}.", "ツアー #{0} を更新できません。", "Tour #{0} konnte nicht aktualisiert werden."), tourId);
             }
         }
 
         if (!anyFailure)
         {
-            TempData["SuccessMessage"] = "Đã thêm POI vào các tour đã chọn.";
+            TempData["SuccessMessage"] = AdminText.T("Đã thêm POI vào các tour đã chọn.", "選択したツアーに POI を追加しました。", "POI wurde den ausgewählten Touren hinzugefügt.");
         }
         return RedirectToAction(nameof(Index));
     }
@@ -125,7 +127,7 @@ public class ToursController : Controller
             var uploadedUrl = await _apiClient.UploadImageAsync(model.CoverImageFile, "tours", cancellationToken);
             if (string.IsNullOrWhiteSpace(uploadedUrl))
             {
-                ModelState.AddModelError(nameof(model.CoverImageFile), "Không thể upload ảnh tour.");
+                ModelState.AddModelError(nameof(model.CoverImageFile), AdminText.T("Không thể upload ảnh tour.", "ツアー画像をアップロードできません。", "Das Tourbild konnte nicht hochgeladen werden."));
             }
             else
             {
@@ -144,7 +146,7 @@ public class ToursController : Controller
         var created = await _apiClient.CreateTourAsync(request, cancellationToken);
         if (created is null || created.Id <= 0)
         {
-            ModelState.AddModelError(string.Empty, "Không thể tạo tour. Vui lòng kiểm tra kết nối API và thử lại.");
+            ModelState.AddModelError(string.Empty, AdminText.T("Không thể tạo tour. Vui lòng kiểm tra kết nối API và thử lại.", "ツアーを作成できません。API 接続を確認して再試行してください。", "Tour konnte nicht erstellt werden. Bitte die API-Verbindung prüfen und erneut versuchen."));
             return View(model);
         }
 
@@ -175,7 +177,7 @@ public class ToursController : Controller
             var uploadedUrl = await _apiClient.UploadImageAsync(model.CoverImageFile, "tours", cancellationToken);
             if (string.IsNullOrWhiteSpace(uploadedUrl))
             {
-                ModelState.AddModelError(nameof(model.CoverImageFile), "Không thể upload ảnh tour.");
+                ModelState.AddModelError(nameof(model.CoverImageFile), AdminText.T("Không thể upload ảnh tour.", "ツアー画像をアップロードできません。", "Das Tourbild konnte nicht hochgeladen werden."));
             }
             else
             {
@@ -194,7 +196,7 @@ public class ToursController : Controller
         var updated = await _apiClient.UpdateTourAsync(id, request, cancellationToken);
         if (!updated)
         {
-            ModelState.AddModelError(string.Empty, "Không thể cập nhật tour. Vui lòng thử lại.");
+            ModelState.AddModelError(string.Empty, AdminText.T("Không thể cập nhật tour. Vui lòng thử lại.", "ツアーを更新できません。再試行してください。", "Tour konnte nicht aktualisiert werden. Bitte erneut versuchen."));
             return View(model);
         }
 
@@ -209,7 +211,7 @@ public class ToursController : Controller
         var deleted = await _apiClient.DeleteTourAsync(id, cancellationToken);
         if (!deleted)
         {
-            TempData["ErrorMessage"] = "Không thể xóa tour.";
+            TempData["ErrorMessage"] = AdminText.T("Không thể xóa tour.", "ツアーを削除できません。", "Tour konnte nicht gelöscht werden.");
         }
 
         return RedirectToAction(nameof(Index));
@@ -217,10 +219,11 @@ public class ToursController : Controller
 
     private async Task<TourEditorViewModel> BuildEditorModelAsync(TourAdminDto? source, int? preferredAnchorPoiId, CancellationToken cancellationToken)
     {
-        var pois = await _apiClient.GetPoisAsync("vi", cancellationToken);
+        var defaultLanguage = NormalizeLanguageCode("vi");
+        var pois = await _apiClient.GetPoisAsync(defaultLanguage, cancellationToken);
         var availablePois = new List<SelectListItem>
         {
-            new("-- Tạo POI mới --", "0")
+            new(AdminText.T("-- Tạo POI mới --", "-- 新しい POI を作成 --", "-- Neuen POI erstellen --"), "0")
         };
         availablePois.AddRange(pois.Select(x => new SelectListItem(x.Title, x.Id.ToString())));
 
@@ -236,7 +239,7 @@ public class ToursController : Controller
             Subtitle = source?.Subtitle,
             Description = source?.Description ?? string.Empty,
             CoverImageUrl = source?.CoverImageUrl,
-            PrimaryLanguage = source?.PrimaryLanguage ?? "vi",
+            PrimaryLanguage = NormalizeLanguageCode(source?.PrimaryLanguage) ?? defaultLanguage,
             IsPublished = source?.IsPublished ?? true,
             AnchorPoiId = resolvedAnchorPoiId,
             Location = source?.Location,
@@ -253,13 +256,13 @@ public class ToursController : Controller
             }).ToList() ?? [new(), new(), new()],
             AudioAssets = source?.AudioAssets.Select(x => new TourAudioEditorInput
             {
-                LanguageCode = x.LanguageCode,
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                 AudioUrl = x.AudioUrl,
                 Transcript = x.Transcript
             }).ToList() ?? [new(), new(), new()],
             SpeechTexts = source?.SpeechTexts.Select(x => new TourSpeechTextEditorInput
             {
-                LanguageCode = x.LanguageCode,
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                 Text = x.Text
             }).ToList() ?? [new(), new(), new()]
         };
@@ -284,7 +287,8 @@ public class ToursController : Controller
 
     private async Task<TourEditorViewModel> BuildTourEditorModelFromFormAsync(TourEditorViewModel? source, CancellationToken cancellationToken)
     {
-        var pois = await _apiClient.GetPoisAsync("vi", cancellationToken);
+        var defaultLanguage = NormalizeLanguageCode("vi");
+        var pois = await _apiClient.GetPoisAsync(defaultLanguage, cancellationToken);
         var availablePois = new List<SelectListItem>
         {
             new("-- Tạo POI mới --", "0")
@@ -293,6 +297,7 @@ public class ToursController : Controller
 
         var model = source ?? new TourEditorViewModel();
         model.AvailablePois = availablePois;
+        model.PrimaryLanguage = NormalizeLanguageCode(model.PrimaryLanguage) ?? defaultLanguage;
 
         var anchorPoi = pois.FirstOrDefault(x => x.Id == model.AnchorPoiId) ?? pois.FirstOrDefault();
         ApplyAnchorPoiDetails(model, anchorPoi);
@@ -335,48 +340,48 @@ public class ToursController : Controller
     {
         if (string.IsNullOrWhiteSpace(model.Name))
         {
-            ModelState.AddModelError(nameof(model.Name), "Vui lòng nhập tên tour.");
+            ModelState.AddModelError(nameof(model.Name), AdminText.T("Vui lòng nhập tên tour.", "ツアー名を入力してください。", "Bitte den Tournamen eingeben."));
         }
 
         if (string.IsNullOrWhiteSpace(model.Title))
         {
-            ModelState.AddModelError(nameof(model.Title), "Vui lòng nhập tiêu đề tour.");
+            ModelState.AddModelError(nameof(model.Title), AdminText.T("Vui lòng nhập tiêu đề tour.", "ツアータイトルを入力してください。", "Bitte den Tourtitel eingeben."));
         }
 
         if (string.IsNullOrWhiteSpace(model.Description))
         {
-            ModelState.AddModelError(nameof(model.Description), "Vui lòng nhập mô tả tour.");
+            ModelState.AddModelError(nameof(model.Description), AdminText.T("Vui lòng nhập mô tả tour.", "ツアーの説明を入力してください。", "Bitte die Tourbeschreibung eingeben."));
         }
 
         if (string.IsNullOrWhiteSpace(model.PrimaryLanguage))
         {
-            ModelState.AddModelError(nameof(model.PrimaryLanguage), "Vui lòng chọn ngôn ngữ chính.");
+            ModelState.AddModelError(nameof(model.PrimaryLanguage), AdminText.T("Vui lòng chọn ngôn ngữ chính.", "主要言語を選択してください。", "Bitte eine Primärsprache auswählen."));
         }
 
         if (model.AnchorPoiId <= 0)
         {
-            ModelState.AddModelError(nameof(model.AnchorPoiId), "Vui lòng chọn Anchor POI.");
+            ModelState.AddModelError(nameof(model.AnchorPoiId), AdminText.T("Vui lòng chọn Anchor POI.", "アンカー POI を選択してください。", "Bitte einen Anker-POI auswählen."));
         }
 
         var validPoiCount = model.Pois.Count(x => x.PoiId > 0);
         if (validPoiCount < 2)
         {
-            ModelState.AddModelError(nameof(model.Pois), "Tour phải có tối thiểu 2 POI.");
+            ModelState.AddModelError(nameof(model.Pois), AdminText.T("Tour phải có tối thiểu 2 POI.", "ツアーには少なくとも 2 つの POI が必要です。", "Eine Tour muss mindestens 2 POIs haben."));
         }
 
         var hasAnyAudioMetadata = model.AudioAssets.Any(x => !string.IsNullOrWhiteSpace(x.AudioUrl) || !string.IsNullOrWhiteSpace(x.Transcript));
         if (!hasAnyAudioMetadata)
         {
-            TempData["InfoMessage"] = "Audio URL trong Audio assets không bắt buộc. Có thể để trống nếu chưa có file audio.";
+            TempData["InfoMessage"] = AdminText.T("Audio URL trong Audio assets không bắt buộc. Có thể để trống nếu chưa có file audio.", "Audio assets の Audio URL は必須ではありません。音声ファイルがない場合は空欄でも構いません。", "Audio-URLs in den Audio-Assets sind optional. Sie können leer bleiben, wenn noch keine Audiodateien vorhanden sind.");
         }
     }
 
     private async Task<AttachPoiToToursViewModel> BuildAttachPoiModelAsync(int poiId, CancellationToken cancellationToken, IEnumerable<int>? selectedTourIds = null)
     {
-        var poi = await _apiClient.GetPoiAsync(poiId, "vi", cancellationToken);
+        var poi = await _apiClient.GetPoiAsync(poiId, NormalizeLanguageCode("vi"), cancellationToken);
         if (poi is null)
         {
-            throw new InvalidOperationException("POI not found.");
+            throw new InvalidOperationException(AdminText.T("POI not found.", "POI が見つかりません。", "POI wurde nicht gefunden."));
         }
 
         var tours = await _apiClient.GetToursAsync(cancellationToken);
@@ -452,17 +457,23 @@ public class ToursController : Controller
             AudioAssets = model.AudioAssets
                 .Where(x => !string.IsNullOrWhiteSpace(x.AudioUrl) || !string.IsNullOrWhiteSpace(x.Transcript))
                 .Select(x => new TourAudioAssetDto
-            {
-                LanguageCode = x.LanguageCode,
+                {
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                 AudioUrl = string.IsNullOrWhiteSpace(x.AudioUrl) ? null : x.AudioUrl.Trim(),
                 Transcript = string.IsNullOrWhiteSpace(x.Transcript) ? null : x.Transcript.Trim(),
                 IsGenerated = false
-            }).ToList(),
+                }).ToList(),
             SpeechTexts = model.SpeechTexts.Select(x => new TourSpeechTextDto
             {
-                LanguageCode = x.LanguageCode,
+                LanguageCode = NormalizeLanguageCode(x.LanguageCode),
                 Text = x.Text
             }).Where(x => !string.IsNullOrWhiteSpace(x.Text)).ToList()
         };
+    }
+
+    private static string NormalizeLanguageCode(string? languageCode)
+    {
+        var normalized = LanguageCodeNormalizer.NormalizeToLocaleCode(languageCode);
+        return string.IsNullOrWhiteSpace(normalized) ? "vi-VN" : normalized;
     }
 }

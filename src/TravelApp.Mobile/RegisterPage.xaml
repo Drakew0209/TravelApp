@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelApp.RegisterPage"
+             BackgroundColor="{AppThemeBinding Light=#F4F4F5, Dark=#111318}"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="26,56,26,28" Spacing="18">
+            <Border WidthRequest="42"
+                    HeightRequest="42"
+                    Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#343B4A}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 21"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M19,6 L18,5 L12,11 L6,5 L5,6 L11,12 L5,18 L6,19 L12,13 L18,19 L19,18 L13,12 Z"
+                      Fill="{AppThemeBinding Light=#333A4A, Dark=#F3F5FA}"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+
+            <VerticalStackLayout Spacing="4" Margin="0,20,0,0">
+                <Label Text="{Binding PageTitle}"
+                       Style="{StaticResource AuthTitleLabelStyle}" />
+                <Label Text="{Binding PageSubtitle}"
+                       Style="{StaticResource AuthSubtitleLabelStyle}" />
+                <Label Text="{Binding CurrentLanguageText}"
+                       Style="{StaticResource AuthSubtitleLabelStyle}"
+                       FontSize="12" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource AuthInputBorderStyle}" Margin="0,10,0,0">
+                <Entry Placeholder="{Binding FullNamePlaceholder}"
+                       Text="{Binding FullName}"
+                       AutomationProperties.Name="Full name"
+                       Style="{StaticResource AuthEntryStyle}" />
+            </Border>
+
+            <Border Style="{StaticResource AuthInputBorderStyle}">
+                <Entry Placeholder="{Binding EmailPlaceholder}"
+                       Text="{Binding Email}"
+                       AutomationProperties.Name="Email"
+                       Style="{StaticResource AuthEntryStyle}" />
+            </Border>
+
+            <Border Style="{StaticResource AuthInputBorderStyle}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Entry Placeholder="{Binding PasswordPlaceholder}"
+                           Text="{Binding Password}"
+                           IsPassword="{Binding IsPasswordHidden}"
+                           AutomationProperties.Name="Password"
+                           Style="{StaticResource AuthEntryStyle}" />
+
+                    <Button Grid.Column="1"
+                            Command="{Binding TogglePasswordVisibilityCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{AppThemeBinding Light=#8A8A93, Dark=#A8B0C4}"
+                            FontSize="15"
+                            Padding="0,0,4,0"
+                            WidthRequest="56">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding IsPasswordHidden}"
+                                         Value="True">
+                                <Setter Property="Text" Value="{Binding ShowPasswordText}" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding IsPasswordHidden}"
+                                         Value="False">
+                                <Setter Property="Text" Value="{Binding HidePasswordText}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource AuthInputBorderStyle}">
+                <Entry Placeholder="{Binding ConfirmPasswordPlaceholder}"
+                       Text="{Binding ConfirmPassword}"
+                       IsPassword="{Binding IsPasswordHidden}"
+                       AutomationProperties.Name="Confirm password"
+                       Style="{StaticResource AuthEntryStyle}" />
+            </Border>
+
+            <Button Text="{Binding RegisterButtonText}"
+                    Command="{Binding RegisterCommand}"
+                    IsEnabled="{Binding IsRegisterEnabled}"
+                    AutomationProperties.Name="Create account"
+                    Style="{StaticResource PrimaryPillButtonStyle}"
+                    Margin="0,6,0,0" />
+
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="6" Margin="0,16,0,0">
+                <Label Text="{Binding AlreadyHaveAccountText}"
+                       TextColor="{AppThemeBinding Light=#8A8A93, Dark=#A8B0C4}"
+                       FontSize="14" />
+                <Label Text="{Binding SignInText}"
+                       TextColor="{AppThemeBinding Light=#B73A6D, Dark=#FF84B2}"
+                       FontAttributes="Bold"
+                       FontSize="14">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding BackCommand}" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

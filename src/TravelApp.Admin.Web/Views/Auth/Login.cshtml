@@ -1,7 +1,7 @@
 @model TravelApp.Admin.Web.Models.Auth.LoginViewModel
 @{
     Layout = "_AuthLayout";
-    ViewData["Title"] = "Đăng nhập";
+    ViewData["Title"] = AdminText.T("Đăng nhập", "Login", "ログイン", "Anmelden");
 }
 
 <style>
@@ -119,7 +119,7 @@
         <div class="text-center mb-4">
             <div class="auth-logo mb-3">🍜</div>
             <h1 class="h3 fw-bold mb-1">TravelApp Admin</h1>
-            <p class="text-muted mb-0">CMS Phố Ẩm Thực Việt</p>
+            <p class="text-muted mb-0">@AdminText.T("CMS Phố Ẩm Thực Việt", "TravelApp Admin CMS", "TravelApp 管理 CMS", "TravelApp Admin-CMS")</p>
         </div>
 
         <form asp-action="Login" method="post" class="vstack gap-3">
@@ -127,18 +127,18 @@
             <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
 
             <div>
-                <label asp-for="UserName" class="form-label">Tài khoản</label>
-                <input asp-for="UserName" class="form-control form-control-lg auth-input" placeholder="admin" />
+                <label asp-for="UserName" class="form-label">@AdminText.T("Tài khoản", "Username", "ユーザー名", "Benutzername")</label>
+                <input asp-for="UserName" class="form-control form-control-lg auth-input" placeholder='@AdminText.T("admin", "admin", "admin", "admin")' />
                 <span asp-validation-for="UserName" class="text-danger small"></span>
             </div>
 
             <div>
-                <label asp-for="Password" class="form-label">Mật khẩu</label>
-                <input asp-for="Password" class="form-control form-control-lg auth-input" placeholder="••••••••" />
+                <label asp-for="Password" class="form-label">@AdminText.T("Mật khẩu", "Password", "パスワード", "Passwort")</label>
+                <input asp-for="Password" class="form-control form-control-lg auth-input" placeholder='@AdminText.T("••••••••", "••••••••", "••••••••", "••••••••")' />
                 <span asp-validation-for="Password" class="text-danger small"></span>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-lg w-100 auth-button">Đăng nhập</button>
+            <button type="submit" class="btn btn-primary btn-lg w-100 auth-button">@AdminText.T("Đăng nhập", "Login", "ログイン", "Anmelden")</button>
         </form>
     </div>
 </div>

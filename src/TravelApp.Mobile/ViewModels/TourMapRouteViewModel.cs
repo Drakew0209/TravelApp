@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using TravelApp.Models.Runtime;
 using TravelApp.Models.Contracts;
+using TravelApp.Resources.Strings;
 using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
@@ -13,7 +14,8 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly ITourRouteCatalogService _tourRouteCatalogService;
     private readonly ITourRoutePlaybackService _tourRoutePlaybackService;
-    private string _statusText = "Đang lấy route...";
+    private readonly IAnalyticsTrackingService _analyticsTrackingService;
+    private string _statusText = AppStrings.LoadingRoute;
     private int? _selectedPoiId;
     private int? _anchorPoiId;
     private string? _loadedLanguageCode;
@@ -24,15 +26,20 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
     public TourMapWaypoint? SelectedWaypoint { get; private set; }
     public LocationSample? CurrentLocation { get; private set; }
     public TourRouteDto? Tour { get; private set; }
+    public string PageTitle => AppStrings.TourMapRouteTitle;
     public bool HasActiveWaypoint => SelectedWaypoint is not null;
-    public string CurrentWaypointTitle => SelectedWaypoint?.Title ?? "Chưa có điểm đang phát";
-    public string CurrentWaypointSubtitle => SelectedWaypoint?.Location ?? "Hãy di chuyển đến điểm đầu tiên để bắt đầu";
+    public string CurrentWaypointTitle => SelectedWaypoint?.Title ?? AppStrings.NoWaypointTitle;
+    public string CurrentWaypointSubtitle => SelectedWaypoint?.Location ?? AppStrings.GoToFirstPoint;
     public string CurrentWaypointProgressText => Waypoints.Count == 0 || SelectedWaypoint is null
         ? "0/0"
         : $"{SelectedWaypoint.SortOrder}/{Waypoints.Count}";
     public string CurrentWaypointDistanceText => SelectedWaypoint?.DistanceMeters is null
         ? string.Empty
-        : $"Khoảng cách chặng trước: {SelectedWaypoint.DistanceMeters:F0} m";
+        : string.Format(System.Globalization.CultureInfo.CurrentUICulture, "{0} {1:F0} m", AppStrings.RouteDistancePrefix, SelectedWaypoint.DistanceMeters);
+    public string PlayingText => AppStrings.AudioNowPlaying;
+    public string StopsText => AppStrings.RouteStopsLabel;
+    public string OpenText => AppStrings.Open;
+    public string PlayingBadgeText => AppStrings.AudioNowPlaying;
     public double CurrentWaypointProgressValue => Waypoints.Count == 0 || SelectedWaypoint is null
         ? 0
         : (double)SelectedWaypoint.SortOrder / Waypoints.Count;
@@ -74,11 +81,13 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
 
     public event EventHandler? RouteChanged;
 
-    public TourMapRouteViewModel(ITourRouteCatalogService tourRouteCatalogService, ITourRoutePlaybackService tourRoutePlaybackService)
+    public TourMapRouteViewModel(ITourRouteCatalogService tourRouteCatalogService, ITourRoutePlaybackService tourRoutePlaybackService, IAnalyticsTrackingService analyticsTrackingService)
     {
         _tourRouteCatalogService = tourRouteCatalogService;
         _tourRoutePlaybackService = tourRoutePlaybackService;
+        _analyticsTrackingService = analyticsTrackingService;
         _tourRoutePlaybackService.ActiveWaypointChanged += OnActiveWaypointChanged;
+        UserProfileService.ProfileChanged += OnProfileChanged;
 
         BackCommand = new Command(async () =>
         {
@@ -95,7 +104,8 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
 
             await _tourRoutePlaybackService.StopAsync();
 
-            await Shell.Current.GoToAsync($"TourDetailPage?tourId={waypoint.PoiId}");
+            var languageCode = Uri.EscapeDataString(_loadedLanguageCode ?? UserProfileService.PreferredLanguage);
+            await Shell.Current.GoToAsync($"TourDetailPage?tourId={waypoint.PoiId}&lang={languageCode}");
         });
         RecenterCommand = new Command(() => RouteChanged?.Invoke(this, EventArgs.Empty));
     }
@@ -119,7 +129,7 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
         }
 
         IsLoading = true;
-        StatusText = "Đang tải tour...";
+        StatusText = AppStrings.LoadingRoute;
 
         try
         {
@@ -133,7 +143,7 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
                 _selectedPoiId = null;
                 _anchorPoiId = null;
                 _loadedLanguageCode = null;
-                StatusText = "Không tìm thấy dữ liệu route của tour.";
+                StatusText = AppStrings.NoWaypointTitle;
                 OnPropertyChanged(nameof(Tour));
                 RouteChanged?.Invoke(this, EventArgs.Empty);
                 return;
@@ -165,10 +175,11 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
                 : null;
             SetSelectedWaypoint(preferredWaypoint ?? Waypoints.FirstOrDefault(), raiseRouteChanged: false);
             StatusText = Waypoints.Count == 0
-                ? "Tour chưa có waypoint nào."
-                : $"{Waypoints.Count} điểm dừng • {route.TotalDistanceMeters / 1000d:0.0} km";
+                ? AppStrings.NoWaypointTitle
+                : $"{Waypoints.Count} {AppStrings.RouteStopsLabel} • {route.TotalDistanceMeters / 1000d:0.0} km";
 
             await _tourRoutePlaybackService.StartAsync(route, preferredPoiId, cancellationToken);
+            _ = _analyticsTrackingService.TrackTourViewedAsync(route.Id, preferredPoiId, normalizedLanguage, cancellationToken);
             OnPropertyChanged(nameof(Tour));
             RouteChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -181,7 +192,7 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
             _selectedPoiId = null;
             _anchorPoiId = null;
             _loadedLanguageCode = null;
-            StatusText = $"Lỗi tải tour: {ex.Message}";
+            StatusText = $"{AppStrings.LoadingRoute}: {ex.Message}";
             OnPropertyChanged(nameof(Tour));
             RouteChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -271,16 +282,47 @@ public sealed class TourMapRouteViewModel : INotifyPropertyChanged, IDisposable
     private void RaiseRouteStateChanged()
     {
         OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(PageTitle));
         OnPropertyChanged(nameof(HasActiveWaypoint));
         OnPropertyChanged(nameof(CurrentWaypointTitle));
         OnPropertyChanged(nameof(CurrentWaypointSubtitle));
         OnPropertyChanged(nameof(CurrentWaypointProgressText));
         OnPropertyChanged(nameof(CurrentWaypointDistanceText));
         OnPropertyChanged(nameof(CurrentWaypointProgressValue));
+        OnPropertyChanged(nameof(PlayingText));
+        OnPropertyChanged(nameof(StopsText));
+        OnPropertyChanged(nameof(OpenText));
+        OnPropertyChanged(nameof(PlayingBadgeText));
     }
 
     public void Dispose()
     {
         _tourRoutePlaybackService.ActiveWaypointChanged -= OnActiveWaypointChanged;
+        UserProfileService.ProfileChanged -= OnProfileChanged;
+    }
+
+    private void OnProfileChanged(object? sender, EventArgs e)
+    {
+        var currentLanguage = string.IsNullOrWhiteSpace(UserProfileService.PreferredLanguage)
+            ? null
+            : UserProfileService.PreferredLanguage.Trim().ToLowerInvariant();
+
+        if (_anchorPoiId.HasValue
+            && Waypoints.Count > 0
+            && !string.IsNullOrWhiteSpace(currentLanguage)
+            && !string.Equals(_loadedLanguageCode, currentLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            _ = LoadAsync(_anchorPoiId.Value, _selectedPoiId, currentLanguage);
+            return;
+        }
+
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(CurrentWaypointTitle));
+        OnPropertyChanged(nameof(CurrentWaypointSubtitle));
+        OnPropertyChanged(nameof(CurrentWaypointDistanceText));
+        OnPropertyChanged(nameof(PlayingText));
+        OnPropertyChanged(nameof(StopsText));
+        OnPropertyChanged(nameof(OpenText));
+        OnPropertyChanged(nameof(PlayingBadgeText));
     }
 }

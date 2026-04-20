@@ -41,7 +41,7 @@
                                 StrokeShape="RoundRectangle 10"
                                 Padding="6,1"
                                 IsVisible="{Binding IsBookmarked}">
-                            <Label Text="Saved"
+                                <Label Text="{Binding BookmarkedLabel}"
                                    FontSize="9"
                                    FontAttributes="Bold"
                                    TextColor="White"
@@ -104,11 +104,17 @@
                                 StrokeThickness="2"
                                 StrokeShape="RoundRectangle 27"
                                 BackgroundColor="#FFF4F8"
+                                IsEnabled="{Binding CanDownloadTour}"
                                 Padding="16,0"
                                 HeightRequest="54">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding DownloadTourCommand}" />
                             </Border.GestureRecognizers>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding CanDownloadTour}" Value="False">
+                                    <Setter Property="Opacity" Value="0.55" />
+                                </DataTrigger>
+                            </Border.Triggers>
                             <HorizontalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
                                 <Path Data="M12,4V14M12,14L8,10M12,14L16,10M6,18H18"
                                       Stroke="#D31963"
@@ -117,7 +123,7 @@
                                       HeightRequest="18"
                                       HorizontalOptions="Center"
                                       VerticalOptions="Center" />
-                                <Label Text="Download tour"
+                                <Label Text="{Binding DownloadTourText}"
                                        TextColor="#D31963"
                                        FontSize="16"
                                        VerticalTextAlignment="Center" />
@@ -125,20 +131,131 @@
                         </Border>
                     </Grid>
 
+                    <Border Stroke="{AppThemeBinding Light=#E3E7EE, Dark=#2A2F3A}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 18"
+                            BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                            Padding="14"
+                            IsVisible="{Binding IsTourDownloading}">
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding DownloadingAllTourText}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="#D31963" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding TourDownloadProgressText}"
+                                       FontSize="13"
+                                       TextColor="{AppThemeBinding Light=#657082, Dark=#A7AEBD}" />
+                            </Grid>
+                            <ProgressBar Progress="{Binding TourDownloadProgress}" HeightRequest="8" />
+                            <Label Text="{Binding TourDownloadStatusText}"
+                                   FontSize="13"
+                                   TextColor="{AppThemeBinding Light=#657082, Dark=#A7AEBD}" />
+                            <Label Text="{Binding TourDownloadSeenText}"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light=#8A8B92, Dark=#B4BDCF}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Stroke="{AppThemeBinding Light=#E3E7EE, Dark=#2A2F3A}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 20"
+                            BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                            Padding="16"
+                             IsVisible="{Binding HasQrShareSection}">
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding QrShareTitleText}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#D31963" />
+                                    <Label Text="{Binding QrShareSubtitleText}"
+                                           FontSize="13"
+                                           TextColor="{AppThemeBinding Light=#657082, Dark=#A7AEBD}" />
+                                </VerticalStackLayout>
+
+                                <Border Grid.Column="1"
+                                        StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#FFF4F8, Dark=#2B3243}"
+                                        StrokeShape="RoundRectangle 14"
+                                        Padding="10,6"
+                                        VerticalOptions="Start">
+                                    <Label Text="{Binding WebAdminPayloadText}"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="#D31963" />
+                                </Border>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="160,*" ColumnSpacing="14">
+                                <Border WidthRequest="160"
+                                        HeightRequest="160"
+                                        Stroke="{AppThemeBinding Light=#D6DCE8, Dark=#303746}"
+                                        StrokeThickness="1"
+                                        BackgroundColor="White"
+                                        StrokeShape="RoundRectangle 22"
+                                        Padding="10">
+                                    <Image Source="{Binding QrCodeImageSource}"
+                                           Aspect="AspectFit"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center">
+                                    <Label Text="{Binding ShareLinkText}" FontSize="13" FontAttributes="Bold" TextColor="#1B1F28" />
+                                    <Label Text="{Binding QrShareLink}"
+                                           FontSize="13"
+                                           TextColor="{AppThemeBinding Light=#5D667A, Dark=#B4BDCF}"
+                                           LineBreakMode="CharacterWrap" />
+
+                                    <Border Stroke="#F3B4C3"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="#FFF7FA"
+                                            Padding="10,8"
+                                            IsVisible="{Binding HasQrShareWarning}">
+                                        <Label Text="{Binding QrShareWarningText}"
+                                               FontSize="12"
+                                               TextColor="#B51A50"
+                                               LineBreakMode="WordWrap" />
+                                    </Border>
+
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Button Text="{Binding ShareLinkText}"
+                                                Command="{Binding ShareLinkCommand}"
+                                                Style="{StaticResource PrimaryPillButtonStyle}"
+                                                HeightRequest="46"
+                                                CornerRadius="23"
+                                                FontSize="15"
+                                                HorizontalOptions="FillAndExpand" />
+                                        <Button Text="{Binding CopyLinkText}"
+                                                Command="{Binding CopyLinkCommand}"
+                                                BackgroundColor="{AppThemeBinding Light=#F2F4F8, Dark=#2B3243}"
+                                                TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"
+                                                BorderColor="{AppThemeBinding Light=#D6DCE8, Dark=#303746}"
+                                                BorderWidth="1"
+                                                HeightRequest="46"
+                                                CornerRadius="23"
+                                                FontSize="15"
+                                                HorizontalOptions="FillAndExpand" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
                     <Grid ColumnDefinitions="*" Margin="0,4,0,0">
-                        <Label Text="Description" TextColor="#D31963" FontSize="16" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+                        <Label Text="{Binding DescriptionSectionText}" TextColor="#D31963" FontSize="16" HorizontalTextAlignment="Center" FontAttributes="Bold" />
                     </Grid>
                     <BoxView HeightRequest="2" Color="#D31963" HorizontalOptions="Fill" />
                     <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#E7E8EC, Dark=#2A2F3A}" Margin="0,-10,0,0" />
 
-                    <Label FontSize="16">
-                        <Label.FormattedText>
-                            <FormattedString>
-                                <Span Text="Provided by " TextColor="{AppThemeBinding Light=#2B2D33, Dark=#EEF1F8}" />
-                                <Span Text="{Binding ProviderName}" TextColor="#1C6272" TextDecorations="Underline" />
-                            </FormattedString>
-                        </Label.FormattedText>
-                    </Label>
+                    <HorizontalStackLayout Spacing="4">
+                        <Label Text="{Binding ProvidedByText}" FontSize="16" TextColor="{AppThemeBinding Light=#2B2D33, Dark=#EEF1F8}" />
+                        <Label Text="{Binding ProviderName}" FontSize="16" TextColor="#1C6272" TextDecorations="Underline" />
+                    </HorizontalStackLayout>
 
                     <Label Text="{Binding Description}" FontSize="16" TextColor="{AppThemeBinding Light=#2B2D33, Dark=#D7DEEC}" LineBreakMode="WordWrap" />
 
@@ -151,7 +268,7 @@
                             Padding="14">
                         <VerticalStackLayout Spacing="10">
                             <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="Text to Speech" FontSize="16" FontAttributes="Bold" TextColor="#D31963" />
+                        <Label Text="{Binding SpeechLanguageText}" FontSize="16" FontAttributes="Bold" TextColor="#D31963" />
                                 <Border Grid.Column="1"
                                         Stroke="#D31963"
                                         StrokeThickness="1.4"
@@ -161,11 +278,6 @@
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding ToggleSpeechLanguageMenuCommand}" />
                                     </Border.GestureRecognizers>
-                                    <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding CanEditSpeechText}" Value="False">
-                                            <Setter Property="IsVisible" Value="False" />
-                                        </DataTrigger>
-                                    </Border.Triggers>
                                     <Label Text="{Binding SelectedSpeechLanguageDisplayText}"
                                            FontSize="14"
                                            TextColor="#D31963"
@@ -183,11 +295,11 @@
                                 <Editor Text="{Binding SpeechTextInput}"
                                         Unfocused="OnSpeechTextEditorUnfocused"
                                         AutoSize="TextChanges"
-                                        Placeholder="Nhập nội dung sẽ được đọc khi phát audio..."
+                                        Placeholder="{Binding SpeechTextPlaceholder}"
                                         BackgroundColor="Transparent"
                                         TextColor="{AppThemeBinding Light=#2B2D33, Dark=#EEF1F8}"
                                         HeightRequest="140" />
-                                <Button Text="Lưu text TTS"
+                                <Button Text="{Binding SaveTtsText}"
                                         Command="{Binding SaveSpeechTextCommand}"
                                         Style="{StaticResource PrimaryPillButtonStyle}"
                                         HeightRequest="52"
@@ -205,7 +317,7 @@
                                         <Setter Property="IsVisible" Value="False" />
                                     </DataTrigger>
                                 </Border.Triggers>
-                                <Label Text="Chỉ tài khoản có role Owner hoặc Admin mới được sửa text to speech trực tiếp trên app."
+                                <Label Text="{Binding OwnerSpeechTextNotice}"
                                        FontSize="13"
                                        TextColor="#B51A50"
                                        LineBreakMode="WordWrap" />
@@ -214,7 +326,7 @@
                     </Border>
 
                     <Grid ColumnDefinitions="*" Margin="0,10,0,10">
-                        <Button Text="View Tour"
+                        <Button Text="{Binding ViewTourText}"
                                 Command="{Binding ViewTourCommand}"
                                 Style="{StaticResource PrimaryPillButtonStyle}"
                                 HeightRequest="58"
@@ -236,7 +348,7 @@
                 <ScrollView>
                     <VerticalStackLayout Padding="16,0" Spacing="12">
                         <Grid ColumnDefinitions="*,Auto" Padding="8,0,8,0">
-                            <Label Text="Chọn ngôn ngữ TTS" FontSize="22" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}" />
+                            <Label Text="{Binding ChooseSpeechLanguageText}" FontSize="22" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}" />
                             <Button Grid.Column="1"
                                     Text="✕"
                                     Command="{Binding CloseSpeechLanguageMenuCommand}"

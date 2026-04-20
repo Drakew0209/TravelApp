@@ -1,3 +1,5 @@
+using TravelApp.Application.Dtos.Analytics;
+
 namespace TravelApp.Admin.Web.Models;
 
 public sealed class AdminDashboardViewModel
@@ -8,7 +10,12 @@ public sealed class AdminDashboardViewModel
     public int PoiCount { get; set; }
     public int QrCount { get; set; }
     public int UserCount { get; set; }
+    public int UniqueUsers { get; set; }
+    public int UniqueGuests { get; set; }
     public string ApiBaseUrl { get; set; } = string.Empty;
+    public string Range { get; set; } = "30d";
+    public string Granularity { get; set; } = "day";
+    public AnalyticsDashboardDto Analytics { get; set; } = new();
     public IReadOnlyList<DashboardTourSummary> RecentTours { get; set; } = [];
     public IReadOnlyList<DashboardPoiSummary> RecentPois { get; set; } = [];
 }

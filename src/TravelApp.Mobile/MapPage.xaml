@@ -2,8 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+             xmlns:strings="clr-namespace:TravelApp.Resources.Strings"
              x:Class="TravelApp.MapPage"
-             Title="POI Map"
+             Title="{x:Static strings:AppStrings.PoiMap}"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{AppThemeBinding Light=#F6F7FB, Dark=#111318}">
 
@@ -32,8 +33,8 @@
                       VerticalOptions="Center" />
             </Border>
 
-            <Label Grid.Column="1"
-                   Text="🗺️ POI Map"
+                <Label Grid.Column="1"
+                       Text="{x:Static strings:AppStrings.PoiMap}"
                    FontSize="24"
                    FontAttributes="Bold"
                    TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"

@@ -1,14 +1,14 @@
 @model TravelApp.Admin.Web.Models.Tours.AttachPoiToToursViewModel
 
 @{
-    ViewData["Title"] = "Gán POI vào Tour";
+    ViewData["Title"] = AdminText.T("Gán POI vào Tour", "POI をツアーへ追加", "POI einer Tour zuordnen");
 }
 
 <div class="dashboard-grid">
     <div class="section-header">
         <div>
-            <h1 class="section-title">Gán POI vào tour có sẵn</h1>
-            <p class="section-subtitle">Chọn một hoặc nhiều tour để thêm POI này vào route hiện tại.</p>
+            <h1 class="section-title">@AdminText.T("Gán POI vào tour có sẵn", "既存のツアーへ POI を追加", "POI einer bestehenden Tour zuordnen")</h1>
+            <p class="section-subtitle">@AdminText.T("Chọn một hoặc nhiều tour để thêm POI này vào route hiện tại.", "1 つ以上のツアーを選んで、この POI を現在のルートに追加します。", "Wählen Sie eine oder mehrere Touren aus, um diesen POI zur aktuellen Route hinzuzufügen.")</p>
         </div>
         <div class="section-actions">
             <span class="soft-badge">@Model.PoiTitle</span>
@@ -24,22 +24,22 @@
         <div class="admin-card p-4">
             <div class="section-header mb-3">
                 <div>
-                    <h2 class="section-title">POI đang chọn</h2>
+            <h2 class="section-title">@AdminText.T("POI đang chọn", "選択中の POI", "Ausgewählter POI")</h2>
                     <p class="section-subtitle">@Model.PoiSubtitle</p>
                 </div>
             </div>
 
             <div class="preview-list">
                 <li><span>POI</span><strong>@Model.PoiTitle</strong></li>
-                <li><span>Location</span><strong>@(string.IsNullOrWhiteSpace(Model.PoiLocation) ? "—" : Model.PoiLocation)</strong></li>
+                <li><span>@AdminText.T("Location", "場所", "Ort")</span><strong>@(string.IsNullOrWhiteSpace(Model.PoiLocation) ? "—" : Model.PoiLocation)</strong></li>
             </div>
         </div>
 
         <div class="admin-card p-4">
             <div class="section-header mb-3">
                 <div>
-                    <h2 class="section-title">Chọn tour</h2>
-                    <p class="section-subtitle">Có thể gán POI này vào nhiều tour cùng lúc.</p>
+            <h2 class="section-title">@AdminText.T("Chọn tour", "ツアーを選択", "Touren auswählen")</h2>
+            <p class="section-subtitle">@AdminText.T("Có thể gán POI này vào nhiều tour cùng lúc.", "この POI を複数のツアーに同時に追加できます。", "Dieser POI kann mehreren Touren gleichzeitig zugeordnet werden.")</p>
                 </div>
             </div>
 
@@ -55,16 +55,16 @@
                                         <h5 class="card-title mb-1">@tour.TourName</h5>
                                         <div class="text-muted small">@tour.TourDescription</div>
                                     </div>
-                                    <span class="soft-badge">@(tour.IsPublished ? "Published" : "Draft")</span>
+                                    <span class="soft-badge">@(tour.IsPublished ? AdminText.T("Published", "公開", "Veröffentlicht") : AdminText.T("Draft", "下書き", "Entwurf"))</span>
                                 </div>
 
                                 <div class="preview-list mb-3">
-                                    <li><span>POIs</span><strong>@tour.PoiCount</strong></li>
+                                    <li><span>@AdminText.T("POIs", "POI 数", "POIs")</span><strong>@tour.PoiCount</strong></li>
                                 </div>
 
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" name="SelectedTourIds" value="@tour.TourId" @(tour.IsSelected ? "checked" : string.Empty) />
-                                    <label class="form-check-label">Thêm POI này vào tour</label>
+                                    <label class="form-check-label">@AdminText.T("Thêm POI này vào tour", "この POI をツアーに追加", "Diesen POI zur Tour hinzufügen")</label>
                                 </div>
                             </div>
                         </div>
@@ -77,11 +77,11 @@
             <div class="preview-body">
                 <div class="preview-stats">
                     <div class="preview-stat">
-                        <div class="label">Tour chọn</div>
+                        <div class="label">@AdminText.T("Tour chọn", "選択中のツアー", "Ausgewählte Touren")</div>
                         <div class="value">@Model.AvailableTours.Count(x => x.IsSelected)</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Tour có sẵn</div>
+                        <div class="label">@AdminText.T("Tour có sẵn", "利用可能なツアー", "Verfügbare Touren")</div>
                         <div class="value">@Model.AvailableTours.Count</div>
                     </div>
                     <div class="preview-stat">
@@ -91,8 +91,8 @@
                 </div>
 
                 <div class="d-grid gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary w-100">Lưu vào tour</button>
-                    <a asp-controller="Pois" asp-action="Index" class="btn btn-outline-light w-100">Hủy</a>
+                    <button type="submit" class="btn btn-primary w-100">@AdminText.T("Lưu vào tour", "ツアーに保存", "In Tour speichern")</button>
+                    <a asp-controller="Pois" asp-action="Index" class="btn btn-outline-light w-100">@AdminText.T("Hủy", "キャンセル", "Abbrechen")</a>
                 </div>
             </div>
         </div>

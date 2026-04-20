@@ -5,7 +5,7 @@ using TravelApp.Admin.Web.Models;
 
 namespace TravelApp.Admin.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Owner,Admin,SuperAdmin")]
 public class HomeController : Controller
 {
     public IActionResult Index()

@@ -2,7 +2,7 @@
 @model IReadOnlyList<UserAdminDto>
 
 @{
-    ViewData["Title"] = "Quản lý User";
+    ViewData["Title"] = AdminText.T("Quản lý User", "ユーザー管理", "Benutzerverwaltung");
 }
 
 @{
@@ -12,15 +12,15 @@
 <div class="dashboard-grid">
     <div class="section-header">
         <div>
-            <h1 class="section-title">Quản lý User</h1>
-            <p class="section-subtitle">Tạo, sửa, xóa và quản lý trạng thái tài khoản.</p>
+            <h1 class="section-title">@AdminText.T("Quản lý User", "ユーザー管理", "Benutzerverwaltung")</h1>
+            <p class="section-subtitle">@AdminText.T("Tạo, sửa, xóa và quản lý trạng thái tài khoản.", "アカウントの作成、編集、削除、状態管理。", "Konten erstellen, bearbeiten, löschen und den Status verwalten.")</p>
         </div>
         <div class="section-actions">
-            <span class="soft-badge">@Model.Count user</span>
+            <span class="soft-badge">@($"{Model.Count} {AdminText.T("user", "ユーザー", "Benutzer")}")</span>
             <div class="user-search">
-                <input type="search" class="form-control" placeholder="Tìm user..." data-user-search />
+                <input type="search" class="form-control" placeholder='@AdminText.T("Tìm user...", "ユーザーを検索...", "Benutzer suchen...")' data-user-search />
             </div>
-            <a class="btn btn-primary" asp-action="Create">+ Tạo user mới</a>
+            <a class="btn btn-primary" asp-action="Create">@AdminText.T("+ Tạo user mới", "+ ユーザーを作成", "+ Benutzer erstellen")</a>
         </div>
     </div>
 
@@ -38,25 +38,25 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start gap-3">
                             <div>
-                                <div class="soft-badge mb-2">User</div>
+                                <div class="soft-badge mb-2">@AdminText.T("User", "ユーザー", "Benutzer")</div>
                                 <h5 class="card-title mb-1">@item.UserName</h5>
                                 <div class="text-muted small">@item.Email</div>
                             </div>
-                            <span class="soft-badge">@(item.IsActive ? "Active" : "Inactive")</span>
+                            <span class="soft-badge">@(item.IsActive ? AdminText.T("Active", "有効", "Aktiv") : AdminText.T("Inactive", "無効", "Inaktiv"))</span>
                         </div>
 
                         <div class="mt-3 mb-3 small text-muted">
-                            Created: @item.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")
+                            @AdminText.T("Created:", "作成日時:", "Erstellt:") @item.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")
                         </div>
 
                         <div class="preview-list mb-3">
-                            <li><span>Roles</span><strong>@(item.Roles.Count == 0 ? "—" : string.Join(", ", item.Roles.Select(x => x.Name)))</strong></li>
+                            <li><span>@AdminText.T("Roles", "ロール", "Rollen")</span><strong>@(item.Roles.Count == 0 ? "—" : string.Join(", ", item.Roles.Select(x => x.Name)))</strong></li>
                         </div>
 
                         <div class="user-card-actions">
-                            <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                            <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@item.Id">@AdminText.T("Edit", "編集", "Bearbeiten")</a>
                             <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this user?');">Delete</button>
+                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick='return confirm("@AdminText.T("Delete this user?", "このユーザーを削除しますか？", "Diesen Benutzer löschen?")");'>@AdminText.T("Delete", "削除", "Löschen")</button>
                             </form>
                         </div>
                     </div>
@@ -69,47 +69,47 @@
                 <div class="user-preview-shell">
                     <div class="user-avatar" data-user-preview="avatar">@((featuredUser?.UserName ?? "U").Substring(0, 1).ToUpperInvariant())</div>
                     <div>
-                        <div class="preview-title" data-user-preview="name">@(featuredUser?.UserName ?? "No users")</div>
-                        <div class="preview-subtitle" data-user-preview="email">@(featuredUser?.Email ?? "Tạo user đầu tiên để xem preview")</div>
+                        <div class="preview-title" data-user-preview="name">@(featuredUser?.UserName ?? AdminText.T("No users", "ユーザーなし", "Keine Benutzer"))</div>
+                        <div class="preview-subtitle" data-user-preview="email">@(featuredUser?.Email ?? AdminText.T("Tạo user đầu tiên để xem preview", "最初のユーザーを作成するとプレビューが表示されます", "Erstellen Sie zuerst einen Benutzer, um die Vorschau zu sehen"))</div>
                     </div>
                 </div>
                 <div class="preview-overlay"></div>
                 <div class="preview-meta">
                     <div>
-                        <div class="preview-title">User Preview</div>
-                        <div class="preview-subtitle" data-user-preview="status">@(featuredUser?.Email ?? "Chưa có dữ liệu")</div>
+                        <div class="preview-title">@AdminText.T("User Preview", "ユーザープレビュー", "Benutzer-Vorschau")</div>
+                        <div class="preview-subtitle" data-user-preview="status">@(featuredUser?.Email ?? AdminText.T("Chưa có dữ liệu", "データなし", "Keine Daten"))</div>
                     </div>
-                    <span class="soft-badge" data-user-preview="badge">Index</span>
+                    <span class="soft-badge" data-user-preview="badge">@AdminText.T("Index", "一覧", "Index")</span>
                 </div>
             </div>
             <div class="preview-body">
                 <div class="preview-stats">
                     <div class="preview-stat">
-                        <div class="label">Total users</div>
+                        <div class="label">@AdminText.T("Total users", "ユーザー総数", "Benutzer gesamt")</div>
                         <div class="value">@Model.Count</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Active</div>
+                        <div class="label">@AdminText.T("Active", "有効", "Aktiv")</div>
                         <div class="value">@Model.Count(x => x.IsActive)</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Inactive</div>
+                        <div class="label">@AdminText.T("Inactive", "無効", "Inaktiv")</div>
                         <div class="value">@Model.Count(x => !x.IsActive)</div>
                     </div>
                 </div>
 
                 <ul class="preview-list mt-3">
-                    <li><span>Username</span><strong data-user-preview="name-text">@(featuredUser?.UserName ?? "—")</strong></li>
-                    <li><span>Email</span><strong data-user-preview="email-text">@(featuredUser?.Email ?? "—")</strong></li>
-                    <li><span>Status</span><strong data-user-preview="status-text">@(featuredUser is null ? "—" : (featuredUser.IsActive ? "Active" : "Inactive"))</strong></li>
+                    <li><span>@AdminText.T("Username", "ユーザー名", "Benutzername")</span><strong data-user-preview="name-text">@(featuredUser?.UserName ?? "—")</strong></li>
+                    <li><span>@AdminText.T("Email", "メール", "E-Mail")</span><strong data-user-preview="email-text">@(featuredUser?.Email ?? "—")</strong></li>
+                    <li><span>@AdminText.T("Status", "状態", "Status")</span><strong data-user-preview="status-text">@(featuredUser is null ? "—" : (featuredUser.IsActive ? AdminText.T("Active", "有効", "Aktiv") : AdminText.T("Inactive", "無効", "Inaktiv")))</strong></li>
                     <li>
-                        <span>Roles</span>
+                        <span>@AdminText.T("Roles", "ロール", "Rollen")</span>
                         <div class="user-role-badges" data-user-preview="roles">
                             @(featuredUser is null || featuredUser.Roles.Count == 0 ? "—" : string.Join(", ", featuredUser.Roles.Select(x => x.Name)))
                         </div>
                     </li>
                 </ul>
-                <div class="user-no-results mt-3" data-user-no-results hidden>Không có user nào khớp bộ lọc.</div>
+                <div class="user-no-results mt-3" data-user-no-results hidden>@AdminText.T("Không có user nào khớp bộ lọc.", "フィルターに一致するユーザーがいません。", "Keine passenden Benutzer gefunden.")</div>
             </div>
         </div>
     </div>

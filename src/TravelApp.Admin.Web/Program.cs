@@ -1,10 +1,22 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using System.Globalization;
 using TravelApp.Admin.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var supportedCultures = new[]
+{
+    new CultureInfo("vi-VN"),
+    new CultureInfo("en-US"),
+    new CultureInfo("ja-JP"),
+    new CultureInfo("de-DE")
+};
+
+builder.Services.AddLocalization();
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -59,6 +71,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("vi-VN"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+});
 app.UseRouting();
 
 app.UseAuthentication();

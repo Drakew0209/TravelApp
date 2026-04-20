@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -43,7 +44,7 @@ public abstract class ApiClientBase
     protected async Task<HttpResponseMessage> SendAsync(Func<HttpRequestMessage> requestFactory, bool authorized = false, CancellationToken cancellationToken = default)
     {
         var response = await SendOnceAsync(requestFactory, authorized, cancellationToken);
-        if (!authorized || response.StatusCode != System.Net.HttpStatusCode.Unauthorized)
+        if (!authorized || response.StatusCode != HttpStatusCode.Unauthorized)
         {
             return response;
         }
@@ -82,11 +83,20 @@ public abstract class ApiClientBase
 
             var client = CreateClient();
             var response = await client.PostAsJsonAsync("api/auth/refresh", new RefreshTokenRequestDto(refreshToken), JsonOptions, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.BadRequest)
+                {
+                    ClearSessionState();
+                }
+
+                return false;
+            }
+
             var result = await ReadAsAsync<AuthResultDto>(response, cancellationToken);
             if (result is null)
             {
-                ClearTokenStore();
-                AuthStateService.IsLoggedIn = false;
+                ClearSessionState();
                 return false;
             }
 
@@ -98,14 +108,19 @@ public abstract class ApiClientBase
         }
         catch
         {
-            ClearTokenStore();
-            AuthStateService.IsLoggedIn = false;
             return false;
         }
         finally
         {
             _refreshGate.Release();
         }
+    }
+
+    protected void ClearSessionState()
+    {
+        ClearTokenStore();
+        UserProfileService.Reset();
+        AuthStateService.IsLoggedIn = false;
     }
 
     private void ClearTokenStore()

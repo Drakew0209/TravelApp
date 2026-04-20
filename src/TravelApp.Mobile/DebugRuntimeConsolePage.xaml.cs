@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
+using TravelApp.Resources.Strings;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp;
@@ -9,6 +12,10 @@ public partial class DebugRuntimeConsolePage : ContentPage
     private readonly ILogService _logService;
 
     public ObservableCollection<string> LogLines { get; } = [];
+    public string PageTitle => AppStrings.DebugRuntimeTitle;
+    public string DebugModeText => AppStrings.DebugMode;
+    public string ClearText => AppStrings.Clear;
+    public string ClearLogsA11yText => $"{AppStrings.Clear} {AppStrings.Logs}";
 
     public DebugRuntimeConsolePage()
     {
@@ -24,6 +31,11 @@ public partial class DebugRuntimeConsolePage : ContentPage
         {
             LogLines.Add(FormatEntry(entry));
         }
+
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(DebugModeText));
+        OnPropertyChanged(nameof(ClearText));
+        OnPropertyChanged(nameof(ClearLogsA11yText));
     }
 
     protected override void OnAppearing()
@@ -65,7 +77,7 @@ public partial class DebugRuntimeConsolePage : ContentPage
 
     private string BuildStatus()
     {
-        return $"Debug mode: {(_logService.IsEnabled ? "ON" : "OFF")} | Logs: {LogLines.Count}";
+        return $"{AppStrings.DebugMode}: {(_logService.IsEnabled ? AppStrings.On : AppStrings.Off)} | {AppStrings.Logs}: {LogLines.Count}";
     }
 
     private static string FormatEntry(Models.Runtime.RuntimeLogEntry entry)
@@ -81,5 +93,12 @@ public partial class DebugRuntimeConsolePage : ContentPage
         }
 
         LogsCollectionView.ScrollTo(LogLines.Count - 1, position: ScrollToPosition.End, animate: false);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

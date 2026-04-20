@@ -1,0 +1,41 @@
+@page
+@model TravelApp.Public.Web.Pages.Auth.LoginModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = PublicText.T("Đăng nhập", "ログイン", "Anmelden", "Login");
+    var text = PublicPageText.Current;
+}
+
+<section class="auth-shell">
+    <div class="auth-card">
+        <div class="auth-hero">
+            <div class="auth-logo">🍜</div>
+            <h1>@text.Login</h1>
+            <p>@text.SignInToSyncBookmarksAndHistory</p>
+        </div>
+
+        <form method="post" class="auth-form">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="auth-error"></div>
+
+            <div class="auth-field">
+                <label asp-for="Input.Email" class="auth-label">@text.Email</label>
+                <input asp-for="Input.Email" class="auth-input" placeholder="demo@example.com" autocomplete="email" />
+                <span asp-validation-for="Input.Email" class="auth-field-error"></span>
+            </div>
+
+            <div class="auth-field">
+                <label asp-for="Input.Password" class="auth-label">@text.Password</label>
+                <input asp-for="Input.Password" class="auth-input" placeholder="••••••••" autocomplete="current-password" />
+                <span asp-validation-for="Input.Password" class="auth-field-error"></span>
+            </div>
+
+            <button type="submit" class="auth-button">@text.Login</button>
+        </form>
+
+        <div class="auth-links">
+            <span>@text.NoAccountYet</span>
+            <a asp-page="/Auth/Register">@text.Register</a>
+        </div>
+    </div>
+</section>

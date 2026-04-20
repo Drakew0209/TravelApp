@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using TravelApp.Models.Runtime;
+using TravelApp.Resources.Strings;
 using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
@@ -21,6 +22,9 @@ public sealed class MyAudioLibraryViewModel : INotifyPropertyChanged, IDisposabl
     private int _failedCount;
 
     public ObservableCollection<AudioLibraryItem> Items { get; } = [];
+
+    public string PageTitleText => AppStrings.Downloads;
+    public string CurrentLanguageText => $"{AppStrings.LanguagePrefix} {UserProfileService.GetLanguageDisplayText(UserProfileService.PreferredLanguage)}";
 
     public bool IsLoading
     {
@@ -122,6 +126,8 @@ public sealed class MyAudioLibraryViewModel : INotifyPropertyChanged, IDisposabl
         _audioLibraryService.LibraryChanged += OnLibraryChanged;
         _audioLibraryService.DownloadProgressChanged += OnDownloadProgressChanged;
         _audioPlayerService.PlaybackStateChanged += OnPlaybackStateChanged;
+        AuthStateService.AuthStateChanged += OnUserContextChanged;
+        UserProfileService.ProfileChanged += OnUserContextChanged;
 
         BackCommand = new Command(async () =>
         {
@@ -191,8 +197,8 @@ public sealed class MyAudioLibraryViewModel : INotifyPropertyChanged, IDisposabl
         item.DownloadStatusText = "Đang thêm vào queue...";
         RebuildFilteredItems();
 
-        var queued = await _audioLibraryService.EnqueueDownloadsAsync([item.PoiId], item.LanguageCode);
-        StatusText = queued > 0 ? $"Đã thêm vào hàng chờ: {item.Title}" : $"Mục đã tồn tại trong hàng chờ: {item.Title}";
+        var queued = await _audioLibraryService.DownloadAsync(item.PoiId, item.LanguageCode);
+        StatusText = queued ? $"Đã thêm vào hàng chờ: {item.Title}" : $"Đã có sẵn hoặc đang tải: {item.Title}";
     }
 
     private async Task DownloadAllAsync()
@@ -373,6 +379,13 @@ public sealed class MyAudioLibraryViewModel : INotifyPropertyChanged, IDisposabl
         _ = RefreshAsync();
     }
 
+    private void OnUserContextChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(PageTitleText));
+        OnPropertyChanged(nameof(CurrentLanguageText));
+        _ = RefreshAsync();
+    }
+
     public Task StopAsync()
     {
         return _audioPlayerService.StopAsync();
@@ -458,5 +471,7 @@ public sealed class MyAudioLibraryViewModel : INotifyPropertyChanged, IDisposabl
         _audioLibraryService.LibraryChanged -= OnLibraryChanged;
         _audioLibraryService.DownloadProgressChanged -= OnDownloadProgressChanged;
         _audioPlayerService.PlaybackStateChanged -= OnPlaybackStateChanged;
+        AuthStateService.AuthStateChanged -= OnUserContextChanged;
+        UserProfileService.ProfileChanged -= OnUserContextChanged;
     }
 }

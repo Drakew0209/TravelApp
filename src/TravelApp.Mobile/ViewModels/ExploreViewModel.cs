@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using TravelApp.Models;
 using TravelApp.Models.Contracts;
+using TravelApp.Resources.Strings;
 using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
@@ -18,13 +19,33 @@ public class ExploreViewModel : INotifyPropertyChanged
     private readonly IBookmarkHistoryService _bookmarkHistoryService;
     private int _offlineDownloadsCount;
     private string _selectedBottomTab = "Explore";
-    private string _forYouSectionTitle = "Featured tours";
-    private string _editorsChoiceSectionTitle = "More tours";
+    private string _forYouSectionTitle = AppStrings.FeaturedTours;
+    private string _editorsChoiceSectionTitle = AppStrings.MoreTours;
 
     public ObservableCollection<PoiModel> ForYouItems { get; }
     public ObservableCollection<PoiModel> EditorsChoiceItems { get; }
     public ObservableCollection<RouteSectionItem> RouteSections { get; }
     public ObservableCollection<PoiModel> ExploreMapItems { get; }
+    public string SearchPlaceholder => AppStrings.SearchDestinations;
+    public string CurrentLanguageText => $"{AppStrings.LanguagePrefix} {UserProfileService.GetLanguageDisplayText(UserProfileService.PreferredLanguage)}";
+    public string AroundMeTitle => AppStrings.AroundMe;
+    public string PoiMapText => AppStrings.PoiMap;
+    public string MapViewText => AppStrings.MapView;
+    public string AudioStatusText => AppStrings.AudioNowPlaying;
+    public string NoStoriesTitle => AppStrings.NoStoriesAvailable;
+    public string StartText => AppStrings.Start;
+    public string MyProfileText => AppStrings.MyProfile;
+    public string HistoryText => AppStrings.History;
+    public string BookmarksText => AppStrings.Bookmarks;
+    public string DebugConsoleText => AppStrings.DebugConsole;
+    public string ExploreTabText => AppStrings.Explore;
+    public string FreeWalkTabText => AppStrings.FreeWalk;
+    public string MyToursTabText => AppStrings.Purchases;
+    public string SavedTabText => AppStrings.Bookmarks;
+    public string MenuTabText => AppStrings.UserPreferences;
+    public string OpenNavigationMenuA11yText => AppStrings.OpenNavigationMenu;
+    public string ScanQrCodeA11yText => AppStrings.ScanQrCode;
+    public string CurrentLocationIndicatorA11yText => AppStrings.CurrentLocationIndicator;
     public string ForYouSectionTitle
     {
         get => _forYouSectionTitle;
@@ -70,8 +91,8 @@ public class ExploreViewModel : INotifyPropertyChanged
         }
     }
 
-    public string AuthMenuText => IsLoggedIn ? "Sign Out" : "Sign In";
-    public string PurchasesMenuText => _offlineDownloadsCount > 0 ? $"◍  Purchases ({_offlineDownloadsCount})" : "◍  Purchases";
+    public string AuthMenuText => IsLoggedIn ? AppStrings.SignOut : AppStrings.SignIn;
+    public string PurchasesMenuText => _offlineDownloadsCount > 0 ? $"◍  {AppStrings.Purchases} ({_offlineDownloadsCount})" : $"◍  {AppStrings.Purchases}";
     public bool IsExploreTabActive => string.Equals(_selectedBottomTab, "Explore", StringComparison.Ordinal);
     public bool IsDiscoverTabActive => string.Equals(_selectedBottomTab, "Discover", StringComparison.Ordinal);
     public bool IsMyToursTabActive => string.Equals(_selectedBottomTab, "MyTours", StringComparison.Ordinal);
@@ -126,6 +147,7 @@ public class ExploreViewModel : INotifyPropertyChanged
         ExploreMapItems = [];
 
         _audioLibraryService.LibraryChanged += async (_, _) => await RefreshOfflineDownloadsCountAsync();
+        UserProfileService.ProfileChanged += OnUserProfileChanged;
 
         AuthStateService.AuthStateChanged += (_, _) =>
         {
@@ -183,14 +205,6 @@ public class ExploreViewModel : INotifyPropertyChanged
         {
             if (item is null) return;
 
-            // Check if user is logged in
-            if (!AuthStateService.IsLoggedIn)
-            {
-                await Shell.Current.DisplayAlert("Login Required", "Please sign in to view tour details.", "OK");
-                await Shell.Current.GoToAsync("LoginPage");
-                return;
-            }
-
             await _bookmarkHistoryService.AddHistoryAsync(item);
             await Shell.Current.GoToAsync($"TourDetailPage?tourId={item.Id}");
         });
@@ -243,6 +257,34 @@ public class ExploreViewModel : INotifyPropertyChanged
 
         _offlineDownloadsCount = count;
         MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(PurchasesMenuText)));
+    }
+
+    private void OnUserProfileChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(SearchPlaceholder));
+        OnPropertyChanged(nameof(CurrentLanguageText));
+        OnPropertyChanged(nameof(AroundMeTitle));
+        OnPropertyChanged(nameof(PoiMapText));
+        OnPropertyChanged(nameof(MapViewText));
+        OnPropertyChanged(nameof(AudioStatusText));
+        OnPropertyChanged(nameof(NoStoriesTitle));
+        OnPropertyChanged(nameof(StartText));
+        OnPropertyChanged(nameof(MyProfileText));
+        OnPropertyChanged(nameof(HistoryText));
+        OnPropertyChanged(nameof(BookmarksText));
+        OnPropertyChanged(nameof(DebugConsoleText));
+        OnPropertyChanged(nameof(ExploreTabText));
+        OnPropertyChanged(nameof(FreeWalkTabText));
+        OnPropertyChanged(nameof(MyToursTabText));
+        OnPropertyChanged(nameof(SavedTabText));
+        OnPropertyChanged(nameof(MenuTabText));
+        OnPropertyChanged(nameof(OpenNavigationMenuA11yText));
+        OnPropertyChanged(nameof(ScanQrCodeA11yText));
+        OnPropertyChanged(nameof(CurrentLocationIndicatorA11yText));
+        OnPropertyChanged(nameof(AuthMenuText));
+        OnPropertyChanged(nameof(PurchasesMenuText));
+        OnPropertyChanged(nameof(ForYouSectionTitle));
+        OnPropertyChanged(nameof(EditorsChoiceSectionTitle));
     }
 
     private async Task LoadPoisAsync(CancellationToken cancellationToken = default)
@@ -301,8 +343,8 @@ public class ExploreViewModel : INotifyPropertyChanged
                     ExploreMapItems.Add(item);
                 }
 
-                ForYouSectionTitle = forYou?.SectionTitle ?? "Featured tours";
-                EditorsChoiceSectionTitle = editors?.SectionTitle ?? "More tours";
+                ForYouSectionTitle = forYou?.SectionTitle ?? AppStrings.FeaturedTours;
+                EditorsChoiceSectionTitle = editors?.SectionTitle ?? AppStrings.MoreTours;
             });
         }
         catch
@@ -313,8 +355,8 @@ public class ExploreViewModel : INotifyPropertyChanged
                 ExploreMapItems.Clear();
                 ForYouItems.Clear();
                 EditorsChoiceItems.Clear();
-                ForYouSectionTitle = "Featured tours";
-                EditorsChoiceSectionTitle = "More tours";
+                ForYouSectionTitle = AppStrings.FeaturedTours;
+                EditorsChoiceSectionTitle = AppStrings.MoreTours;
 
             });
         }
@@ -347,7 +389,7 @@ public class ExploreViewModel : INotifyPropertyChanged
             return category;
         }
 
-        return "Featured tours";
+        return AppStrings.FeaturedTours;
     }
 
     private static PoiModel MapPoi(PoiMobileDto dto, TourRouteDto route)
@@ -382,7 +424,7 @@ public class ExploreViewModel : INotifyPropertyChanged
             return category.Trim();
         }
 
-        return string.IsNullOrWhiteSpace(route.Name) ? "Featured tours" : route.Name.Trim();
+        return string.IsNullOrWhiteSpace(route.Name) ? AppStrings.FeaturedTours : route.Name.Trim();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

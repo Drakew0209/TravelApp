@@ -1,15 +1,15 @@
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using TravelApp.Models.Contracts;
 using TravelApp.Models.Runtime;
+using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.Services.Runtime;
 
 public sealed class AudioLibraryService : IAudioLibraryService
 {
-    private const string QueueStatePreferenceKey = "audio_library_queue_v1";
-    private const string FailedStatePreferenceKey = "audio_library_failed_v1";
     private const string FallbackAudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 
     private readonly ILocalDatabaseService _localDatabaseService;
@@ -27,6 +27,7 @@ public sealed class AudioLibraryService : IAudioLibraryService
     private double _averageBytesPerSecond;
     private long _averageBytesPerDownload;
     private int _completedDownloads;
+    private string _scopeKey = string.Empty;
 
     public event EventHandler? LibraryChanged;
     public event EventHandler<AudioDownloadProgressChangedEventArgs>? DownloadProgressChanged;
@@ -44,6 +45,9 @@ public sealed class AudioLibraryService : IAudioLibraryService
         _audioPlayerService = audioPlayerService;
         _logger = logger;
 
+        _scopeKey = UserStorageScope.GetCurrentScopeKey();
+        AuthStateService.AuthStateChanged += OnUserContextChanged;
+        UserProfileService.ProfileChanged += OnUserContextChanged;
         RestoreQueueState();
         _ = ProcessQueueAsync(CancellationToken.None);
     }
@@ -63,8 +67,10 @@ public sealed class AudioLibraryService : IAudioLibraryService
         foreach (var poi in pois)
         {
             var path = await _localDatabaseService.GetOfflineAudioPathAsync(poi.Id, normalizedLanguage, cancellationToken);
+            var cacheState = await _localDatabaseService.GetAudioDownloadCacheStateAsync(poi.Id, normalizedLanguage, cancellationToken);
             var downloaded = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
             var size = downloaded ? new FileInfo(path!).Length : 0;
+            var hasPartial = cacheState is not null && !cacheState.IsCompleted && cacheState.BytesDownloaded > 0;
 
             items.Add(new AudioLibraryItem
             {
@@ -78,9 +84,11 @@ public sealed class AudioLibraryService : IAudioLibraryService
                 IsDownloaded = downloaded,
                 LocalFilePath = path,
                 FileSizeBytes = size,
-                IsBusy = queuedPoiIds.Contains(poi.Id),
-                DownloadProgress = 0,
-                DownloadStatusText = queuedPoiIds.Contains(poi.Id) ? "Đang chờ tải..." : string.Empty
+                IsBusy = queuedPoiIds.Contains(poi.Id) || hasPartial,
+                DownloadProgress = hasPartial && cacheState!.BytesDownloaded > 0 ? 0.001 : 0,
+                DownloadStatusText = queuedPoiIds.Contains(poi.Id)
+                    ? "Đang chờ tải..."
+                    : hasPartial ? $"Đã tải tạm {FormatBytes(cacheState!.BytesDownloaded)}" : string.Empty
             });
         }
 
@@ -92,6 +100,14 @@ public sealed class AudioLibraryService : IAudioLibraryService
 
     public async Task<bool> DownloadAsync(int poiId, string? languageCode, CancellationToken cancellationToken = default)
     {
+        var normalizedLanguage = NormalizeLanguage(languageCode);
+        var state = await _localDatabaseService.GetAudioDownloadCacheStateAsync(poiId, normalizedLanguage, cancellationToken);
+        if (state is not null && state.IsCompleted && !string.IsNullOrWhiteSpace(state.LocalFilePath) && File.Exists(state.LocalFilePath))
+        {
+            EmitProgress(poiId, 1, isCompleted: true, isFailed: false, "Đã có sẵn trong cache.", GetQueueCount(), TimeSpan.Zero);
+            return false;
+        }
+
         var queued = await EnqueueDownloadsAsync([poiId], languageCode, cancellationToken);
         return queued > 0;
     }
@@ -182,11 +198,26 @@ public sealed class AudioLibraryService : IAudioLibraryService
             {
                 File.Delete(existingPath);
             }
+            var tempPath = existingPath + ".part";
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
 
             var pois = await EnsureCatalogueAsync(normalizedLanguage, cancellationToken);
             var poi = pois.FirstOrDefault(x => x.Id == poiId);
             var audioUrl = poi is null ? null : SelectAudioUrl(poi, normalizedLanguage);
-            await _localDatabaseService.SaveAudioMetadataAsync(poiId, normalizedLanguage, audioUrl, null, cancellationToken);
+            await _localDatabaseService.SaveAudioMetadataAsync(
+                poiId,
+                normalizedLanguage,
+                audioUrl,
+                null,
+                tempFilePath: null,
+                cacheVersionToken: null,
+                contentHash: null,
+                bytesDownloaded: 0,
+                isCompleted: false,
+                cancellationToken);
 
             EmitProgress(poiId, 0, isCompleted: true, isFailed: false, "Đã xóa offline.");
             LibraryChanged?.Invoke(this, EventArgs.Empty);
@@ -331,15 +362,81 @@ public sealed class AudioLibraryService : IAudioLibraryService
         }
 
         var localPath = BuildOfflineAudioPath(item.PoiId, item.LanguageCode, audioUrl);
+        var tempPath = BuildTempAudioPath(localPath);
+        var cachedState = await _localDatabaseService.GetAudioDownloadCacheStateAsync(item.PoiId, item.LanguageCode, cancellationToken);
 
         try
         {
             var client = _httpClientFactory.CreateClient();
-            using var response = await client.GetAsync(audioUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            using var descriptorResponse = await client.GetAsync(audioUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (!descriptorResponse.IsSuccessStatusCode)
             {
                 EmitProgress(item.PoiId, 0, isCompleted: true, isFailed: true, "Không tải được audio.", GetQueueCount(), null);
                 return false;
+            }
+
+            var remoteVersionToken = BuildVersionToken(descriptorResponse, audioUrl);
+            var contentLength = descriptorResponse.Content.Headers.ContentLength;
+
+            if (cachedState is not null
+                && !string.IsNullOrWhiteSpace(cachedState.CacheVersionToken)
+                && !string.Equals(cachedState.CacheVersionToken, remoteVersionToken, StringComparison.OrdinalIgnoreCase))
+            {
+                TryDeleteFile(localPath);
+                TryDeleteFile(tempPath);
+                cachedState = null;
+            }
+
+            if (cachedState is not null
+                && cachedState.IsCompleted
+                && File.Exists(localPath)
+                && !string.IsNullOrWhiteSpace(cachedState.AudioUrl)
+                && string.Equals(cachedState.AudioUrl, audioUrl, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(cachedState.CacheVersionToken, remoteVersionToken, StringComparison.OrdinalIgnoreCase))
+            {
+                EmitProgress(item.PoiId, 1, isCompleted: true, isFailed: false, "Đã có sẵn trong cache.", Math.Max(0, GetQueueCount() - 1), TimeSpan.Zero);
+                return true;
+            }
+
+            var existingBytes = File.Exists(tempPath) ? new FileInfo(tempPath).Length : 0L;
+            if (cachedState is not null && cachedState.BytesDownloaded > 0 && existingBytes > 0)
+            {
+                existingBytes = Math.Min(cachedState.BytesDownloaded, new FileInfo(tempPath).Length);
+            }
+
+            var availableBytes = TryGetAvailableStorageBytes(localPath);
+            if (contentLength.HasValue && availableBytes.HasValue && availableBytes.Value < contentLength.Value + (1024L * 1024L))
+            {
+                EmitProgress(item.PoiId, 0, isCompleted: true, isFailed: true, "Không đủ dung lượng để tải audio.", GetQueueCount(), null);
+                return false;
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, audioUrl);
+            if (existingBytes > 0)
+            {
+                request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(existingBytes, null);
+            }
+
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.PartialContent)
+            {
+                EmitProgress(item.PoiId, 0, isCompleted: true, isFailed: true, "Không tải được audio.", GetQueueCount(), null);
+                return false;
+            }
+
+            if (existingBytes > 0 && response.StatusCode != System.Net.HttpStatusCode.PartialContent)
+            {
+                existingBytes = 0;
+            }
+
+            long? expectedTotalBytes = contentLength;
+            if (existingBytes > 0 && response.StatusCode == System.Net.HttpStatusCode.PartialContent)
+            {
+                var remaining = response.Content.Headers.ContentRange?.Length;
+                if (remaining.HasValue)
+                {
+                    expectedTotalBytes = existingBytes + remaining.Value;
+                }
             }
 
             await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -349,11 +446,13 @@ public sealed class AudioLibraryService : IAudioLibraryService
                 Directory.CreateDirectory(directory);
             }
 
-            await using var fileStream = File.Create(localPath);
+            await using var fileStream = existingBytes > 0
+                ? new FileStream(tempPath, FileMode.Append, FileAccess.Write, FileShare.None)
+                : new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None);
             var buffer = new byte[16 * 1024];
-            var contentLength = response.Content.Headers.ContentLength;
-            long totalRead = 0;
+            var totalRead = existingBytes;
             var startedAt = DateTimeOffset.UtcNow;
+            var lastPersistedBytes = existingBytes;
 
             while (true)
             {
@@ -366,15 +465,51 @@ public sealed class AudioLibraryService : IAudioLibraryService
                 await fileStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
                 totalRead += read;
 
-                if (contentLength.HasValue && contentLength.Value > 0)
+                if (expectedTotalBytes.HasValue && expectedTotalBytes.Value > 0)
                 {
-                    var progress = Math.Min(1d, (double)totalRead / contentLength.Value);
-                    var eta = ComputeEstimatedRemaining(contentLength.Value, totalRead, startedAt, item);
+                    var progress = Math.Min(1d, (double)totalRead / expectedTotalBytes.Value);
+                    var eta = ComputeEstimatedRemaining(expectedTotalBytes.Value, totalRead, startedAt, item);
                     EmitProgress(item.PoiId, progress, isCompleted: false, isFailed: false, null, GetQueueCount(), eta);
+                }
+
+                if (totalRead - lastPersistedBytes >= 256 * 1024)
+                {
+                    await _localDatabaseService.SaveAudioMetadataAsync(
+                        item.PoiId,
+                        item.LanguageCode,
+                        audioUrl,
+                        null,
+                        tempFilePath: tempPath,
+                        cacheVersionToken: remoteVersionToken,
+                        contentHash: null,
+                        bytesDownloaded: totalRead,
+                        isCompleted: false,
+                        cancellationToken);
+                    lastPersistedBytes = totalRead;
                 }
             }
 
-            await _localDatabaseService.SaveAudioMetadataAsync(item.PoiId, item.LanguageCode, audioUrl, localPath, cancellationToken);
+            await fileStream.FlushAsync(cancellationToken);
+
+            if (File.Exists(localPath))
+            {
+                File.Delete(localPath);
+            }
+
+            File.Move(tempPath, localPath);
+
+            var contentHash = await ComputeFileHashAsync(localPath, cancellationToken);
+            await _localDatabaseService.SaveAudioMetadataAsync(
+                item.PoiId,
+                item.LanguageCode,
+                audioUrl,
+                localPath,
+                tempFilePath: null,
+                cacheVersionToken: remoteVersionToken,
+                contentHash: contentHash,
+                bytesDownloaded: new FileInfo(localPath).Length,
+                isCompleted: true,
+                cancellationToken);
             UpdateDownloadAverages(totalRead, startedAt);
 
             EmitProgress(item.PoiId, 1, isCompleted: true, isFailed: false, "Đã tải offline.", Math.Max(0, GetQueueCount() - 1), TimeSpan.Zero);
@@ -386,10 +521,29 @@ public sealed class AudioLibraryService : IAudioLibraryService
 
             try
             {
-                if (File.Exists(localPath))
+                if (File.Exists(tempPath))
                 {
-                    File.Delete(localPath);
+                    // keep partial file for resume; just preserve it
                 }
+            }
+            catch
+            {
+            }
+
+            var partialBytes = File.Exists(tempPath) ? new FileInfo(tempPath).Length : 0L;
+            try
+            {
+                await _localDatabaseService.SaveAudioMetadataAsync(
+                    item.PoiId,
+                    item.LanguageCode,
+                    audioUrl,
+                    null,
+                    tempFilePath: tempPath,
+                    cacheVersionToken: cachedState?.CacheVersionToken,
+                    contentHash: cachedState?.ContentHash,
+                    bytesDownloaded: partialBytes,
+                    isCompleted: false,
+                    cancellationToken);
             }
             catch
             {
@@ -565,7 +719,7 @@ public sealed class AudioLibraryService : IAudioLibraryService
 
     private static string BuildOfflineAudioPath(int poiId, string languageCode, string? url)
     {
-        var cacheDirectory = Path.Combine(FileSystem.CacheDirectory, "audio");
+        var cacheDirectory = UserStorageScope.GetScopedDirectory(FileSystem.CacheDirectory, "audio");
         var extension = ".mp3";
 
         if (!string.IsNullOrWhiteSpace(url) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
@@ -578,6 +732,80 @@ public sealed class AudioLibraryService : IAudioLibraryService
         }
 
         return Path.Combine(cacheDirectory, $"poi-{poiId}-{languageCode}{extension}");
+    }
+
+    private static string BuildTempAudioPath(string localPath)
+    {
+        return localPath + ".part";
+    }
+
+    private static string BuildVersionToken(HttpResponseMessage response, string audioUrl)
+    {
+        var etag = response.Headers.ETag?.Tag ?? string.Empty;
+        var lastModified = response.Content.Headers.LastModified?.ToString() ?? string.Empty;
+        var length = response.Content.Headers.ContentLength?.ToString() ?? string.Empty;
+        return $"{audioUrl}|{etag}|{lastModified}|{length}";
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static async Task<string?> ComputeFileHashAsync(string filePath, CancellationToken cancellationToken)
+    {
+        await using var stream = File.OpenRead(filePath);
+        var hash = await SHA256.HashDataAsync(stream, cancellationToken);
+        return Convert.ToHexString(hash);
+    }
+
+    private static long? TryGetAvailableStorageBytes(string localPath)
+    {
+        try
+        {
+            var root = Path.GetPathRoot(localPath);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                return null;
+            }
+
+            return new DriveInfo(root).AvailableFreeSpace;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024)
+        {
+            return $"{bytes} B";
+        }
+
+        var kb = bytes / 1024d;
+        if (kb < 1024)
+        {
+            return $"{kb:0.#} KB";
+        }
+
+        var mb = kb / 1024d;
+        if (mb < 1024)
+        {
+            return $"{mb:0.#} MB";
+        }
+
+        return $"{mb / 1024d:0.#} GB";
     }
 
     private static string NormalizeLanguage(string? languageCode)
@@ -609,7 +837,7 @@ public sealed class AudioLibraryService : IAudioLibraryService
     {
         lock (_sync)
         {
-            var queueRaw = Preferences.Default.Get(QueueStatePreferenceKey, string.Empty);
+            var queueRaw = Preferences.Default.Get(GetQueueStatePreferenceKey(), string.Empty);
             if (!string.IsNullOrWhiteSpace(queueRaw))
             {
                 try
@@ -637,7 +865,7 @@ public sealed class AudioLibraryService : IAudioLibraryService
                 }
             }
 
-            var failedRaw = Preferences.Default.Get(FailedStatePreferenceKey, string.Empty);
+            var failedRaw = Preferences.Default.Get(GetFailedStatePreferenceKey(), string.Empty);
             if (!string.IsNullOrWhiteSpace(failedRaw))
             {
                 try
@@ -658,8 +886,8 @@ public sealed class AudioLibraryService : IAudioLibraryService
     private void PersistStateLocked()
     {
         var queueKeys = _queue.Select(x => BuildStateKey(x.PoiId, x.LanguageCode)).ToList();
-        Preferences.Default.Set(QueueStatePreferenceKey, JsonSerializer.Serialize(queueKeys));
-        Preferences.Default.Set(FailedStatePreferenceKey, JsonSerializer.Serialize(_failedKeys.ToList()));
+        Preferences.Default.Set(GetQueueStatePreferenceKey(), JsonSerializer.Serialize(queueKeys));
+        Preferences.Default.Set(GetFailedStatePreferenceKey(), JsonSerializer.Serialize(_failedKeys.ToList()));
     }
 
     private static string BuildStateKey(int poiId, string languageCode)
@@ -686,6 +914,40 @@ public sealed class AudioLibraryService : IAudioLibraryService
         }
 
         return new DownloadQueueItem(poiId, NormalizeLanguage(parts[1]));
+    }
+
+    private void OnUserContextChanged(object? sender, EventArgs e)
+    {
+        var nextScopeKey = UserStorageScope.GetCurrentScopeKey();
+        if (string.Equals(_scopeKey, nextScopeKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            _scopeKey = nextScopeKey;
+            _queue.Clear();
+            _queueKeys.Clear();
+            _failedKeys.Clear();
+            _averageBytesPerSecond = 0;
+            _averageBytesPerDownload = 0;
+            _completedDownloads = 0;
+            RestoreQueueState();
+            PersistStateLocked();
+        }
+
+        LibraryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private string GetQueueStatePreferenceKey()
+    {
+        return $"audio_library_queue_v1::{_scopeKey}";
+    }
+
+    private string GetFailedStatePreferenceKey()
+    {
+        return $"audio_library_failed_v1::{_scopeKey}";
     }
 
     private sealed record DownloadQueueItem(int PoiId, string LanguageCode);

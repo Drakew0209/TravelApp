@@ -19,6 +19,9 @@ public class TravelAppDbContext : DbContext, ITravelAppDbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<UserBookmark> UserBookmarks => Set<UserBookmark>();
+    public DbSet<UserHistoryEntry> UserHistoryEntries => Set<UserHistoryEntry>();
+    public DbSet<AnalyticsEvent> AnalyticsEvents => Set<AnalyticsEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

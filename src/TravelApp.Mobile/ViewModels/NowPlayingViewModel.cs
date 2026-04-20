@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using TravelApp.Models.Runtime;
+using TravelApp.Resources.Strings;
+using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
 namespace TravelApp.ViewModels;
@@ -11,8 +13,10 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
     private readonly IAudioPlayerService _audioPlayerService;
 
     private bool _isPlaying;
-    private string _poiTitle = "Chưa phát audio";
+    private string _poiTitle = AppStrings.NoAudioPlaying;
     private string _languageCode = string.Empty;
+
+    public string PageTitle => AppStrings.NowPlayingTitle;
 
     public bool IsPlaying
     {
@@ -63,11 +67,13 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public string LanguageText => string.IsNullOrWhiteSpace(LanguageCode) ? "Ngôn ngữ: --" : $"Ngôn ngữ: {LanguageCode}";
+    public string LanguageText => string.IsNullOrWhiteSpace(LanguageCode)
+        ? $"{AppStrings.LanguagePrefix} --"
+        : $"{AppStrings.LanguagePrefix} {UserProfileService.GetLanguageDisplayText(LanguageCode)}";
 
-    public string StatusText => IsPlaying ? $"Đang phát • {LanguageText}" : "Đã dừng";
+    public string StatusText => IsPlaying ? $"{AppStrings.Playing} • {LanguageText}" : AppStrings.Stopped;
 
-    public string ActionButtonText => IsPlaying ? "Stop" : "Back";
+    public string ActionButtonText => IsPlaying ? AppStrings.Stop : AppStrings.Back;
 
     public ICommand BackCommand { get; }
     public ICommand ActionCommand { get; }
@@ -75,6 +81,7 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
     public NowPlayingViewModel(IAudioPlayerService audioPlayerService)
     {
         _audioPlayerService = audioPlayerService;
+        UserProfileService.ProfileChanged += OnProfileChanged;
 
         BackCommand = new Command(async () =>
         {
@@ -105,8 +112,17 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
     private void ApplyState(bool isPlaying, string? poiTitle, string? languageCode)
     {
         IsPlaying = isPlaying;
-        PoiTitle = isPlaying ? (string.IsNullOrWhiteSpace(poiTitle) ? "Địa điểm hiện tại" : poiTitle) : "Chưa phát audio";
+        PoiTitle = isPlaying ? (string.IsNullOrWhiteSpace(poiTitle) ? AppStrings.CurrentLocation : poiTitle) : AppStrings.NoAudioPlaying;
         LanguageCode = isPlaying ? (string.IsNullOrWhiteSpace(languageCode) ? "--" : languageCode) : string.Empty;
+    }
+
+    private void OnProfileChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(PoiTitle));
+        OnPropertyChanged(nameof(LanguageText));
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(ActionButtonText));
     }
 
     public Task StopAsync()
@@ -124,5 +140,6 @@ public sealed class NowPlayingViewModel : INotifyPropertyChanged, IDisposable
     public void Dispose()
     {
         _audioPlayerService.PlaybackStateChanged -= OnPlaybackStateChanged;
+        UserProfileService.ProfileChanged -= OnProfileChanged;
     }
 }

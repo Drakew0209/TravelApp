@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="theme-color" content="#D31963" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="manifest" href="~/manifest.webmanifest" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <title>@ViewData["Title"] - TravelApp Public</title>
+</head>
+<body>
+    @{ var text = PublicPageText.Current; }
+    <div class="page-shell public-app-shell">
+        <header class="topbar">
+            <div>
+                <div class="brand">TravelApp Public</div>
+                <div class="brand-subtitle">@PublicText.T("Mở QR, xem POI/tour, nghe audio", "QR を開き、POI/ツアーを表示して音声を聴く", "QR öffnen, POIs/Touren ansehen und Audio hören", "Open QR, view POI/tour, and listen to audio")</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="scanner-device-chip" id="scanner-device-chip" hidden></div>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="topbar-link" asp-page="/Account/Index">@text.Account</a>
+                    <form asp-page="/Auth/Logout" method="post" class="d-inline">
+                        <button type="submit" class="topbar-link topbar-link-button">@text.Logout</button>
+                    </form>
+                }
+                else
+                {
+                    <a class="topbar-link" asp-page="/Auth/Login" asp-route-returnUrl="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")">@text.Login</a>
+                    <a class="topbar-link" asp-page="/Auth/Register" asp-route-returnUrl="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")">@text.Register</a>
+                }
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        @(System.Globalization.CultureInfo.CurrentUICulture.Name switch
+                        {
+                            "vi-VN" => "VI",
+                            "en-US" => "EN",
+                            "ja-JP" => "日本語",
+                            "de-DE" => "DE",
+                            _ => "Lang"
+                        })
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <form asp-controller="Culture" asp-action="Set" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="redirectUri" value="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")" />
+                                <button type="submit" name="culture" value="vi-VN" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "vi-VN" ? "active" : string.Empty)">VI · Tiếng Việt</button>
+                            </form>
+                        </li>
+                        <li>
+                            <form asp-controller="Culture" asp-action="Set" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="redirectUri" value="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")" />
+                                <button type="submit" name="culture" value="en-US" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "en-US" ? "active" : string.Empty)">EN · English</button>
+                            </form>
+                        </li>
+                        <li>
+                            <form asp-controller="Culture" asp-action="Set" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="redirectUri" value="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")" />
+                                <button type="submit" name="culture" value="ja-JP" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "ja-JP" ? "active" : string.Empty)">日本語</button>
+                            </form>
+                        </li>
+                        <li>
+                            <form asp-controller="Culture" asp-action="Set" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="redirectUri" value="@($"{ViewContext.HttpContext.Request.Path}{ViewContext.HttpContext.Request.QueryString}")" />
+                                <button type="submit" name="culture" value="de-DE" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "de-DE" ? "active" : string.Empty)">DE · Deutsch</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                <a class="topbar-link" href="/">@PublicText.T("Home", "ホーム", "Startseite", "Home")</a>
+            </div>
+        </header>
+
+        <main class="content-shell">
+            @RenderBody()
+        </main>
+
+        <nav class="public-bottom-nav" aria-label="@PublicText.T("Điều hướng nhanh", "クイックナビゲーション", "Schnelle Navigation", "Quick navigation")">
+            <a class="public-nav-item" href="#featured-panel">
+                <span class="public-nav-icon">⌂</span>
+                <span>@PublicText.T("Khám phá", "探索", "Entdecken", "Explore")</span>
+            </a>
+            <a class="public-nav-item" href="#profile-panel">
+                <span class="public-nav-icon">👤</span>
+                <span>@PublicText.T("Hồ sơ", "プロフィール", "Profil", "Profile")</span>
+            </a>
+            <a class="public-nav-item" href="#home-search-input">
+                <span class="public-nav-icon">⌕</span>
+                <span>@PublicText.T("Tìm kiếm", "検索", "Suchen", "Search")</span>
+            </a>
+            <a class="public-nav-item" href="#overview-panel">
+                <span class="public-nav-icon">⌂</span>
+                <span>@PublicText.T("Tổng quan", "概要", "Übersicht", "Overview")</span>
+            </a>
+            <a class="public-nav-item" href="#tour-map-panel">
+                <span class="public-nav-icon">🗺</span>
+                <span>@PublicText.T("Bản đồ", "地図", "Karte", "Map")</span>
+            </a>
+            <a class="public-nav-item" href="#audio-panel">
+                <span class="public-nav-icon">🔊</span>
+                <span>@PublicText.T("Nghe", "再生", "Anhören", "Listen")</span>
+            </a>
+            <a class="public-nav-item" href="#activity-panel">
+                <span class="public-nav-icon">⏱</span>
+                <span>@PublicText.T("Lịch sử", "履歴", "Verlauf", "History")</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+    <script src="~/js/public-app.js" asp-append-version="true" defer></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js'));
+        }
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

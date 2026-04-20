@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TravelApp.Models;
 using TravelApp.Models.Runtime;
+using TravelApp.Resources.Strings;
 using TravelApp.Services.Abstractions;
 using TravelApp.ViewModels;
 
@@ -336,12 +337,10 @@ public partial class ExplorePage : ContentPage
 
         if (!isPlaying)
         {
-            AudioStatusTextLabel.Text = "";
             AudioPoiTitleLabel.Text = "";
             return;
         }
 
-        AudioStatusTextLabel.Text = "Đang phát audio";
-        AudioPoiTitleLabel.Text = _audioPlayerService.CurrentPoiTitle ?? "Địa điểm hiện tại";
+        AudioPoiTitleLabel.Text = _audioPlayerService.CurrentPoiTitle ?? AppStrings.CurrentLocation;
     }
 }

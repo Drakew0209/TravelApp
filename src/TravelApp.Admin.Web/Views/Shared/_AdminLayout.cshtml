@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,46 +21,84 @@
             <nav class="sidebar-nav">
                 <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")" asp-controller="Admin" asp-action="Index">
                     <span class="nav-icon">▣</span>
-                    <span>Dashboard</span>
+                    <span>@AdminText.T("Bảng điều khiển", "Dashboard", "ダッシュボード", "Dashboard")</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tours" ? "active" : "")" asp-controller="Tours" asp-action="Index">
                     <span class="nav-icon">◫</span>
-                    <span>Quản lý Tour</span>
+                    <span>@AdminText.T("Quản lý Tour", "Tour management", "ツアー管理", "Tourverwaltung")</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Pois" ? "active" : "")" asp-controller="Pois" asp-action="Index">
                     <span class="nav-icon">⌂</span>
-                    <span>Quản lý POI</span>
+                    <span>@AdminText.T("Quản lý POI", "POI management", "POI 管理", "POI-Verwaltung")</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">
                     <span class="nav-icon">☺</span>
-                    <span>Quản lý User</span>
+                    <span>@AdminText.T("Quản lý người dùng", "User management", "ユーザー管理", "Benutzerverwaltung")</span>
                 </a>
                 <a class="nav-item disabled" href="#">
                     <span class="nav-icon">◌</span>
-                    <span>Phân tích</span>
+                    <span>@AdminText.T("Phân tích", "Analytics", "分析", "Analyse")</span>
                 </a>
                 <a class="nav-item disabled" href="#">
                     <span class="nav-icon">✎</span>
-                    <span>Bản dịch</span>
+                    <span>@AdminText.T("Bản dịch", "Translations", "翻訳", "Übersetzungen")</span>
                 </a>
             </nav>
 
             <div class="sidebar-footer">
                 <form asp-controller="Auth" asp-action="Logout" method="post">
-                    <button type="submit" class="btn btn-outline-light w-100">Đăng xuất</button>
+                    <button type="submit" class="btn btn-outline-light w-100">@AdminText.T("Đăng xuất", "Logout", "ログアウト", "Abmelden")</button>
                 </form>
             </div>
         </aside>
 
         <div class="admin-main">
             <header class="admin-topbar">
-                <button type="button" class="menu-button" data-sidebar-toggle aria-label="Mở hoặc thu gọn sidebar">☰</button>
+                <button type="button" class="menu-button" data-sidebar-toggle aria-label="@AdminText.T("Mở hoặc thu gọn sidebar", "Toggle sidebar", "サイドバーを開閉", "Sidebar öffnen oder einklappen")">☰</button>
                 <div>
                     <div class="page-title">@ViewData["Title"]</div>
-                    <div class="page-subtitle">Phố ẩm thực Việt · CMS Admin</div>
+                    <div class="page-subtitle">@AdminText.T("Phố ẩm thực Việt · CMS Admin", "TravelApp Admin CMS", "TravelApp 管理 CMS", "TravelApp Admin-CMS")</div>
                 </div>
-                <div class="topbar-actions">
-                    <div class="topbar-status">Online</div>
+                <div class="topbar-actions d-flex align-items-center gap-2 flex-wrap">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            @(System.Globalization.CultureInfo.CurrentUICulture.Name switch
+                            {
+                                "vi-VN" => "VI",
+                                "en-US" => "EN",
+                                "ja-JP" => "日本語",
+                                "de-DE" => "DE",
+                                _ => "Lang"
+                            })
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <form asp-controller="Culture" asp-action="Set" method="post">
+                                    <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                                    <button type="submit" name="culture" value="vi-VN" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "vi-VN" ? "active" : string.Empty)">VI · Tiếng Việt</button>
+                                </form>
+                            </li>
+                            <li>
+                                <form asp-controller="Culture" asp-action="Set" method="post">
+                                    <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                                    <button type="submit" name="culture" value="en-US" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "en-US" ? "active" : string.Empty)">EN · English</button>
+                                </form>
+                            </li>
+                            <li>
+                                <form asp-controller="Culture" asp-action="Set" method="post">
+                                    <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                                    <button type="submit" name="culture" value="ja-JP" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "ja-JP" ? "active" : string.Empty)">日本語</button>
+                                </form>
+                            </li>
+                            <li>
+                                <form asp-controller="Culture" asp-action="Set" method="post">
+                                    <input type="hidden" name="redirectUri" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                                    <button type="submit" name="culture" value="de-DE" class="dropdown-item @(System.Globalization.CultureInfo.CurrentUICulture.Name == "de-DE" ? "active" : string.Empty)">DE · Deutsch</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="topbar-status">@AdminText.T("Online", "オンライン", "Online")</div>
                     <div class="user-chip">@User.Identity?.Name</div>
                 </div>
             </header>

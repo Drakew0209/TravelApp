@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelApp.NetworkSettingsPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource TravelPageLight}, Dark={StaticResource TravelPageDark}}">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid BackgroundColor="#E31667" Padding="16,48,16,16" ColumnDefinitions="40,*,40">
+            <Border WidthRequest="40"
+                    HeightRequest="40"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 20"
+                    BackgroundColor="#33FFFFFF">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding BackCommand}" />
+                </Border.GestureRecognizers>
+                <Path Data="M15.4,4.6L14,3.2L5.2,12L14,20.8L15.4,19.4L8,12L15.4,4.6Z"
+                      Fill="White"
+                      WidthRequest="16"
+                      HeightRequest="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="{Binding PageTitle}"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       FontSize="26"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="{Binding CurrentLanguageText}"
+                       TextColor="#FFF1F6"
+                       FontAttributes="Bold"
+                       FontSize="12"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="18,18,18,26" Spacing="16">
+                <Border Stroke="{AppThemeBinding Light=#E6E6EA, Dark=#2A2F3A}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                        Padding="16">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{Binding PageTitle}"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#1B1C22, Dark=#EEF1F8}" />
+                        <Label Text="{Binding DescriptionText}"
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light=#5A6070, Dark=#B4BDCF}" />
+                        <Button Text="{Binding AutoFillButtonText}"
+                                Command="{Binding AutoFillFromDevMachineCommand}"
+                                BackgroundColor="#E31667"
+                                TextColor="White"
+                                CornerRadius="16" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Stroke="{AppThemeBinding Light=#E6E6EA, Dark=#2A2F3A}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                        Padding="16">
+                    <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding ApiBaseUrlLabel}" FontSize="15" FontAttributes="Bold" TextColor="#D31963" />
+                            <Entry Text="{Binding ApiBaseUrl}"
+                                   Placeholder="http://192.168.1.10:5293/"
+                                   Keyboard="Url"
+                                   ClearButtonVisibility="WhileEditing"
+                                   BackgroundColor="{AppThemeBinding Light=#F7F8FB, Dark=#202635}"
+                                   TextColor="{AppThemeBinding Light=#1B1C22, Dark=#EEF1F8}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding PublicWebBaseUrlLabel}" FontSize="15" FontAttributes="Bold" TextColor="#D31963" />
+                            <Entry Text="{Binding PublicWebBaseUrl}"
+                                   Placeholder="http://192.168.1.10:5175/"
+                                   Keyboard="Url"
+                                   ClearButtonVisibility="WhileEditing"
+                                   BackgroundColor="{AppThemeBinding Light=#F7F8FB, Dark=#202635}"
+                                   TextColor="{AppThemeBinding Light=#1B1C22, Dark=#EEF1F8}" />
+                        </VerticalStackLayout>
+
+                        <Label Text="{Binding HintText}" FontSize="12" TextColor="{AppThemeBinding Light=#6E7380, Dark=#B4BDCF}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Stroke="{AppThemeBinding Light=#E6E6EA, Dark=#2A2F3A}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#181C24}"
+                        Padding="16">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{Binding StatusMessage}" FontSize="13" TextColor="{AppThemeBinding Light=#4D4D57, Dark=#B4BDCF}" LineBreakMode="WordWrap" />
+
+                        <HorizontalStackLayout Spacing="10">
+                            <Button Text="{Binding ResetButtonText}"
+                                    Command="{Binding ResetCommand}"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2F8, Dark=#202635}"
+                                    TextColor="{AppThemeBinding Light=#1B1C22, Dark=#EEF1F8}"
+                                    CornerRadius="16"
+                                    HorizontalOptions="FillAndExpand" />
+                            <Button Text="{Binding SaveButtonText}"
+                                    Command="{Binding SaveCommand}"
+                                    BackgroundColor="#E31667"
+                                    TextColor="White"
+                                    CornerRadius="16"
+                                    HorizontalOptions="FillAndExpand" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

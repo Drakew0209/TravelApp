@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using TravelApp.Application.Abstractions.Tours;
 using TravelApp.Application.Dtos.Pois;
 using TravelApp.Application.Dtos.Tours;
@@ -110,6 +111,7 @@ public class TourQueryService : ITourQueryService
         var localization = poi.Localizations.FirstOrDefault(x => string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
             ?? poi.Localizations.FirstOrDefault(x => string.Equals(x.LanguageCode, primaryLanguage, StringComparison.OrdinalIgnoreCase))
             ?? poi.Localizations.FirstOrDefault(x => string.Equals(x.LanguageCode, "en", StringComparison.OrdinalIgnoreCase));
+        var speechTexts = DeserializeSpeechTexts(poi.SpeechTextsJson);
 
         return new PoiMobileDto
         {
@@ -140,7 +142,32 @@ public class TourQueryService : ITourQueryService
                     IsGenerated = x.IsGenerated
                 })
                 .ToList()
+            ,
+            SpeechTexts = speechTexts
+                .Select(x => new PoiSpeechTextMobileDto
+                {
+                    LanguageCode = x.LanguageCode,
+                    Text = x.Text
+                })
+                .ToList()
         };
+    }
+
+    private static IReadOnlyList<PoiSpeechTextMobileDto> DeserializeSpeechTexts(string? speechTextsJson)
+    {
+        if (string.IsNullOrWhiteSpace(speechTextsJson))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<PoiSpeechTextMobileDto>>(speechTextsJson) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private static string NormalizeLanguageCode(string? languageCode)

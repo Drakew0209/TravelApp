@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using TravelApp.Models;
 using TravelApp.Models.Runtime;
+using TravelApp.Resources.Strings;
 using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 
@@ -13,7 +14,7 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
 {
     private readonly IBookmarkHistoryService _bookmarkHistoryService;
     private string _activeTab = "Bookmarks";
-    private string _statusText = "Đang tải...";
+    private string _statusText = AppStrings.Loading;
     private bool _isLoading;
 
     public ObservableCollection<PoiModel> Bookmarks { get; } = [];
@@ -24,6 +25,7 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
 
     public bool ShowBookmarks => IsBookmarksTabActive;
     public bool ShowHistory => IsHistoryTabActive;
+    public string CurrentLanguageText => $"{AppStrings.LanguagePrefix} {UserProfileService.GetLanguageDisplayText(UserProfileService.PreferredLanguage)}";
 
     public string StatusText
     {
@@ -55,8 +57,18 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
         }
     }
 
-    public string BookmarksTabText => $"Bookmarks ({Bookmarks.Count})";
-    public string HistoryTabText => $"History ({History.Count})";
+    public string PageTitle => AppStrings.BookmarksHistoryTitle;
+    public string BookmarksTabText => $"{AppStrings.BookmarksTab} ({Bookmarks.Count})";
+    public string HistoryTabText => $"{AppStrings.HistoryTab} ({History.Count})";
+    public string NoBookmarkedToursYetText => AppStrings.NoBookmarkedToursYet;
+    public string NoHistoryYetText => AppStrings.NoHistoryYet;
+    public string OpenText => AppStrings.Open;
+    public string UnsaveText => AppStrings.Unsave;
+    public string RemoveText => AppStrings.Remove;
+    public string ReadyText => AppStrings.Ready;
+    public string LoadingText => AppStrings.Loading;
+    public string CouldNotLoadDataFormat => AppStrings.CouldNotLoadData;
+    public string VisitedPrefixText => AppStrings.VisitedPrefix;
 
     public ICommand BackCommand { get; }
     public ICommand ShowBookmarksCommand { get; }
@@ -71,6 +83,7 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
     {
         _bookmarkHistoryService = bookmarkHistoryService;
         _bookmarkHistoryService.Changed += OnServiceChanged;
+        UserProfileService.ProfileChanged += OnProfileChanged;
 
         BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
         ShowBookmarksCommand = new Command(() => SetTab("Bookmarks"));
@@ -121,13 +134,14 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
 
                 OnPropertyChanged(nameof(BookmarksTabText));
                 OnPropertyChanged(nameof(HistoryTabText));
+                OnPropertyChanged(nameof(PageTitle));
 
-                StatusText = "Sẵn sàng";
+                StatusText = ReadyText;
             });
         }
         catch (Exception ex)
         {
-            StatusText = $"Không thể tải dữ liệu: {ex.Message}";
+            StatusText = string.Format(System.Globalization.CultureInfo.CurrentUICulture, CouldNotLoadDataFormat, ex.Message);
         }
         finally
         {
@@ -143,7 +157,7 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
         }
 
         await _bookmarkHistoryService.AddHistoryAsync(poi);
-        await Shell.Current.GoToAsync($"TourDetailPage?tourId={poi.Id}");
+        await Shell.Current.GoToAsync($"TourDetailPage?tourId={poi.Id}&lang={Uri.EscapeDataString(UserProfileService.PreferredLanguage)}");
     }
 
     private async Task ToggleBookmarkAsync(PoiModel? poi)
@@ -176,6 +190,22 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
         _ = RefreshAsync();
     }
 
+    private void OnProfileChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(BookmarksTabText));
+        OnPropertyChanged(nameof(HistoryTabText));
+        OnPropertyChanged(nameof(CurrentLanguageText));
+        OnPropertyChanged(nameof(NoBookmarkedToursYetText));
+        OnPropertyChanged(nameof(NoHistoryYetText));
+        OnPropertyChanged(nameof(OpenText));
+        OnPropertyChanged(nameof(UnsaveText));
+        OnPropertyChanged(nameof(RemoveText));
+        OnPropertyChanged(nameof(ReadyText));
+        OnPropertyChanged(nameof(LoadingText));
+        OnPropertyChanged(nameof(VisitedPrefixText));
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -186,5 +216,6 @@ public sealed class BookmarksHistoryViewModel : INotifyPropertyChanged, IDisposa
     public void Dispose()
     {
         _bookmarkHistoryService.Changed -= OnServiceChanged;
+        UserProfileService.ProfileChanged -= OnProfileChanged;
     }
 }

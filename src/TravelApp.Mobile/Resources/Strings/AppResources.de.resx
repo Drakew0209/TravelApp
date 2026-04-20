@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppName" xml:space="preserve"><value>TravelApp</value></data>
+  <data name="LoadingTitle" xml:space="preserve"><value>TravelApp wird gestartet...</value></data>
+  <data name="LoadingSubtitle" xml:space="preserve"><value>LAN-Endpunkt wird erkannt, um 10.0.2.2 zu vermeiden.</value></data>
+  <data name="ProfileTitle" xml:space="preserve"><value>Profil</value></data>
+  <data name="GreetingLoggedInFormat" xml:space="preserve"><value>Hallo, {0}</value></data>
+  <data name="WelcomeCardTitle" xml:space="preserve"><value>Willkommen bei TravelApp</value></data>
+  <data name="WelcomeCardSubtitle" xml:space="preserve"><value>Melden Sie sich an, um Downloads, Lesezeichen und Ihr Profil zu verwalten.</value></data>
+  <data name="SignIn" xml:space="preserve"><value>Anmelden</value></data>
+  <data name="SignOut" xml:space="preserve"><value>Abmelden</value></data>
+  <data name="MyAccount" xml:space="preserve"><value>Mein Konto</value></data>
+  <data name="EditProfile" xml:space="preserve"><value>Profil bearbeiten</value></data>
+  <data name="Downloads" xml:space="preserve"><value>Downloads</value></data>
+  <data name="Preferences" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Language" xml:space="preserve"><value>Sprache</value></data>
+  <data name="UserPreferences" xml:space="preserve"><value>Benutzereinstellungen</value></data>
+  <data name="LanUrlSettings" xml:space="preserve"><value>LAN-URL-Einstellungen</value></data>
+  <data name="BackupAndRestore" xml:space="preserve"><value>Sicherung &amp; Wiederherstellung</value></data>
+  <data name="BackupDescription" xml:space="preserve"><value>Exportieren Sie eine SQLite-Datei, um sie auf ein anderes Gerät zu kopieren oder als Sicherung aufzubewahren. Der Import lädt die vorhandene .db3-Datei.</value></data>
+  <data name="ExportDatabase" xml:space="preserve"><value>Datenbank exportieren</value></data>
+  <data name="ImportDatabase" xml:space="preserve"><value>Datenbank importieren</value></data>
+  <data name="ChooseAppLanguage" xml:space="preserve"><value>App-Sprache auswählen</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="LanguageUpdatedTitle" xml:space="preserve"><value>Sprache</value></data>
+  <data name="LanguageUpdatedMessage" xml:space="preserve"><value>App-Sprache auf {0} aktualisiert.</value></data>
+  <data name="LanguageUpdateFailed" xml:space="preserve"><value>Sprachaktualisierung fehlgeschlagen.</value></data>
+  <data name="LanguageHelp" xml:space="preserve"><value>Tippen, um die App-Sprache zu ändern.</value></data>
+  <data name="SignInToManageDownloadsBookmarksAndYourProfile" xml:space="preserve"><value>Melden Sie sich an, um Downloads, Lesezeichen und Ihr Profil zu verwalten.</value></data>
+  <data name="YourAccountIsReady" xml:space="preserve"><value>Ihr Konto ist bereit.</value></data>
+  <data name="BackupExportSuccess" xml:space="preserve"><value>Datenbank erfolgreich exportiert: {0}</value></data>
+  <data name="BackupExportFailed" xml:space="preserve"><value>Export fehlgeschlagen: {0}</value></data>
+  <data name="BackupImportSuccess" xml:space="preserve"><value>Datenbank erfolgreich importiert: {0}</value></data>
+  <data name="BackupImportFailed" xml:space="preserve"><value>Import fehlgeschlagen: {0}</value></data>
+  <data name="PleaseChooseLanguage" xml:space="preserve"><value>Bitte wählen Sie eine Sprache aus.</value></data>
+  <data name="ChooseLanguageFailed" xml:space="preserve"><value>Sprache konnte nicht geändert werden.</value></data>
+  <data name="LanguageApplied" xml:space="preserve"><value>Angewendet: {0}</value></data>
+  <data name="Explore" xml:space="preserve"><value>Entdecken</value></data>
+  <data name="Map" xml:space="preserve"><value>Karte</value></data>
+  <data name="NetworkSettingsTitle" xml:space="preserve"><value>LAN-URL-Einstellungen</value></data>
+  <data name="NetworkSettingsDescription" xml:space="preserve"><value>Geben Sie die LAN-IP des Computers ein, auf dem API und Public Web laufen. Beispiel: http://192.168.1.10:5293/ und http://192.168.1.10:5175/</value></data>
+  <data name="AutoFillFromDevMachine" xml:space="preserve"><value>Automatisch von der Entwickler-IP ausfüllen</value></data>
+  <data name="ApiBaseUrlLabel" xml:space="preserve"><value>API Base URL</value></data>
+  <data name="PublicWebBaseUrlLabel" xml:space="preserve"><value>Public Web URL</value></data>
+  <data name="NetworkSettingsHint" xml:space="preserve"><value>Nach dem Speichern verweisen QR-Codes in der App über das LAN auf Public Web.</value></data>
+  <data name="RestoreDefaults" xml:space="preserve"><value>Standardwerte wiederherstellen</value></data>
+  <data name="Save" xml:space="preserve"><value>Speichern</value></data>
+  <data name="NetworkSettingsSaved" xml:space="preserve"><value>LAN-URLs gespeichert. QR und App verwenden sofort die neue Konfiguration.</value></data>
+  <data name="NetworkSettingsReset" xml:space="preserve"><value>Standardwerte wiederhergestellt.</value></data>
+  <data name="NetworkSettingsAutoFillPrompt" xml:space="preserve"><value>Die Entwickler-IP im selben WLAN wird gesucht...</value></data>
+  <data name="NetworkSettingsAutoFillNotFound" xml:space="preserve"><value>Entwicklergerät nicht gefunden. Bitte LAN-IP manuell eingeben.</value></data>
+  <data name="NetworkSettingsAutoFillSuccessFormat" xml:space="preserve"><value>Mit IP {0} automatisch ausgefüllt.</value></data>
+  <data name="NetworkSettingsAutoFillFailedFormat" xml:space="preserve"><value>Automatisches Ausfüllen fehlgeschlagen: {0}</value></data>
+  <data name="NetworkSettingsInvalidApiUrl" xml:space="preserve"><value>Ungültige API-URL. Beispiel: http://192.168.1.10:5293/</value></data>
+  <data name="NetworkSettingsInvalidPublicUrl" xml:space="preserve"><value>Ungültige Public-Web-URL. Beispiel: http://192.168.1.10:5175/</value></data>
+  <data name="NetworkSettingsSaveFailedFormat" xml:space="preserve"><value>Speichern fehlgeschlagen: {0}</value></data>
+  <data name="LoginTitle" xml:space="preserve"><value>Anmelden</value></data>
+  <data name="LoginSubtitle" xml:space="preserve"><value>Genießen Sie kostenlose Audio-Touren und lösen Sie Punkte für kostenpflichtige Touren ein.</value></data>
+  <data name="EmailPlaceholder" xml:space="preserve"><value>E-Mail-Adresse eingeben *</value></data>
+  <data name="PasswordPlaceholder" xml:space="preserve"><value>Passwort *</value></data>
+  <data name="Show" xml:space="preserve"><value>Anzeigen</value></data>
+  <data name="Hide" xml:space="preserve"><value>Ausblenden</value></data>
+  <data name="NoAccountYet" xml:space="preserve"><value>Noch kein Konto?</value></data>
+  <data name="CreateOne" xml:space="preserve"><value>Eins erstellen</value></data>
+  <data name="SignInFailedTitle" xml:space="preserve"><value>Anmeldung fehlgeschlagen</value></data>
+  <data name="SignInFailedMessage" xml:space="preserve"><value>Anmeldung mit den aktuellen Anmeldedaten nicht möglich.</value></data>
+  <data name="ValidationTitle" xml:space="preserve"><value>Validierung</value></data>
+  <data name="ValidationEmailRequired" xml:space="preserve"><value>Bitte geben Sie Ihre E-Mail-Adresse ein.</value></data>
+  <data name="ValidationEmailInvalid" xml:space="preserve"><value>Bitte geben Sie eine gültige E-Mail-Adresse ein.</value></data>
+  <data name="ValidationPasswordRequired" xml:space="preserve"><value>Bitte geben Sie Ihr Passwort ein.</value></data>
+  <data name="RegisterTitle" xml:space="preserve"><value>Konto erstellen</value></data>
+  <data name="RegisterSubtitle" xml:space="preserve"><value>Einmal registrieren und sofort Offline-Audio, Tour-Routen und QR-Funktionen nutzen.</value></data>
+  <data name="FullNamePlaceholder" xml:space="preserve"><value>Vollständiger Name *</value></data>
+  <data name="ConfirmPasswordPlaceholder" xml:space="preserve"><value>Passwort bestätigen *</value></data>
+  <data name="CreateAccount" xml:space="preserve"><value>Konto erstellen</value></data>
+  <data name="AlreadyHaveAccount" xml:space="preserve"><value>Bereits ein Konto?</value></data>
+  <data name="RegisterFailedTitle" xml:space="preserve"><value>Registrierung fehlgeschlagen</value></data>
+  <data name="RegisterFailedMessage" xml:space="preserve"><value>Konto konnte nicht erstellt werden.</value></data>
+  <data name="ValidationFullName" xml:space="preserve"><value>Bitte geben Sie Ihren vollständigen Namen ein.</value></data>
+  <data name="ValidationPasswordStrength" xml:space="preserve"><value>Das Passwort muss mindestens 8 Zeichen lang sein und Groß-/Kleinbuchstaben, Zahl und Sonderzeichen enthalten.</value></data>
+  <data name="ValidationPasswordMismatch" xml:space="preserve"><value>Passwortbestätigung stimmt nicht überein.</value></data>
+  <data name="ExploreDestinations" xml:space="preserve"><value>Ziele erkunden</value></data>
+  <data name="AroundMe" xml:space="preserve"><value>In meiner Nähe</value></data>
+  <data name="PoiMap" xml:space="preserve"><value>POI-Karte</value></data>
+  <data name="MapView" xml:space="preserve"><value>Kartenansicht</value></data>
+  <data name="AudioNowPlaying" xml:space="preserve"><value>Audio wird abgespielt</value></data>
+  <data name="NowPlayingTitle" xml:space="preserve"><value>Wird abgespielt</value></data>
+  <data name="NoAudioPlaying" xml:space="preserve"><value>Kein Audio wird abgespielt</value></data>
+  <data name="CurrentLocation" xml:space="preserve"><value>Aktueller Standort</value></data>
+  <data name="LanguagePrefix" xml:space="preserve"><value>Sprache:</value></data>
+  <data name="Playing" xml:space="preserve"><value>Wird abgespielt</value></data>
+  <data name="Stopped" xml:space="preserve"><value>Angehalten</value></data>
+  <data name="Back" xml:space="preserve"><value>Zurück</value></data>
+  <data name="Stop" xml:space="preserve"><value>Stopp</value></data>
+  <data name="NoStoriesAvailable" xml:space="preserve"><value>Keine Geschichten verfügbar</value></data>
+  <data name="Start" xml:space="preserve"><value>Start</value></data>
+  <data name="MyProfile" xml:space="preserve"><value>Mein Profil</value></data>
+  <data name="History" xml:space="preserve"><value>Verlauf</value></data>
+  <data name="Bookmarks" xml:space="preserve"><value>Lesezeichen</value></data>
+  <data name="DebugConsole" xml:space="preserve"><value>Debug-Konsole</value></data>
+  <data name="FeaturedTours" xml:space="preserve"><value>Empfohlene Touren</value></data>
+  <data name="MoreTours" xml:space="preserve"><value>Weitere Touren</value></data>
+  <data name="Purchases" xml:space="preserve"><value>Downloads</value></data>
+  <data name="FreeWalk" xml:space="preserve"><value>Freier Spaziergang</value></data>
+  <data name="SearchDestinations" xml:space="preserve"><value>Ziele suchen</value></data>
+  <data name="SearchTitle" xml:space="preserve"><value>Suchen</value></data>
+  <data name="SearchPlaceholder" xml:space="preserve"><value>Ziele erkunden</value></data>
+  <data name="PopularDestinationsTitle" xml:space="preserve"><value>Beliebte Ziele</value></data>
+  <data name="SearchResultsTitle" xml:space="preserve"><value>Suchergebnisse</value></data>
+  <data name="FilterTitle" xml:space="preserve"><value>Filter</value></data>
+  <data name="PopularAndMostRatedGuides" xml:space="preserve"><value>Beliebte und am besten bewertete Guides</value></data>
+  <data name="FilterByCategory" xml:space="preserve"><value>Nach Kategorie filtern</value></data>
+  <data name="FilterByTourType" xml:space="preserve"><value>Nach Tourtyp filtern</value></data>
+  <data name="ApplyFilter" xml:space="preserve"><value>Filtern</value></data>
+  <data name="ClearFilters" xml:space="preserve"><value>Filter löschen</value></data>
+  <data name="CarTour" xml:space="preserve"><value>Autotour</value></data>
+  <data name="WalkingTour" xml:space="preserve"><value>Spaziergang</value></data>
+  <data name="BikeTour" xml:space="preserve"><value>Radtour</value></data>
+  <data name="BusTour" xml:space="preserve"><value>Bustour</value></data>
+  <data name="BoatTour" xml:space="preserve"><value>Bootstour</value></data>
+  <data name="RunningTour" xml:space="preserve"><value>Lauftour</value></data>
+  <data name="TrainTour" xml:space="preserve"><value>Zugtour</value></data>
+  <data name="HorseRidingTour" xml:space="preserve"><value>Reittour</value></data>
+  <data name="OpenNavigationMenu" xml:space="preserve"><value>Navigationsmenü öffnen</value></data>
+  <data name="ScanQrCode" xml:space="preserve"><value>QR-Code scannen</value></data>
+  <data name="CurrentLocationIndicator" xml:space="preserve"><value>Anzeige des aktuellen Standorts</value></data>
+  <data name="BookmarksHistoryTitle" xml:space="preserve"><value>Lesezeichen &amp; Verlauf</value></data>
+  <data name="BookmarksTab" xml:space="preserve"><value>Lesezeichen</value></data>
+  <data name="HistoryTab" xml:space="preserve"><value>Verlauf</value></data>
+  <data name="NoBookmarkedToursYet" xml:space="preserve"><value>Noch keine Lesezeichen-Touren</value></data>
+  <data name="NoHistoryYet" xml:space="preserve"><value>Noch kein Verlauf</value></data>
+  <data name="Open" xml:space="preserve"><value>Öffnen</value></data>
+  <data name="Unsave" xml:space="preserve"><value>Entfernen</value></data>
+  <data name="Remove" xml:space="preserve"><value>Entfernen</value></data>
+  <data name="Ready" xml:space="preserve"><value>Bereit</value></data>
+  <data name="Loading" xml:space="preserve"><value>Lädt...</value></data>
+  <data name="CouldNotLoadData" xml:space="preserve"><value>Daten konnten nicht geladen werden: {0}</value></data>
+  <data name="VisitedPrefix" xml:space="preserve"><value>Besucht:</value></data>
+  <data name="TourMapRouteTitle" xml:space="preserve"><value>Live-Tourroute</value></data>
+  <data name="LoadingRoute" xml:space="preserve"><value>Route wird geladen...</value></data>
+  <data name="NoWaypointTitle" xml:space="preserve"><value>Kein aktiver Wegpunkt</value></data>
+  <data name="GoToFirstPoint" xml:space="preserve"><value>Gehen Sie zum ersten Punkt, um zu beginnen</value></data>
+  <data name="RouteDistancePrefix" xml:space="preserve"><value>Entfernung des vorherigen Abschnitts:</value></data>
+  <data name="RouteStatusAtWaypoint" xml:space="preserve"><value>Am Punkt {0} • {1}</value></data>
+  <data name="RouteStopsLabel" xml:space="preserve"><value>Haltepunkte</value></data>
+  <data name="DebugRuntimeTitle" xml:space="preserve"><value>Debug-Runtime-Konsole</value></data>
+  <data name="DebugMode" xml:space="preserve"><value>Debug-Modus</value></data>
+  <data name="Clear" xml:space="preserve"><value>Leeren</value></data>
+  <data name="Logs" xml:space="preserve"><value>Protokolle</value></data>
+  <data name="On" xml:space="preserve"><value>EIN</value></data>
+  <data name="Off" xml:space="preserve"><value>AUS</value></data>
+  <data name="QrScannerTitle" xml:space="preserve"><value>QR-Tour scannen</value></data>
+  <data name="QrScannerSubtitle" xml:space="preserve"><value>Richten Sie einen QR-Code von der öffentlichen Webansicht in den Rahmen, um den richtigen POI oder die Tour-Details zu öffnen</value></data>
+  <data name="QrBackIcon" xml:space="preserve"><value>←</value></data>
+  <data name="QrGuideIcon" xml:space="preserve"><value>↗</value></data>
+  <data name="QrPromptPlaceholder" xml:space="preserve"><value>123 oder https://...poiId=123</value></data>
+  <data name="ReadyToReceiveQr" xml:space="preserve"><value>Bereit, QR von TravelApp Public zu empfangen</value></data>
+  <data name="CameraPermissionRequired" xml:space="preserve"><value>TravelApp benötigt Kameraberechtigung, um QR-Codes zu scannen.</value></data>
+  <data name="QrCodeTitle" xml:space="preserve"><value>QR</value></data>
+  <data name="QrScanInstruction" xml:space="preserve"><value>QR in den Rahmen halten</value></data>
+  <data name="WebAdminQr" xml:space="preserve"><value>QR aus dem Web-Admin öffnen</value></data>
+  <data name="OfflineOk" xml:space="preserve"><value>Offline OK</value></data>
+  <data name="PoiIdAndLang" xml:space="preserve"><value>poiId + lang</value></data>
+  <data name="EmulatorFallbackTitle" xml:space="preserve"><value>Fallback für Emulator / Debug</value></data>
+  <data name="PasteQrLink" xml:space="preserve"><value>QR-Link einfügen</value></data>
+  <data name="EnterQrManually" xml:space="preserve"><value>Manuell eingeben</value></data>
+  <data name="EmulatorFallbackDescription" xml:space="preserve"><value>Verwenden Sie dies, wenn der Emulator keinen Kamera-Feed hat. Fügen Sie eine URL/ID ein und die App öffnet die Tour-Details wie bei einem echten QR-Scan.</value></data>
+  <data name="ProcessingQr" xml:space="preserve"><value>QR aus dem Web-Admin wird verarbeitet...</value></data>
+  <data name="CannotReadPoiId" xml:space="preserve"><value>POI-ID konnte aus dem QR nicht gelesen werden.</value></data>
+  <data name="InvalidQrFormat" xml:space="preserve"><value>Dieser QR entspricht nicht dem Web-Admin-Format. Scannen Sie travelapp://poi/{id} oder einen Link mit poiId.</value></data>
+  <data name="QrOpenedPoiFormat" xml:space="preserve"><value>Web-Admin-QR gelesen • POI #{0}</value></data>
+  <data name="QrOpenError" xml:space="preserve"><value>Fehler beim Öffnen des QR.</value></data>
+  <data name="NoClipboardContent" xml:space="preserve"><value>Kein Inhalt zum Einfügen vorhanden.</value></data>
+  <data name="NotEnoughClipboardText" xml:space="preserve"><value>Zwischenablage</value></data>
+  <data name="Process" xml:space="preserve"><value>Verarbeiten</value></data>
+  <data name="TourDownloadTitle" xml:space="preserve"><value>Tour herunterladen</value></data>
+  <data name="DownloadTour" xml:space="preserve"><value>Tour herunterladen</value></data>
+  <data name="DownloadingAllTour" xml:space="preserve"><value>Gesamte Tour wird heruntergeladen</value></data>
+  <data name="QrShareTitle" xml:space="preserve"><value>Per QR teilen</value></data>
+  <data name="QrShareSubtitle" xml:space="preserve"><value>Scannen Sie den QR-Code, um den richtigen POI in der App zu öffnen. Funktioniert offline.</value></data>
+  <data name="WebAdminPayload" xml:space="preserve"><value>Web-Admin-Payload</value></data>
+  <data name="ShareLink" xml:space="preserve"><value>Link teilen</value></data>
+  <data name="CopyLink" xml:space="preserve"><value>Link kopieren</value></data>
+  <data name="Description" xml:space="preserve"><value>Beschreibung</value></data>
+  <data name="ProvidedBy" xml:space="preserve"><value>Bereitgestellt von</value></data>
+  <data name="SpeechLanguage" xml:space="preserve"><value>Sprachsprache</value></data>
+  <data name="SaveTtsText" xml:space="preserve"><value>TTS-Text speichern</value></data>
+  <data name="EnterSpeechTextPlaceholder" xml:space="preserve"><value>Geben Sie den Text ein, der bei der Audiowiedergabe gesprochen werden soll...</value></data>
+  <data name="SpeechTextPermissionNotice" xml:space="preserve"><value>Nur Benutzer mit der Rolle Owner oder Admin können TTS-Text direkt in der App bearbeiten.</value></data>
+  <data name="ViewTour" xml:space="preserve"><value>Tour ansehen</value></data>
+  <data name="ChooseTtsLanguage" xml:space="preserve"><value>TTS-Sprache auswählen</value></data>
+  <data name="BookmarkSavedMessage" xml:space="preserve"><value>Tour wurde zu den Lesezeichen hinzugefügt.</value></data>
+  <data name="BookmarkRemovedMessage" xml:space="preserve"><value>Tour wurde aus den Lesezeichen entfernt.</value></data>
+  <data name="BookmarkedBadge" xml:space="preserve"><value>Gespeichert</value></data>
+  <data name="TtsSavedMessage" xml:space="preserve"><value>TTS-Text wurde gespeichert.</value></data>
+  <data name="CouldNotSaveTtsText" xml:space="preserve"><value>TTS-Text konnte nicht gespeichert werden: {0}</value></data>
+  <data name="CouldNotUpdateBookmark" xml:space="preserve"><value>Lesezeichen konnte nicht aktualisiert werden: {0}</value></data>
+  <data name="CouldNotDownloadTour" xml:space="preserve"><value>Tour konnte nicht heruntergeladen werden: {0}</value></data>
+  <data name="ToQueueFormat" xml:space="preserve"><value>{0} wird zur Warteschlange hinzugefügt...</value></data>
+  <data name="QueuedFormat" xml:space="preserve"><value>{0}/{1} Audio-Dateien in die Warteschlange gestellt.</value></data>
+  <data name="AudioAlreadyAvailable" xml:space="preserve"><value>Audio ist bereits verfügbar oder wartet auf den Download.</value></data>
+  <data name="TourDownloadCompleted" xml:space="preserve"><value>Tour-Download abgeschlossen.</value></data>
+  <data name="AudioQueueText" xml:space="preserve"><value>{0}/{1} Audio</value></data>
+</root>

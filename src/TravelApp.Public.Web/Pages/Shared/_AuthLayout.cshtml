@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#D31963" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <title>@ViewData["Title"] - TravelApp Public</title>
+</head>
+<body class="auth-body">
+    @{ var text = PublicPageText.Current; }
+    <main class="auth-page-main">
+        <div class="auth-topbar">
+            <div class="auth-lang-switcher">
+            </div>
+        </div>
+
+        @RenderBody()
+    </main>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

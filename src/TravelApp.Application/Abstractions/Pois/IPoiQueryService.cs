@@ -9,4 +9,5 @@ public interface IPoiQueryService
     Task<PoiMobileDto> CreateAsync(UpsertPoiRequestDto request, CancellationToken cancellationToken = default);
     Task<bool> UpdateAsync(int id, UpsertPoiRequestDto request, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<int> BackfillSpeechTextsAsync(CancellationToken cancellationToken = default);
 }

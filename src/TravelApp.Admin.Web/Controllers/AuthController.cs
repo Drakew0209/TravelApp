@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using TravelApp.Admin.Web.Models;
 using TravelApp.Admin.Web.Models.Auth;
 using TravelApp.Admin.Web.Services;
 
@@ -37,7 +38,7 @@ public class AuthController : Controller
         if (!string.Equals(model.UserName, _credentials.UserName, StringComparison.OrdinalIgnoreCase)
             || model.Password != _credentials.Password)
         {
-            ModelState.AddModelError(string.Empty, "Sai tài khoản hoặc mật khẩu.");
+            ModelState.AddModelError(string.Empty, AdminText.T("Sai tài khoản hoặc mật khẩu.", "Invalid username or password.", "ユーザー名またはパスワードが正しくありません。", "Benutzername oder Passwort ist falsch."));
             return View(model);
         }
 

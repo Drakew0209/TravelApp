@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TravelApp.Services.Abstractions;
+using TravelApp.Services;
 using TravelApp.ViewModels;
 
 namespace TravelApp;
@@ -61,7 +62,8 @@ public partial class TourDetailPage : ContentPage, IQueryAttributable
     {
         if (query.TryGetValue("tourId", out var tourId))
         {
-            _viewModel.Load(tourId?.ToString());
+            var languageCode = query.TryGetValue("lang", out var lang) ? lang?.ToString() : null;
+            _viewModel.Load(tourId?.ToString(), languageCode);
         }
     }
 }

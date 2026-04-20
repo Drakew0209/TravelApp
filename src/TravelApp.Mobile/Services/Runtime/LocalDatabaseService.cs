@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SQLite;
 using TravelApp.Models.Contracts;
+using TravelApp.Models.Runtime;
 using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
 
@@ -13,9 +14,9 @@ public class LocalDatabaseService : ILocalDatabaseService
 
     private readonly SemaphoreSlim _initGate = new(1, 1);
     private readonly SemaphoreSlim _writeGate = new(1, 1);
-    private readonly string _databasePath = Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
     private readonly ApiClientOptions _apiOptions;
     private SQLiteAsyncConnection? _database;
+    private string? _currentDatabasePath;
 
     public LocalDatabaseService(ApiClientOptions apiOptions)
     {
@@ -205,8 +206,9 @@ public class LocalDatabaseService : ILocalDatabaseService
                 ? $"travelapp-local-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.db3"
                 : fileName.Trim();
             var destinationPath = Path.Combine(destinationDirectory, destinationFileName);
+            var sourcePath = GetDatabasePath();
 
-            File.Copy(_databasePath, destinationPath, true);
+            File.Copy(sourcePath, destinationPath, true);
             return destinationPath;
         }
         finally
@@ -233,9 +235,10 @@ public class LocalDatabaseService : ILocalDatabaseService
         {
             await CloseDatabaseAsync();
 
-            Directory.CreateDirectory(Path.GetDirectoryName(_databasePath)!);
-            DeleteSidecarFiles(_databasePath);
-            File.Copy(sourceFilePath, _databasePath, true);
+            var targetPath = GetDatabasePath();
+            Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+            DeleteSidecarFiles(targetPath);
+            File.Copy(sourceFilePath, targetPath, true);
 
             await EnsureInitializedAsync();
         }
@@ -258,6 +261,7 @@ public class LocalDatabaseService : ILocalDatabaseService
         cancellationToken.ThrowIfCancellationRequested();
 
         var match = metadata.FirstOrDefault(x => string.Equals(x.LanguageCode, normalizedLanguage, StringComparison.OrdinalIgnoreCase)
+                                                 && x.IsCompleted
                                                  && !string.IsNullOrWhiteSpace(x.LocalFilePath)
                                                  && File.Exists(x.LocalFilePath));
         if (match is not null)
@@ -265,7 +269,39 @@ public class LocalDatabaseService : ILocalDatabaseService
             return match.LocalFilePath;
         }
 
-        return metadata.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.LocalFilePath) && File.Exists(x.LocalFilePath))?.LocalFilePath;
+        return metadata.FirstOrDefault(x => x.IsCompleted && !string.IsNullOrWhiteSpace(x.LocalFilePath) && File.Exists(x.LocalFilePath))?.LocalFilePath;
+    }
+
+    public async Task<AudioDownloadCacheState?> GetAudioDownloadCacheStateAsync(int poiId, string languageCode, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var normalizedLanguage = NormalizeLanguage(languageCode);
+        var db = _database!;
+        var metadata = await db.Table<LocalPoiAudioMetadataEntity>()
+            .Where(x => x.PoiId == poiId && x.LanguageCode == normalizedLanguage)
+            .FirstOrDefaultAsync();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (metadata is null)
+        {
+            return null;
+        }
+
+        return new AudioDownloadCacheState
+        {
+            PoiId = metadata.PoiId,
+            LanguageCode = metadata.LanguageCode,
+            AudioUrl = metadata.AudioUrl,
+            LocalFilePath = metadata.LocalFilePath,
+            TempFilePath = metadata.TempFilePath,
+            CacheVersionToken = metadata.CacheVersionToken,
+            ContentHash = metadata.ContentHash,
+            BytesDownloaded = metadata.BytesDownloaded,
+            IsCompleted = metadata.IsCompleted,
+            UpdatedAtUtc = metadata.UpdatedAtUtc
+        };
     }
 
     public async Task SaveAudioMetadataAsync(
@@ -273,6 +309,11 @@ public class LocalDatabaseService : ILocalDatabaseService
         string languageCode,
         string? audioUrl,
         string? localFilePath,
+        string? tempFilePath = null,
+        string? cacheVersionToken = null,
+        string? contentHash = null,
+        long bytesDownloaded = 0,
+        bool isCompleted = true,
         CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
@@ -295,6 +336,11 @@ public class LocalDatabaseService : ILocalDatabaseService
 
             entity.AudioUrl = audioUrl;
             entity.LocalFilePath = localFilePath;
+            entity.TempFilePath = tempFilePath;
+            entity.CacheVersionToken = cacheVersionToken;
+            entity.ContentHash = contentHash;
+            entity.BytesDownloaded = bytesDownloaded;
+            entity.IsCompleted = isCompleted;
             entity.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
             await db.InsertOrReplaceAsync(entity);
@@ -307,7 +353,8 @@ public class LocalDatabaseService : ILocalDatabaseService
 
     private async Task EnsureInitializedAsync()
     {
-        if (_database is not null)
+        var targetPath = GetDatabasePath();
+        if (_database is not null && string.Equals(_currentDatabasePath, targetPath, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -315,12 +362,17 @@ public class LocalDatabaseService : ILocalDatabaseService
         await _initGate.WaitAsync();
         try
         {
-            if (_database is not null)
+            targetPath = GetDatabasePath();
+            if (_database is not null && string.Equals(_currentDatabasePath, targetPath, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            var connection = new SQLiteAsyncConnection(_databasePath);
+            await CloseDatabaseAsync();
+
+            Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+            MigrateLegacyScopedDatabaseIfNeeded(targetPath);
+            var connection = new SQLiteAsyncConnection(targetPath);
 
             await connection.CreateTableAsync<LocalPoiEntity>();
             await connection.CreateTableAsync<LocalPoiLocalizationEntity>();
@@ -330,8 +382,10 @@ public class LocalDatabaseService : ILocalDatabaseService
             await EnsurePoiSpeechTextColumnAsync(connection);
             await EnsurePoiSpeechTextsColumnAsync(connection);
             await EnsurePoiSpeechTextLanguageCodeColumnAsync(connection);
+            await EnsureAudioMetadataColumnsAsync(connection);
 
             _database = connection;
+            _currentDatabasePath = targetPath;
         }
         finally
         {
@@ -348,6 +402,7 @@ public class LocalDatabaseService : ILocalDatabaseService
 
         var database = _database;
         _database = null;
+        _currentDatabasePath = null;
 
         try
         {
@@ -356,6 +411,40 @@ public class LocalDatabaseService : ILocalDatabaseService
         catch
         {
         }
+    }
+
+    private static string GetDatabasePath()
+    {
+        return Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
+    }
+
+    private static void MigrateLegacyScopedDatabaseIfNeeded(string targetPath)
+    {
+        if (File.Exists(targetPath))
+        {
+            return;
+        }
+
+        var legacyRoot = Path.Combine(FileSystem.AppDataDirectory, "users");
+        if (!Directory.Exists(legacyRoot))
+        {
+            return;
+        }
+
+        var legacyCandidates = Directory.GetFiles(legacyRoot, DatabaseFileName, SearchOption.AllDirectories)
+            .Select(path => new FileInfo(path))
+            .Where(info => info.Exists && info.Length > 0)
+            .OrderByDescending(info => info.Length)
+            .ThenByDescending(info => info.LastWriteTimeUtc)
+            .ToList();
+
+        var legacy = legacyCandidates.FirstOrDefault();
+        if (legacy is null)
+        {
+            return;
+        }
+
+        File.Copy(legacy.FullName, targetPath, overwrite: false);
     }
 
     private void DeleteSidecarFiles(string databasePath)
@@ -485,6 +574,11 @@ public class LocalDatabaseService : ILocalDatabaseService
         public string? Transcript { get; set; }
         public bool IsGenerated { get; set; }
         public string? LocalFilePath { get; set; }
+        public string? TempFilePath { get; set; }
+        public string? CacheVersionToken { get; set; }
+        public string? ContentHash { get; set; }
+        public long BytesDownloaded { get; set; }
+        public bool IsCompleted { get; set; }
         public DateTimeOffset UpdatedAtUtc { get; set; }
     }
 
@@ -519,6 +613,36 @@ public class LocalDatabaseService : ILocalDatabaseService
         }
 
         await connection.ExecuteAsync("ALTER TABLE LocalPoi ADD COLUMN SpeechTextLanguageCode TEXT NULL");
+    }
+
+    private static async Task EnsureAudioMetadataColumnsAsync(SQLiteAsyncConnection connection)
+    {
+        var columns = await connection.QueryAsync<TableInfoRow>("PRAGMA table_info(LocalPoiAudioMetadata)");
+
+        if (!columns.Any(x => string.Equals(x.Name, "TempFilePath", StringComparison.OrdinalIgnoreCase)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE LocalPoiAudioMetadata ADD COLUMN TempFilePath TEXT NULL");
+        }
+
+        if (!columns.Any(x => string.Equals(x.Name, "CacheVersionToken", StringComparison.OrdinalIgnoreCase)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE LocalPoiAudioMetadata ADD COLUMN CacheVersionToken TEXT NULL");
+        }
+
+        if (!columns.Any(x => string.Equals(x.Name, "ContentHash", StringComparison.OrdinalIgnoreCase)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE LocalPoiAudioMetadata ADD COLUMN ContentHash TEXT NULL");
+        }
+
+        if (!columns.Any(x => string.Equals(x.Name, "BytesDownloaded", StringComparison.OrdinalIgnoreCase)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE LocalPoiAudioMetadata ADD COLUMN BytesDownloaded INTEGER NOT NULL DEFAULT 0");
+        }
+
+        if (!columns.Any(x => string.Equals(x.Name, "IsCompleted", StringComparison.OrdinalIgnoreCase)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE LocalPoiAudioMetadata ADD COLUMN IsCompleted INTEGER NOT NULL DEFAULT 1");
+        }
     }
 
     private static List<PoiSpeechTextMobileDto> DeserializeSpeechTexts(string? json)

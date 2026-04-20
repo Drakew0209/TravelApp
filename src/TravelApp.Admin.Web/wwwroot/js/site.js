@@ -179,10 +179,29 @@ const syncSpeechTextFields = (form, source) => {
         return;
     }
 
+    const titleInput = form.querySelector('[data-live-preview-input="Title"]');
+    const subtitleInput = form.querySelector('[data-live-preview-input="Subtitle"]');
+    const descriptionInput = form.querySelector('[data-live-preview-input="Description"]');
+    const primaryLanguageInput = form.querySelector('[data-live-preview-input="PrimaryLanguage"]');
     const languageSelect = form.querySelector('[data-speech-text-language-select="true"]');
     const speechTextInput = form.querySelector('[data-speech-text-input="true"]');
     const selectedLanguage = normalizeLanguageCode(languageSelect?.value);
     const rows = Array.from(form.querySelectorAll('[data-speech-text-row="true"]'));
+    const basicTitle = (titleInput?.value ?? '').trim();
+    const basicSubtitle = (subtitleInput?.value ?? '').trim();
+    const primaryLanguage = normalizeLanguageCode(primaryLanguageInput?.value);
+
+    const speechEntries = rows
+        .map((row) => ({
+            row,
+            language: normalizeLanguageCode(row.querySelector('[data-speech-text-row-language="true"]')?.value),
+            text: (row.querySelector('[data-speech-text-row-text="true"]')?.value ?? '').trim()
+        }))
+        .filter((x) => x.language && x.text);
+
+    if (speechEntries.length === 0) {
+        return;
+    }
 
     const selectedRow = rows.find((row) => {
         const rowLanguage = normalizeLanguageCode(row.querySelector('[data-speech-text-row-language="true"]')?.value);
@@ -210,9 +229,13 @@ const syncSpeechTextFields = (form, source) => {
         speechTextInput.value = rowText?.value ?? '';
     }
 
+    if (descriptionInput) {
+        descriptionInput.value = primarySpeechText;
+    }
+
     const preview = form.querySelector('[data-live-preview="speech-text"]');
     if (preview) {
-        preview.textContent = (speechTextInput?.value ?? '').trim() || 'Nội dung speech sẽ hiển thị ở đây';
+        preview.textContent = primarySpeechText || 'Nội dung speech sẽ hiển thị ở đây';
     }
 };
 
@@ -276,6 +299,19 @@ const syncAnchorPoiDetails = (root) => {
     }
 
     updateLivePreview(root);
+};
+
+const bindSpeechTextAutosync = (form) => {
+    if (!form) {
+        return;
+    }
+
+    form.querySelectorAll('[data-speech-text-row="true"]').forEach((row) => {
+        row.querySelectorAll('input, textarea, select').forEach((element) => {
+            element.addEventListener('input', () => syncSpeechTextFields(form, element));
+            element.addEventListener('change', () => syncSpeechTextFields(form, element));
+        });
+    });
 };
 
 const updatePoiPreviewCard = (card, row) => {
@@ -577,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('form[data-live-preview-form]').forEach((form) => {
         syncAnchorPoiDetails(form);
         syncSpeechTextFields(form);
+        bindSpeechTextAutosync(form);
         updateLivePreview(form);
     });
     document.querySelectorAll('[data-poi-index]').forEach((root) => updatePoiIndex(root));

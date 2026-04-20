@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Text;
 using TravelApp.Models;
 using TravelApp.Models.Contracts;
+using TravelApp.Resources.Strings;
 using TravelApp.Services;
 using TravelApp.Services.Api;
 using TravelApp.Services.Abstractions;
@@ -25,11 +26,25 @@ public class SearchViewModel : INotifyPropertyChanged
     private readonly ILocalDatabaseService _localDatabaseService;
     private readonly ApiClientOptions _apiOptions;
 
+    private static bool IsVietnamese => UserProfileService.PreferredLanguage.StartsWith("vi", StringComparison.OrdinalIgnoreCase);
+
     public ObservableCollection<SearchDestinationItem> PopularDestinations { get; }
     public ObservableCollection<SearchDestinationItem> SearchResults { get; }
     public ObservableCollection<TourTypeOption> TourTypes { get; }
 
-    public string SearchHeaderText => string.IsNullOrWhiteSpace(SearchQuery) ? "Popular Destinations" : "Search Results";
+    public string SearchTitleText => AppStrings.SearchTitle;
+    public string CurrentLanguageText => $"{AppStrings.LanguagePrefix} {UserProfileService.GetLanguageDisplayText(UserProfileService.PreferredLanguage)}";
+    public string SearchPlaceholderText => AppStrings.SearchPlaceholder;
+    public string SearchHeaderText => string.IsNullOrWhiteSpace(SearchQuery) ? AppStrings.PopularDestinationsTitle : AppStrings.SearchResultsTitle;
+    public string FilterTitleText => AppStrings.FilterTitle;
+    public string PopularMostRatedGuidesText => $"★   {AppStrings.PopularAndMostRatedGuides}";
+    public string FilterByCategoryText => $"▲   {AppStrings.FilterByCategory}";
+    public string FilterByTourTypeText => $"🅰   {AppStrings.FilterByTourType}";
+    public string TourCategoryText => IsVietnamese ? "Tour" : "Tour";
+    public string MuseumCategoryText => IsVietnamese ? "Bảo tàng" : "Museum";
+    public string QuestCategoryText => IsVietnamese ? "Nhiệm vụ" : "Quest";
+    public string ApplyFilterText => AppStrings.ApplyFilter;
+    public string ClearFiltersText => AppStrings.ClearFilters;
 
     public string SearchQuery
     {
@@ -121,15 +136,17 @@ public class SearchViewModel : INotifyPropertyChanged
         SearchResults = [];
         TourTypes = new ObservableCollection<TourTypeOption>
         {
-            new() { Name = "Car tour", IsSelected = true },
-            new() { Name = "Walking tour", IsSelected = true },
-            new() { Name = "Bike tour", IsSelected = true },
-            new() { Name = "Bus tour", IsSelected = true },
-            new() { Name = "Boat tour", IsSelected = true },
-            new() { Name = "Running tour", IsSelected = true },
-            new() { Name = "Train tour", IsSelected = true },
-            new() { Name = "Horse riding tour", IsSelected = true }
+            new() { Name = AppStrings.CarTour, IsSelected = true },
+            new() { Name = AppStrings.WalkingTour, IsSelected = true },
+            new() { Name = AppStrings.BikeTour, IsSelected = true },
+            new() { Name = AppStrings.BusTour, IsSelected = true },
+            new() { Name = AppStrings.BoatTour, IsSelected = true },
+            new() { Name = AppStrings.RunningTour, IsSelected = true },
+            new() { Name = AppStrings.TrainTour, IsSelected = true },
+            new() { Name = AppStrings.HorseRidingTour, IsSelected = true }
         };
+
+        UserProfileService.ProfileChanged += OnProfileChanged;
 
         BackCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
         OpenFilterCommand = new Command(() => IsFilterOpen = true);
@@ -153,6 +170,42 @@ public class SearchViewModel : INotifyPropertyChanged
                 type.IsSelected = false;
             }
         });
+
+        _ = LoadDestinationsAsync();
+    }
+
+    private void OnProfileChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(SearchTitleText));
+        OnPropertyChanged(nameof(CurrentLanguageText));
+        OnPropertyChanged(nameof(SearchPlaceholderText));
+        OnPropertyChanged(nameof(SearchHeaderText));
+        OnPropertyChanged(nameof(FilterTitleText));
+        OnPropertyChanged(nameof(PopularMostRatedGuidesText));
+        OnPropertyChanged(nameof(FilterByCategoryText));
+        OnPropertyChanged(nameof(FilterByTourTypeText));
+        OnPropertyChanged(nameof(TourCategoryText));
+        OnPropertyChanged(nameof(MuseumCategoryText));
+        OnPropertyChanged(nameof(QuestCategoryText));
+        OnPropertyChanged(nameof(ApplyFilterText));
+        OnPropertyChanged(nameof(ClearFiltersText));
+
+        var localizedTourTypes = new[]
+        {
+            AppStrings.CarTour,
+            AppStrings.WalkingTour,
+            AppStrings.BikeTour,
+            AppStrings.BusTour,
+            AppStrings.BoatTour,
+            AppStrings.RunningTour,
+            AppStrings.TrainTour,
+            AppStrings.HorseRidingTour
+        };
+
+        for (var i = 0; i < TourTypes.Count && i < localizedTourTypes.Length; i++)
+        {
+            TourTypes[i].Name = localizedTourTypes[i];
+        }
 
         _ = LoadDestinationsAsync();
     }
@@ -377,18 +430,8 @@ public class SearchViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!AuthStateService.IsLoggedIn)
-        {
-            if (Shell.Current is not null)
-            {
-                await Shell.Current.DisplayAlert("Login Required", "Please sign in to view tour details.", "OK");
-                await Shell.Current.GoToAsync("LoginPage");
-            }
-
-            return;
-        }
-
-        await Shell.Current.GoToAsync($"TourDetailPage?tourId={item.FirstPoiId}");
+        var languageCode = Uri.EscapeDataString(UserProfileService.PreferredLanguage);
+        await Shell.Current.GoToAsync($"TourDetailPage?tourId={item.FirstPoiId}&lang={languageCode}");
     }
 
     private static string NormalizeText(string? value)
@@ -433,8 +476,18 @@ public class SearchDestinationItem
 public class TourTypeOption : INotifyPropertyChanged
 {
     private bool _isSelected;
+    private string _name = string.Empty;
 
-    public required string Name { get; set; }
+    public required string Name
+    {
+        get => _name;
+        set
+        {
+            if (_name == value) return;
+            _name = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+        }
+    }
 
     public bool IsSelected
     {

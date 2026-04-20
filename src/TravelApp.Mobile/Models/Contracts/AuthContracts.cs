@@ -12,4 +12,5 @@ public record AuthResultDto(
     DateTimeOffset? ExpiresAtUtc,
     string TokenType = "Bearer",
     string? UserId = null,
-    IReadOnlyList<string>? Roles = null);
+    IReadOnlyList<string>? Roles = null,
+    string? FullName = null);

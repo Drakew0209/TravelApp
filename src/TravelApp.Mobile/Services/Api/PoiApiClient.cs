@@ -18,7 +18,9 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
             : $"api/pois?lang={Uri.EscapeDataString(languageCode)}";
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
-        return NormalizePois(await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? []);
+        var page = await ReadAsAsync<PagedResultDto<PoiMobileDto>>(response, cancellationToken);
+        var items = (page?.Items ?? []).Select(MapToPoiDto).ToList();
+        return NormalizePois(items);
     }
 
     public async Task<IReadOnlyList<PoiDto>> GetNearbyAsync(NearbyPoiQueryDto query, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -32,7 +34,9 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
         }
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, $"api/pois?{queryString}"), cancellationToken: cancellationToken);
-        return NormalizePois(await ReadAsAsync<List<PoiDto>>(response, cancellationToken) ?? []);
+        var page = await ReadAsAsync<PagedResultDto<PoiMobileDto>>(response, cancellationToken);
+        var items = (page?.Items ?? []).Select(MapToPoiDto).ToList();
+        return NormalizePois(items);
     }
 
     public async Task<PoiDto?> GetByIdAsync(int id, string? languageCode = null, CancellationToken cancellationToken = default)
@@ -42,7 +46,8 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
             : $"api/pois/{id}?lang={Uri.EscapeDataString(languageCode)}";
 
         var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, endpoint), cancellationToken: cancellationToken);
-        return NormalizePoi(await ReadAsAsync<PoiDto>(response, cancellationToken));
+        var poi = await ReadAsAsync<PoiMobileDto>(response, cancellationToken);
+        return NormalizePoi(MapToPoiDto(poi));
     }
 
     public async Task<PoiDto?> CreateAsync(UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
@@ -51,7 +56,8 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
         {
             Content = JsonContent.Create(request, options: JsonOptions)
         }, authorized: true, cancellationToken);
-        return NormalizePoi(await ReadAsAsync<PoiDto>(response, cancellationToken));
+        var poi = await ReadAsAsync<PoiMobileDto>(response, cancellationToken);
+        return NormalizePoi(MapToPoiDto(poi));
     }
 
     public async Task<bool> UpdateAsync(int id, UpsertPoiRequestDto request, CancellationToken cancellationToken = default)
@@ -88,5 +94,42 @@ public class PoiApiClient : ApiClientBase, IPoiApiClient
         }
 
         return pois;
+    }
+
+    private static PoiDto MapToPoiDto(PoiMobileDto? poi)
+    {
+        if (poi is null)
+        {
+            return new PoiDto
+            {
+                Id = 0,
+                Title = string.Empty,
+                ImageUrl = string.Empty,
+                Location = string.Empty
+            };
+        }
+
+        return new PoiDto
+        {
+            Id = poi.Id,
+            Title = poi.Title,
+            Subtitle = poi.Subtitle,
+            ImageUrl = poi.ImageUrl,
+            Location = poi.Location,
+            Latitude = poi.Latitude,
+            Longitude = poi.Longitude,
+            Distance = poi.DistanceMeters.HasValue ? $"{poi.DistanceMeters.Value:F0} m" : string.Empty,
+            Duration = string.Empty,
+            Description = poi.Description,
+            Provider = null,
+            Credit = null,
+            Category = poi.Category,
+            PrimaryLanguage = poi.PrimaryLanguage,
+            SpeechText = poi.SpeechText,
+            SpeechTextLanguageCode = poi.SpeechTextLanguageCode,
+            UpdatedAtUtc = poi.UpdatedAtUtc,
+            AudioAssets = poi.AudioAssets.Select(x => new PoiAudioDto(x.LanguageCode, x.AudioUrl, x.Transcript, x.IsGenerated)).ToList(),
+            SpeechTexts = poi.SpeechTexts.Select(x => new PoiSpeechTextDto(x.LanguageCode, x.Text)).ToList()
+        };
     }
 }

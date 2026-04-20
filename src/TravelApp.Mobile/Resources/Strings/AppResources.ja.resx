@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppName" xml:space="preserve"><value>TravelApp</value></data>
+  <data name="LoadingTitle" xml:space="preserve"><value>TravelApp を初期化しています...</value></data>
+  <data name="LoadingSubtitle" xml:space="preserve"><value>10.0.2.2 を避けるため LAN エンドポイントを検出しています。</value></data>
+  <data name="ProfileTitle" xml:space="preserve"><value>プロフィール</value></data>
+  <data name="GreetingLoggedInFormat" xml:space="preserve"><value>こんにちは、{0}</value></data>
+  <data name="WelcomeCardTitle" xml:space="preserve"><value>TravelApp へようこそ</value></data>
+  <data name="WelcomeCardSubtitle" xml:space="preserve"><value>ダウンロード、ブックマーク、プロフィールを管理するにはサインインしてください。</value></data>
+  <data name="SignIn" xml:space="preserve"><value>サインイン</value></data>
+  <data name="SignOut" xml:space="preserve"><value>サインアウト</value></data>
+  <data name="MyAccount" xml:space="preserve"><value>マイアカウント</value></data>
+  <data name="EditProfile" xml:space="preserve"><value>プロフィールを編集</value></data>
+  <data name="Downloads" xml:space="preserve"><value>ダウンロード</value></data>
+  <data name="Preferences" xml:space="preserve"><value>設定</value></data>
+  <data name="Language" xml:space="preserve"><value>言語</value></data>
+  <data name="UserPreferences" xml:space="preserve"><value>ユーザー設定</value></data>
+  <data name="LanUrlSettings" xml:space="preserve"><value>LAN URL 設定</value></data>
+  <data name="BackupAndRestore" xml:space="preserve"><value>バックアップ &amp; 復元</value></data>
+  <data name="BackupDescription" xml:space="preserve"><value>SQLite ファイルをエクスポートして別のデバイスへコピーしたり、バックアップとして保存できます。インポートでは既存の .db3 ファイルを読み込みます。</value></data>
+  <data name="ExportDatabase" xml:space="preserve"><value>データベースをエクスポート</value></data>
+  <data name="ImportDatabase" xml:space="preserve"><value>データベースをインポート</value></data>
+  <data name="ChooseAppLanguage" xml:space="preserve"><value>アプリの言語を選択</value></data>
+  <data name="Cancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="LanguageUpdatedTitle" xml:space="preserve"><value>言語</value></data>
+  <data name="LanguageUpdatedMessage" xml:space="preserve"><value>アプリの言語を {0} に更新しました。</value></data>
+  <data name="LanguageUpdateFailed" xml:space="preserve"><value>言語の更新に失敗しました。</value></data>
+  <data name="LanguageHelp" xml:space="preserve"><value>タップしてアプリの言語を変更します。</value></data>
+  <data name="SignInToManageDownloadsBookmarksAndYourProfile" xml:space="preserve"><value>ダウンロード、ブックマーク、プロフィールを管理するにはサインインしてください。</value></data>
+  <data name="YourAccountIsReady" xml:space="preserve"><value>アカウントの準備ができました。</value></data>
+  <data name="BackupExportSuccess" xml:space="preserve"><value>データベースを正常にエクスポートしました: {0}</value></data>
+  <data name="BackupExportFailed" xml:space="preserve"><value>エクスポートに失敗しました: {0}</value></data>
+  <data name="BackupImportSuccess" xml:space="preserve"><value>データベースを正常にインポートしました: {0}</value></data>
+  <data name="BackupImportFailed" xml:space="preserve"><value>インポートに失敗しました: {0}</value></data>
+  <data name="PleaseChooseLanguage" xml:space="preserve"><value>言語を選択してください。</value></data>
+  <data name="ChooseLanguageFailed" xml:space="preserve"><value>言語を変更できませんでした。</value></data>
+  <data name="LanguageApplied" xml:space="preserve"><value>適用済み: {0}</value></data>
+  <data name="Explore" xml:space="preserve"><value>探索</value></data>
+  <data name="Map" xml:space="preserve"><value>地図</value></data>
+  <data name="NetworkSettingsTitle" xml:space="preserve"><value>LAN URL 設定</value></data>
+  <data name="NetworkSettingsDescription" xml:space="preserve"><value>API と Public Web を実行している PC の LAN IP アドレスを入力してください。例: http://192.168.1.10:5293/ と http://192.168.1.10:5175/</value></data>
+  <data name="AutoFillFromDevMachine" xml:space="preserve"><value>開発用 PC の IP から自動入力</value></data>
+  <data name="ApiBaseUrlLabel" xml:space="preserve"><value>API Base URL</value></data>
+  <data name="PublicWebBaseUrlLabel" xml:space="preserve"><value>Public Web URL</value></data>
+  <data name="NetworkSettingsHint" xml:space="preserve"><value>保存後、アプリ内の QR は LAN 経由で Public Web を指します。</value></data>
+  <data name="RestoreDefaults" xml:space="preserve"><value>既定値に戻す</value></data>
+  <data name="Save" xml:space="preserve"><value>保存</value></data>
+  <data name="NetworkSettingsSaved" xml:space="preserve"><value>LAN URL を保存しました。QR とアプリは直ちに新しい設定を使用します。</value></data>
+  <data name="NetworkSettingsReset" xml:space="preserve"><value>既定値を復元しました。</value></data>
+  <data name="NetworkSettingsAutoFillPrompt" xml:space="preserve"><value>同じ Wi‑Fi 上の開発用 PC の IP を検索しています...</value></data>
+  <data name="NetworkSettingsAutoFillNotFound" xml:space="preserve"><value>開発用 PC が見つかりませんでした。LAN IP を手動で入力してください。</value></data>
+  <data name="NetworkSettingsAutoFillSuccessFormat" xml:space="preserve"><value>IP {0} で自動入力しました。</value></data>
+  <data name="NetworkSettingsAutoFillFailedFormat" xml:space="preserve"><value>自動入力に失敗しました: {0}</value></data>
+  <data name="NetworkSettingsInvalidApiUrl" xml:space="preserve"><value>API URL が無効です。例: http://192.168.1.10:5293/</value></data>
+  <data name="NetworkSettingsInvalidPublicUrl" xml:space="preserve"><value>Public Web URL が無効です。例: http://192.168.1.10:5175/</value></data>
+  <data name="NetworkSettingsSaveFailedFormat" xml:space="preserve"><value>保存に失敗しました: {0}</value></data>
+  <data name="LoginTitle" xml:space="preserve"><value>サインイン</value></data>
+  <data name="LoginSubtitle" xml:space="preserve"><value>無料の音声ガイドツアーを手軽に楽しみ、ポイントを使って有料ツアーを利用できます。</value></data>
+  <data name="EmailPlaceholder" xml:space="preserve"><value>メールアドレスを入力してください *</value></data>
+  <data name="PasswordPlaceholder" xml:space="preserve"><value>パスワード *</value></data>
+  <data name="Show" xml:space="preserve"><value>表示</value></data>
+  <data name="Hide" xml:space="preserve"><value>非表示</value></data>
+  <data name="NoAccountYet" xml:space="preserve"><value>アカウントをお持ちでないですか？</value></data>
+  <data name="CreateOne" xml:space="preserve"><value>作成する</value></data>
+  <data name="SignInFailedTitle" xml:space="preserve"><value>サインインに失敗しました</value></data>
+  <data name="SignInFailedMessage" xml:space="preserve"><value>現在の認証情報ではサインインできません。</value></data>
+  <data name="ValidationTitle" xml:space="preserve"><value>検証</value></data>
+  <data name="ValidationEmailRequired" xml:space="preserve"><value>メールアドレスを入力してください。</value></data>
+  <data name="ValidationEmailInvalid" xml:space="preserve"><value>有効なメールアドレスを入力してください。</value></data>
+  <data name="ValidationPasswordRequired" xml:space="preserve"><value>パスワードを入力してください。</value></data>
+  <data name="RegisterTitle" xml:space="preserve"><value>アカウント作成</value></data>
+  <data name="RegisterSubtitle" xml:space="preserve"><value>一度登録すれば、オフライン音声、ツアールート、QR 機能をすぐに使えます。</value></data>
+  <data name="FullNamePlaceholder" xml:space="preserve"><value>氏名 *</value></data>
+  <data name="ConfirmPasswordPlaceholder" xml:space="preserve"><value>パスワードを確認 *</value></data>
+  <data name="CreateAccount" xml:space="preserve"><value>アカウントを作成</value></data>
+  <data name="AlreadyHaveAccount" xml:space="preserve"><value>すでにアカウントをお持ちですか？</value></data>
+  <data name="RegisterFailedTitle" xml:space="preserve"><value>登録に失敗しました</value></data>
+  <data name="RegisterFailedMessage" xml:space="preserve"><value>アカウントを作成できませんでした。</value></data>
+  <data name="ValidationFullName" xml:space="preserve"><value>氏名を入力してください。</value></data>
+  <data name="ValidationPasswordStrength" xml:space="preserve"><value>パスワードは 8 文字以上で、大文字・小文字・数字・記号を含める必要があります。</value></data>
+  <data name="ValidationPasswordMismatch" xml:space="preserve"><value>パスワード確認が一致しません。</value></data>
+  <data name="ExploreDestinations" xml:space="preserve"><value>目的地を探索</value></data>
+  <data name="AroundMe" xml:space="preserve"><value>周辺</value></data>
+  <data name="PoiMap" xml:space="preserve"><value>POI マップ</value></data>
+  <data name="MapView" xml:space="preserve"><value>マップ表示</value></data>
+  <data name="AudioNowPlaying" xml:space="preserve"><value>音声再生中</value></data>
+  <data name="NowPlayingTitle" xml:space="preserve"><value>再生中</value></data>
+  <data name="NoAudioPlaying" xml:space="preserve"><value>音声は再生されていません</value></data>
+  <data name="CurrentLocation" xml:space="preserve"><value>現在地</value></data>
+  <data name="LanguagePrefix" xml:space="preserve"><value>言語:</value></data>
+  <data name="Playing" xml:space="preserve"><value>再生中</value></data>
+  <data name="Stopped" xml:space="preserve"><value>停止済み</value></data>
+  <data name="Back" xml:space="preserve"><value>戻る</value></data>
+  <data name="Stop" xml:space="preserve"><value>停止</value></data>
+  <data name="NoStoriesAvailable" xml:space="preserve"><value>利用できるストーリーはありません</value></data>
+  <data name="Start" xml:space="preserve"><value>開始</value></data>
+  <data name="MyProfile" xml:space="preserve"><value>マイプロフィール</value></data>
+  <data name="History" xml:space="preserve"><value>履歴</value></data>
+  <data name="Bookmarks" xml:space="preserve"><value>ブックマーク</value></data>
+  <data name="DebugConsole" xml:space="preserve"><value>デバッグコンソール</value></data>
+  <data name="FeaturedTours" xml:space="preserve"><value>注目のツアー</value></data>
+  <data name="MoreTours" xml:space="preserve"><value>さらにツアー</value></data>
+  <data name="Purchases" xml:space="preserve"><value>ダウンロード</value></data>
+  <data name="FreeWalk" xml:space="preserve"><value>無料ウォーク</value></data>
+  <data name="SearchDestinations" xml:space="preserve"><value>目的地を検索</value></data>
+  <data name="SearchTitle" xml:space="preserve"><value>検索</value></data>
+  <data name="SearchPlaceholder" xml:space="preserve"><value>目的地を探索</value></data>
+  <data name="PopularDestinationsTitle" xml:space="preserve"><value>人気の目的地</value></data>
+  <data name="SearchResultsTitle" xml:space="preserve"><value>検索結果</value></data>
+  <data name="FilterTitle" xml:space="preserve"><value>フィルター</value></data>
+  <data name="PopularAndMostRatedGuides" xml:space="preserve"><value>人気・高評価のガイド</value></data>
+  <data name="FilterByCategory" xml:space="preserve"><value>カテゴリで絞り込み</value></data>
+  <data name="FilterByTourType" xml:space="preserve"><value>ツアー種別で絞り込み</value></data>
+  <data name="ApplyFilter" xml:space="preserve"><value>絞り込む</value></data>
+  <data name="ClearFilters" xml:space="preserve"><value>フィルターをクリア</value></data>
+  <data name="CarTour" xml:space="preserve"><value>車ツアー</value></data>
+  <data name="WalkingTour" xml:space="preserve"><value>徒歩ツアー</value></data>
+  <data name="BikeTour" xml:space="preserve"><value>自転車ツアー</value></data>
+  <data name="BusTour" xml:space="preserve"><value>バスツアー</value></data>
+  <data name="BoatTour" xml:space="preserve"><value>ボートツアー</value></data>
+  <data name="RunningTour" xml:space="preserve"><value>ランニングツアー</value></data>
+  <data name="TrainTour" xml:space="preserve"><value>列車ツアー</value></data>
+  <data name="HorseRidingTour" xml:space="preserve"><value>乗馬ツアー</value></data>
+  <data name="OpenNavigationMenu" xml:space="preserve"><value>ナビゲーションメニューを開く</value></data>
+  <data name="ScanQrCode" xml:space="preserve"><value>QR コードをスキャン</value></data>
+  <data name="CurrentLocationIndicator" xml:space="preserve"><value>現在地インジケーター</value></data>
+  <data name="BookmarksHistoryTitle" xml:space="preserve"><value>ブックマーク &amp; 履歴</value></data>
+  <data name="BookmarksTab" xml:space="preserve"><value>ブックマーク</value></data>
+  <data name="HistoryTab" xml:space="preserve"><value>履歴</value></data>
+  <data name="NoBookmarkedToursYet" xml:space="preserve"><value>ブックマークされたツアーはまだありません</value></data>
+  <data name="NoHistoryYet" xml:space="preserve"><value>履歴はまだありません</value></data>
+  <data name="Open" xml:space="preserve"><value>開く</value></data>
+  <data name="Unsave" xml:space="preserve"><value>保存解除</value></data>
+  <data name="Remove" xml:space="preserve"><value>削除</value></data>
+  <data name="Ready" xml:space="preserve"><value>準備完了</value></data>
+  <data name="Loading" xml:space="preserve"><value>読み込み中...</value></data>
+  <data name="CouldNotLoadData" xml:space="preserve"><value>データを読み込めませんでした: {0}</value></data>
+  <data name="VisitedPrefix" xml:space="preserve"><value>閲覧:</value></data>
+  <data name="TourMapRouteTitle" xml:space="preserve"><value>ライブツアルート</value></data>
+  <data name="LoadingRoute" xml:space="preserve"><value>ルートを読み込み中...</value></data>
+  <data name="NoWaypointTitle" xml:space="preserve"><value>アクティブなウェイポイントはありません</value></data>
+  <data name="GoToFirstPoint" xml:space="preserve"><value>開始するには最初の地点へ移動してください</value></data>
+  <data name="RouteDistancePrefix" xml:space="preserve"><value>前区間の距離:</value></data>
+  <data name="RouteStatusAtWaypoint" xml:space="preserve"><value>{0} 番目の地点 • {1}</value></data>
+  <data name="RouteStopsLabel" xml:space="preserve"><value>停止地点</value></data>
+  <data name="DebugRuntimeTitle" xml:space="preserve"><value>デバッグランタイムコンソール</value></data>
+  <data name="DebugMode" xml:space="preserve"><value>デバッグモード</value></data>
+  <data name="Clear" xml:space="preserve"><value>クリア</value></data>
+  <data name="Logs" xml:space="preserve"><value>ログ</value></data>
+  <data name="On" xml:space="preserve"><value>ON</value></data>
+  <data name="Off" xml:space="preserve"><value>OFF</value></data>
+  <data name="QrScannerTitle" xml:space="preserve"><value>QR ツアーをスキャン</value></data>
+  <data name="QrScannerSubtitle" xml:space="preserve"><value>公開 Web の QR を枠に合わせると、正しい POI またはツアー詳細を開きます</value></data>
+  <data name="QrBackIcon" xml:space="preserve"><value>←</value></data>
+  <data name="QrGuideIcon" xml:space="preserve"><value>↗</value></data>
+  <data name="QrPromptPlaceholder" xml:space="preserve"><value>123 または https://...poiId=123</value></data>
+  <data name="ReadyToReceiveQr" xml:space="preserve"><value>TravelApp Public の QR を受け取る準備ができました</value></data>
+  <data name="CameraPermissionRequired" xml:space="preserve"><value>QR コードをスキャンするにはカメラ権限が必要です。</value></data>
+  <data name="QrCodeTitle" xml:space="preserve"><value>QR</value></data>
+  <data name="QrScanInstruction" xml:space="preserve"><value>QR を枠内に合わせてください</value></data>
+  <data name="WebAdminQr" xml:space="preserve"><value>web-admin の QR を開く</value></data>
+  <data name="OfflineOk" xml:space="preserve"><value>オフライン可</value></data>
+  <data name="PoiIdAndLang" xml:space="preserve"><value>poiId + lang</value></data>
+  <data name="EmulatorFallbackTitle" xml:space="preserve"><value>エミュレーター / デバッグ用フォールバック</value></data>
+  <data name="PasteQrLink" xml:space="preserve"><value>QR リンクを貼り付け</value></data>
+  <data name="EnterQrManually" xml:space="preserve"><value>手動で入力</value></data>
+  <data name="EmulatorFallbackDescription" xml:space="preserve"><value>エミュレーターにカメラ入力がない場合に使用します。URL/ID を貼り付けると、実際の QR スキャンと同様にツアー詳細を開きます。</value></data>
+  <data name="ProcessingQr" xml:space="preserve"><value>web-admin の QR を処理しています...</value></data>
+  <data name="CannotReadPoiId" xml:space="preserve"><value>QR から POI ID を読み取れません。</value></data>
+  <data name="InvalidQrFormat" xml:space="preserve"><value>この QR は web-admin 形式ではありません。travelapp://poi/{id} または poiId を含むリンクをスキャンしてください。</value></data>
+  <data name="QrOpenedPoiFormat" xml:space="preserve"><value>web-admin の QR を読み取りました • POI #{0}</value></data>
+  <data name="QrOpenError" xml:space="preserve"><value>QR を開く際にエラーが発生しました。</value></data>
+  <data name="NoClipboardContent" xml:space="preserve"><value>貼り付ける内容がありません。</value></data>
+  <data name="NotEnoughClipboardText" xml:space="preserve"><value>クリップボード</value></data>
+  <data name="Process" xml:space="preserve"><value>処理</value></data>
+  <data name="TourDownloadTitle" xml:space="preserve"><value>ツアーをダウンロード</value></data>
+  <data name="DownloadTour" xml:space="preserve"><value>ツアーをダウンロード</value></data>
+  <data name="DownloadingAllTour" xml:space="preserve"><value>ツアー全体をダウンロード中</value></data>
+  <data name="QrShareTitle" xml:space="preserve"><value>QR で共有</value></data>
+  <data name="QrShareSubtitle" xml:space="preserve"><value>QR をスキャンして、アプリ内で正しい POI を開きます。オフラインでも動作します。</value></data>
+  <data name="WebAdminPayload" xml:space="preserve"><value>web-admin ペイロード</value></data>
+  <data name="ShareLink" xml:space="preserve"><value>リンクを共有</value></data>
+  <data name="CopyLink" xml:space="preserve"><value>リンクをコピー</value></data>
+  <data name="Description" xml:space="preserve"><value>説明</value></data>
+  <data name="ProvidedBy" xml:space="preserve"><value>提供:</value></data>
+  <data name="SpeechLanguage" xml:space="preserve"><value>音声言語</value></data>
+  <data name="SaveTtsText" xml:space="preserve"><value>TTS テキストを保存</value></data>
+  <data name="EnterSpeechTextPlaceholder" xml:space="preserve"><value>音声再生時に読み上げるテキストを入力してください...</value></data>
+  <data name="SpeechTextPermissionNotice" xml:space="preserve"><value>アプリ上で TTS テキストを直接編集できるのは Owner または Admin ロールのみです。</value></data>
+  <data name="ViewTour" xml:space="preserve"><value>ツアーを表示</value></data>
+  <data name="ChooseTtsLanguage" xml:space="preserve"><value>TTS 言語を選択</value></data>
+  <data name="BookmarkSavedMessage" xml:space="preserve"><value>ツアーをブックマークに保存しました。</value></data>
+  <data name="BookmarkRemovedMessage" xml:space="preserve"><value>ツアーをブックマークから削除しました。</value></data>
+  <data name="BookmarkedBadge" xml:space="preserve"><value>保存済み</value></data>
+  <data name="TtsSavedMessage" xml:space="preserve"><value>TTS テキストを保存しました。</value></data>
+  <data name="CouldNotSaveTtsText" xml:space="preserve"><value>TTS テキストを保存できませんでした: {0}</value></data>
+  <data name="CouldNotUpdateBookmark" xml:space="preserve"><value>ブックマークを更新できませんでした: {0}</value></data>
+  <data name="CouldNotDownloadTour" xml:space="preserve"><value>ツアーをダウンロードできませんでした: {0}</value></data>
+  <data name="ToQueueFormat" xml:space="preserve"><value>{0} をキューに追加しています...</value></data>
+  <data name="QueuedFormat" xml:space="preserve"><value>{0}/{1} 件の音声をキューに追加しました。</value></data>
+  <data name="AudioAlreadyAvailable" xml:space="preserve"><value>音声は既に利用可能か、ダウンロード待ちです。</value></data>
+  <data name="TourDownloadCompleted" xml:space="preserve"><value>ツアーのダウンロードが完了しました。</value></data>
+  <data name="AudioQueueText" xml:space="preserve"><value>{0}/{1} 件の音声</value></data>
+</root>

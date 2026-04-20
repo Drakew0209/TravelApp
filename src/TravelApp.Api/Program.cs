@@ -52,10 +52,12 @@ using (var scope = app.Services.CreateScope())
 
     dbContext.Database.Migrate();
     await EnsureTourSchemaAsync(dbContext);
+    await EnsureUserSchemaAsync(dbContext);
     await EnsureRefreshTokenSchemaAsync(dbContext);
     await EnsurePoiSpeechTextColumnAsync(dbContext);
     await EnsurePoiSpeechTextsColumnAsync(dbContext);
     await EnsurePoiSpeechTextLanguageCodeColumnAsync(dbContext);
+    await EnsureAnalyticsSchemaAsync(dbContext);
 }
 
 if (app.Environment.IsDevelopment())
@@ -167,6 +169,38 @@ static async Task EnsureRefreshTokenSchemaAsync(TravelAppDbContext dbContext)
             IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260410180000_AddRefreshTokens')
                 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('20260410180000_AddRefreshTokens', '10.0.0');
             """);
+    }
+    finally
+    {
+        if (shouldClose)
+        {
+            await connection.CloseAsync();
+        }
+    }
+}
+
+static async Task EnsureUserSchemaAsync(TravelAppDbContext dbContext)
+{
+    var connection = dbContext.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+    {
+        await connection.OpenAsync();
+    }
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'FullName'";
+        var exists = Convert.ToInt32(await command.ExecuteScalarAsync()) > 0;
+
+        if (!exists)
+        {
+            await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE [Users] ADD [FullName] nvarchar(200) NOT NULL CONSTRAINT [DF_Users_FullName] DEFAULT('');");
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("UPDATE [Users] SET [FullName] = [UserName] WHERE [FullName] = '' OR [FullName] IS NULL;");
     }
     finally
     {
@@ -397,6 +431,68 @@ static async Task EnsurePoiSpeechTextLanguageCodeColumnAsync(TravelAppDbContext 
         }
 
         await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE [POI] ADD [SpeechTextLanguageCode] nvarchar(10) NULL;");
+    }
+    finally
+    {
+        if (shouldClose)
+        {
+            await connection.CloseAsync();
+        }
+    }
+}
+
+static async Task EnsureAnalyticsSchemaAsync(TravelAppDbContext dbContext)
+{
+    var connection = dbContext.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+    {
+        await connection.OpenAsync();
+    }
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT OBJECT_ID(N'[AnalyticsEvents]')";
+        var exists = await command.ExecuteScalarAsync();
+
+        if (exists is null or DBNull)
+        {
+            await dbContext.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE [AnalyticsEvents] (
+                    [Id] bigint NOT NULL IDENTITY,
+                    [OccurredAtUtc] datetimeoffset NOT NULL,
+                    [EventType] nvarchar(32) NOT NULL,
+                    [Source] nvarchar(16) NOT NULL,
+                    [UserId] nvarchar(128) NULL,
+                    [GuestId] nvarchar(128) NULL,
+                    [DeviceId] nvarchar(128) NOT NULL,
+                    [SessionId] nvarchar(128) NOT NULL,
+                    [PoiId] int NULL,
+                    [TourId] int NULL,
+                    [MetadataJson] nvarchar(max) NULL,
+                    CONSTRAINT [PK_AnalyticsEvents] PRIMARY KEY ([Id])
+                );
+                """);
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AnalyticsEvents_OccurredAtUtc' AND object_id = OBJECT_ID(N'[AnalyticsEvents]'))
+                CREATE INDEX [IX_AnalyticsEvents_OccurredAtUtc] ON [AnalyticsEvents] ([OccurredAtUtc]);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AnalyticsEvents_EventType_OccurredAtUtc' AND object_id = OBJECT_ID(N'[AnalyticsEvents]'))
+                CREATE INDEX [IX_AnalyticsEvents_EventType_OccurredAtUtc] ON [AnalyticsEvents] ([EventType], [OccurredAtUtc]);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AnalyticsEvents_PoiId_OccurredAtUtc' AND object_id = OBJECT_ID(N'[AnalyticsEvents]'))
+                CREATE INDEX [IX_AnalyticsEvents_PoiId_OccurredAtUtc] ON [AnalyticsEvents] ([PoiId], [OccurredAtUtc]);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AnalyticsEvents_TourId_OccurredAtUtc' AND object_id = OBJECT_ID(N'[AnalyticsEvents]'))
+                CREATE INDEX [IX_AnalyticsEvents_TourId_OccurredAtUtc] ON [AnalyticsEvents] ([TourId], [OccurredAtUtc]);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AnalyticsEvents_Source_OccurredAtUtc' AND object_id = OBJECT_ID(N'[AnalyticsEvents]'))
+                CREATE INDEX [IX_AnalyticsEvents_Source_OccurredAtUtc] ON [AnalyticsEvents] ([Source], [OccurredAtUtc]);
+            """);
     }
     finally
     {

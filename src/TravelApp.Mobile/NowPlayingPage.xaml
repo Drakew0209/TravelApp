@@ -15,7 +15,7 @@
                     Padding="0" />
 
             <Label Grid.Column="1"
-                   Text="Now Playing"
+                   Text="{Binding LocalizedPageTitle}"
                    FontSize="24"
                    FontAttributes="Bold"
                    TextColor="{AppThemeBinding Light=#1B1F28, Dark=#F3F5FA}"

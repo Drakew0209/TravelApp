@@ -13,6 +13,7 @@ public sealed class TourRoutePlaybackService : ITourRoutePlaybackService, IDispo
     private readonly ILocationTrackerService _locationTrackerService;
     private readonly IAudioService _audioService;
     private readonly ILocalDatabaseService _localDatabaseService;
+    private readonly IAnalyticsTrackingService _analyticsTrackingService;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<TourRoutePlaybackService> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -32,12 +33,14 @@ public sealed class TourRoutePlaybackService : ITourRoutePlaybackService, IDispo
         ILocationTrackerService locationTrackerService,
         IAudioService audioService,
         ILocalDatabaseService localDatabaseService,
+        IAnalyticsTrackingService analyticsTrackingService,
         TimeProvider timeProvider,
         ILogger<TourRoutePlaybackService> logger)
     {
         _locationTrackerService = locationTrackerService;
         _audioService = audioService;
         _localDatabaseService = localDatabaseService;
+        _analyticsTrackingService = analyticsTrackingService;
         _timeProvider = timeProvider;
         _logger = logger;
 
@@ -63,6 +66,7 @@ public sealed class TourRoutePlaybackService : ITourRoutePlaybackService, IDispo
             }
 
             _logger.LogInformation("Tour route playback started for route {RouteId} with {WaypointCount} waypoints.", route.Id, route.Waypoints.Count);
+            _ = _analyticsTrackingService.TrackTourListenedAsync(route.Id, preferredPoiId, route.PrimaryLanguage, cancellationToken);
             if (route.Waypoints.Count > 0)
             {
                 var startIndex = preferredPoiId.HasValue

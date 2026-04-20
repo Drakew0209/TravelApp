@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls.Shapes;
+using TravelApp.Resources.Strings;
 using TravelApp.Services;
 using TravelApp.Services.Abstractions;
 using ZXing.Net.Maui;
@@ -11,7 +12,7 @@ namespace TravelApp;
 public sealed class QrScannerPage : ContentPage
 {
     private readonly IQrCodeParserService _qrCodeParserService;
-    private readonly IPoiApiClient _poiApiClient;
+    private readonly IAnalyticsTrackingService _analyticsTrackingService;
     private readonly CameraBarcodeReaderView _scannerView;
     private readonly Label _statusLabel;
     private bool _isHandlingScan;
@@ -20,7 +21,7 @@ public sealed class QrScannerPage : ContentPage
     public QrScannerPage()
     {
         _qrCodeParserService = MauiProgram.Services.GetRequiredService<IQrCodeParserService>();
-        _poiApiClient = MauiProgram.Services.GetRequiredService<IPoiApiClient>();
+        _analyticsTrackingService = MauiProgram.Services.GetRequiredService<IAnalyticsTrackingService>();
 
         _scannerView = new CameraBarcodeReaderView
         {
@@ -38,9 +39,11 @@ public sealed class QrScannerPage : ContentPage
 
         _statusLabel = new Label
         {
-            Text = "Đang chờ quét mã...",
+            Text = AppStrings.ReadyToReceiveQr,
             FontSize = 13,
-            TextColor = Color.FromArgb("#E31667")
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#B51A50"),
+            HorizontalTextAlignment = TextAlignment.Center
         };
 
         _showManualFallback = ShouldShowManualFallback();
@@ -55,13 +58,13 @@ public sealed class QrScannerPage : ContentPage
         base.OnAppearing();
         _isHandlingScan = false;
         _scannerView.IsDetecting = true;
-        _statusLabel.Text = "Đang chờ quét mã...";
+        UpdateStatus(AppStrings.ReadyToReceiveQr, Color.FromArgb("#B51A50"), Color.FromArgb("#FFF1F6"));
 
         var permission = await Permissions.RequestAsync<Permissions.Camera>();
         if (permission != PermissionStatus.Granted)
         {
             _scannerView.IsDetecting = false;
-            await DisplayAlert("Camera", "TravelApp cần quyền camera để quét mã QR.", "OK");
+            await DisplayAlert(AppStrings.QrCodeTitle, AppStrings.CameraPermissionRequired, "OK");
             await Shell.Current.GoToAsync("..");
         }
     }
@@ -96,7 +99,7 @@ public sealed class QrScannerPage : ContentPage
         closeButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Shell.Current.GoToAsync("..")) });
         closeButton.Content = new Label
         {
-            Text = "←",
+            Text = AppStrings.QrBackIcon,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.White,
@@ -112,15 +115,15 @@ public sealed class QrScannerPage : ContentPage
         };
         titleBlock.Children.Add(new Label
         {
-            Text = "Quét mã QR",
-            FontSize = 22,
+            Text = AppStrings.QrScannerTitle,
+            FontSize = 24,
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.White,
             HorizontalTextAlignment = TextAlignment.Center
         });
         titleBlock.Children.Add(new Label
         {
-            Text = "Đưa mã QR vào khung để mở nhanh POI Detail",
+            Text = AppStrings.QrScannerSubtitle,
             FontSize = 13,
             TextColor = Color.FromArgb("#D9DDE8"),
             HorizontalTextAlignment = TextAlignment.Center
@@ -135,7 +138,7 @@ public sealed class QrScannerPage : ContentPage
             StrokeShape = new RoundRectangle { CornerRadius = 22 },
             Content = new Label
             {
-                Text = "QR",
+                Text = AppStrings.QrCodeTitle,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Colors.White,
@@ -152,6 +155,24 @@ public sealed class QrScannerPage : ContentPage
 
         var scannerGrid = new Grid();
         scannerGrid.Children.Add(_scannerView);
+        scannerGrid.Children.Add(new Border
+        {
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            StrokeThickness = 0,
+            BackgroundColor = Colors.Transparent,
+            Content = new Label
+            {
+                Text = AppStrings.QrScanInstruction,
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Colors.White,
+                Padding = new Thickness(14, 6),
+                BackgroundColor = Color.FromArgb("#66000000"),
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }
+        });
         scannerGrid.Children.Add(new Grid
         {
             BackgroundColor = Color.FromArgb("#77000000"),
@@ -174,27 +195,68 @@ public sealed class QrScannerPage : ContentPage
         var infoCard = new Border
         {
             Margin = new Thickness(16, 0, 16, 16),
-            Padding = 14,
+            Padding = 16,
             StrokeThickness = 0,
             BackgroundColor = Colors.White,
-            StrokeShape = new RoundRectangle { CornerRadius = 20 }
+            StrokeShape = new RoundRectangle { CornerRadius = 24 }
         };
-        var infoStack = new VerticalStackLayout { Spacing = 10 };
-        infoStack.Children.Add(new Label
+        var infoStack = new VerticalStackLayout { Spacing = 12 };
+
+        infoStack.Children.Add(new Grid
         {
-            Text = "Lưu ý",
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 12
+        });
+        var guideIcon = new Border
+        {
+            WidthRequest = 44,
+            HeightRequest = 44,
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 14 },
+            BackgroundColor = Color.FromArgb("#FFF1F6"),
+            Content = new Label
+            {
+                Text = AppStrings.QrGuideIcon,
+                FontSize = 18,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#E31667"),
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }
+        };
+        infoStack.Children.Add(guideIcon);
+
+        var guideTextStack = new VerticalStackLayout { Spacing = 4 };
+        guideTextStack.Children.Add(new Label
+        {
+            Text = AppStrings.WebAdminQr,
+            FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            FontSize = 16,
             TextColor = Color.FromArgb("#1B1F28")
         });
-        infoStack.Children.Add(new Label
+        guideTextStack.Children.Add(new Label
         {
-            Text = "Mã QR hợp lệ có thể là số POI trực tiếp, URL có poiId, hoặc chuỗi chứa mã địa điểm.",
+            Text = AppStrings.QrScannerSubtitle,
             FontSize = 13,
             TextColor = Color.FromArgb("#5D6472"),
             LineBreakMode = LineBreakMode.WordWrap
         });
-        infoStack.Children.Add(_statusLabel);
+        guideTextStack.Children.Add(BuildChipRow());
+        infoStack.Children.Add(guideTextStack);
+
+        var statusCard = new Border
+        {
+            StrokeThickness = 0,
+            BackgroundColor = Color.FromArgb("#FFF1F6"),
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
+            Padding = new Thickness(12, 10)
+        };
+        statusCard.Content = _statusLabel;
+        infoStack.Children.Add(statusCard);
 
         if (_showManualFallback)
         {
@@ -221,6 +283,50 @@ public sealed class QrScannerPage : ContentPage
         return root;
     }
 
+    private View BuildChipRow()
+    {
+        var chips = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+
+        chips.Children.Add(CreateChip(AppStrings.WebAdminQr));
+        chips.Children.Add(CreateChip(AppStrings.OfflineOk));
+        chips.Children.Add(CreateChip(AppStrings.PoiIdAndLang));
+
+        return chips;
+    }
+
+    private static View CreateChip(string text)
+    {
+        return new Border
+        {
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 999 },
+            BackgroundColor = Color.FromArgb("#F2F4F8"),
+            Padding = new Thickness(10, 5),
+            Content = new Label
+            {
+                Text = text,
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#4E5668")
+            }
+        };
+    }
+
+    private void UpdateStatus(string text, Color textColor, Color backgroundColor)
+    {
+        _statusLabel.Text = text;
+        _statusLabel.TextColor = textColor;
+
+        if (_statusLabel.Parent is Border border)
+        {
+            border.BackgroundColor = backgroundColor;
+        }
+    }
+
     private View BuildFallbackSection()
     {
         var container = new VerticalStackLayout
@@ -237,7 +343,7 @@ public sealed class QrScannerPage : ContentPage
 
         container.Children.Add(new Label
         {
-            Text = "Fallback cho emulator / debug",
+            Text = AppStrings.EmulatorFallbackTitle,
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#1B1F28")
@@ -245,7 +351,7 @@ public sealed class QrScannerPage : ContentPage
 
         var pasteButton = new Button
         {
-            Text = "Paste QR content",
+            Text = AppStrings.PasteQrLink,
             BackgroundColor = Color.FromArgb("#F7F8FB"),
             TextColor = Color.FromArgb("#1B1F28"),
             BorderColor = Color.FromArgb("#D6DCE8"),
@@ -257,7 +363,7 @@ public sealed class QrScannerPage : ContentPage
 
         var inputButton = new Button
         {
-            Text = "Nhập mã QR thủ công",
+            Text = AppStrings.EnterQrManually,
             BackgroundColor = Color.FromArgb("#E31667"),
             TextColor = Colors.White,
             CornerRadius = 16,
@@ -282,7 +388,7 @@ public sealed class QrScannerPage : ContentPage
 
         container.Children.Add(new Label
         {
-            Text = "Dùng khi emulator không có camera feed. Bạn có thể dán URL/ID rồi app sẽ mở POI Detail như quét QR thật.",
+            Text = AppStrings.EmulatorFallbackDescription,
             FontSize = 12,
             TextColor = Color.FromArgb("#6E7380"),
             LineBreakMode = LineBreakMode.WordWrap
@@ -314,37 +420,28 @@ public sealed class QrScannerPage : ContentPage
     {
         try
         {
-            _statusLabel.Text = "Đang xử lý mã QR...";
+            UpdateStatus(AppStrings.ProcessingQr, Color.FromArgb("#B51A50"), Color.FromArgb("#FFF1F6"));
 
             var poiId = _qrCodeParserService.TryParsePoiId(scannedText);
             if (!poiId.HasValue)
             {
-                _statusLabel.Text = "Mã QR không hợp lệ.";
-                await DisplayAlert("QR code", "Không thể đọc mã POI từ QR này.", "OK");
+                UpdateStatus(AppStrings.CannotReadPoiId, Color.FromArgb("#8B1E3F"), Color.FromArgb("#FFE7EE"));
+                await DisplayAlert(AppStrings.QrCodeTitle, AppStrings.InvalidQrFormat, "OK");
                 _isHandlingScan = false;
                 _scannerView.IsDetecting = true;
                 return;
             }
 
-            var poi = await _poiApiClient.GetByIdAsync(poiId.Value, UserProfileService.PreferredLanguage);
-            if (poi is null)
-            {
-                _statusLabel.Text = "Không tìm thấy địa điểm.";
-                await DisplayAlert("QR code", $"Không tìm thấy POI có ID {poiId.Value}.", "OK");
-                _isHandlingScan = false;
-                _scannerView.IsDetecting = true;
-                return;
-            }
-
-            _statusLabel.Text = $"Đã tìm thấy: {poi.Title}";
+            UpdateStatus(string.Format(System.Globalization.CultureInfo.CurrentUICulture, AppStrings.QrOpenedPoiFormat, poiId.Value), Color.FromArgb("#0E7A55"), Color.FromArgb("#EAF8F1"));
+            _ = _analyticsTrackingService.TrackQrScannedAsync(poiId.Value, scannedText, UserProfileService.PreferredLanguage, CancellationToken.None);
             await Shell.Current.GoToAsync("..");
-            await Task.Delay(150);
+            await Task.Delay(120);
             await Shell.Current.GoToAsync($"TourDetailPage?tourId={poiId.Value}");
         }
         catch (Exception ex)
         {
-            _statusLabel.Text = "Lỗi khi quét QR.";
-            await DisplayAlert("QR code", $"Không thể mở POI từ QR: {ex.Message}", "OK");
+            UpdateStatus(AppStrings.QrOpenError, Color.FromArgb("#8B1E3F"), Color.FromArgb("#FFE7EE"));
+            await DisplayAlert(AppStrings.QrCodeTitle, string.Format(System.Globalization.CultureInfo.CurrentUICulture, AppStrings.CouldNotDownloadTour, ex.Message), "OK");
             _isHandlingScan = false;
             _scannerView.IsDetecting = true;
         }
@@ -353,11 +450,11 @@ public sealed class QrScannerPage : ContentPage
     private async Task PromptQrContentAsync()
     {
         var qrContent = await DisplayPromptAsync(
-            "Nhập mã QR",
-            "Dán nội dung QR, URL, hoặc POI ID:",
-            accept: "Xử lý",
-            cancel: "Hủy",
-            placeholder: "123 hoặc https://...poiId=123");
+            AppStrings.QrCodeTitle,
+            AppStrings.InvalidQrFormat,
+            accept: AppStrings.Process,
+            cancel: AppStrings.Cancel,
+            placeholder: AppStrings.QrPromptPlaceholder);
 
         if (string.IsNullOrWhiteSpace(qrContent))
         {
@@ -372,7 +469,7 @@ public sealed class QrScannerPage : ContentPage
         var qrContent = await Clipboard.Default.GetTextAsync();
         if (string.IsNullOrWhiteSpace(qrContent))
         {
-            await DisplayAlert("Clipboard", "Không có nội dung để dán.", "OK");
+            await DisplayAlert(AppStrings.NotEnoughClipboardText, AppStrings.NoClipboardContent, "OK");
             return;
         }
 

@@ -14,6 +14,9 @@ public interface ITravelAppDbContext
     DbSet<Role> Roles { get; }
     DbSet<UserRole> UserRoles { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<UserBookmark> UserBookmarks { get; }
+    DbSet<UserHistoryEntry> UserHistoryEntries { get; }
+    DbSet<AnalyticsEvent> AnalyticsEvents { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -31,9 +31,9 @@ public sealed class TourEditorViewModel
     public string? QrImageUrl { get; set; }
     public bool CanShowQr => Id.HasValue && !string.IsNullOrWhiteSpace(QrContent) && !string.IsNullOrWhiteSpace(QrImageUrl);
 
-    [Required, StringLength(10)]
+    [Required, StringLength(15)]
     [Display(Name = "Primary language")]
-    public string PrimaryLanguage { get; set; } = "vi";
+    public string PrimaryLanguage { get; set; } = "vi-VN";
 
     public bool IsPublished { get; set; } = true;
 
@@ -84,8 +84,8 @@ public sealed class TourPoiEditorInput
 
 public sealed class TourAudioEditorInput
 {
-    [Required, StringLength(10)]
-    public string LanguageCode { get; set; } = "vi";
+    [Required, StringLength(15)]
+    public string LanguageCode { get; set; } = "vi-VN";
 
     [StringLength(2048)]
     public string? AudioUrl { get; set; }
@@ -96,9 +96,9 @@ public sealed class TourAudioEditorInput
 
 public sealed class TourSpeechTextEditorInput
 {
-    [Required, StringLength(10)]
-    public string LanguageCode { get; set; } = "vi";
+    [Required, StringLength(15)]
+    public string LanguageCode { get; set; } = "vi-VN";
 
-    [StringLength(4000)]
+    [StringLength(2000)]
     public string Text { get; set; } = string.Empty;
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TravelApp.Application.Abstractions.Users;
 using TravelApp.Application.Dtos.Users;

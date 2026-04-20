@@ -1,0 +1,38 @@
+@page
+@model TravelApp.Public.Web.Pages.Account.IndexModel
+@{
+    ViewData["Title"] = Model.PageTitle;
+    var text = PublicPageText.Current;
+}
+
+<section class="card account-card" id="overview-panel">
+    <div class="section-head">
+        <div>
+            <h1>@Model.PageTitle</h1>
+            <p>@text.SignInToSyncBookmarksAndHistory</p>
+        </div>
+        <span class="soft-badge">@text.MobileFriendly</span>
+    </div>
+
+    <div class="profile-stats">
+        <div class="profile-stat">
+            <span class="label">@text.FullName</span>
+            <strong>@(string.IsNullOrWhiteSpace(Model.DisplayName) ? "—" : Model.DisplayName)</strong>
+        </div>
+        <div class="profile-stat">
+            <span class="label">@text.Email</span>
+            <strong>@(string.IsNullOrWhiteSpace(Model.Email) ? "—" : Model.Email)</strong>
+        </div>
+        <div class="profile-stat">
+            <span class="label">Roles</span>
+            <strong>@(Model.Roles.Count == 0 ? "—" : string.Join(", ", Model.Roles))</strong>
+        </div>
+    </div>
+
+    <div class="profile-auth-actions">
+        <a class="map-action map-action-primary" asp-page="/Index">@PublicText.T("Về trang chủ", "ホームへ", "Zur Startseite", "Back home")</a>
+        <form asp-page="/Auth/Logout" method="post">
+            <button type="submit" class="map-action">@text.Logout</button>
+        </form>
+    </div>
+</section>

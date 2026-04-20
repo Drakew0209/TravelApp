@@ -1,4 +1,5 @@
 using TravelApp.Domain.Entities;
+using TravelApp.Application.Dtos.Auth;
 
 namespace TravelApp.Application.Abstractions.Auth;
 
@@ -9,6 +10,11 @@ public interface IAuthService
     /// </summary>
     /// <returns>Auth result with access token, or null if authentication fails</returns>
     Task<AuthResultDto?> LoginAsync(string email, string password, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Register a new user with the default User role.
+    /// </summary>
+    Task<AuthResultDto?> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Refresh access token using refresh token
@@ -37,7 +43,8 @@ public record AuthResultDto(
     DateTimeOffset? ExpiresAtUtc = null,
     string TokenType = "Bearer",
     string? UserId = null,
-    IReadOnlyList<string>? Roles = null);
+    IReadOnlyList<string>? Roles = null,
+    string? FullName = null);
 
 public record UserProfileDto(
     Guid Id,

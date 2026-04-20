@@ -1,17 +1,17 @@
 @model TravelApp.Admin.Web.Models.Users.UserEditorViewModel
 
 @{
-    ViewData["Title"] = "Chỉnh sửa User";
+    ViewData["Title"] = AdminText.T("Chỉnh sửa User", "ユーザーを編集", "Benutzer bearbeiten");
 }
 
 <div class="dashboard-grid">
     <div class="section-header">
         <div>
-            <h1 class="section-title">Chỉnh sửa User</h1>
-            <p class="section-subtitle">Cập nhật trạng thái, role và mật khẩu nếu cần.</p>
+            <h1 class="section-title">@AdminText.T("Chỉnh sửa User", "ユーザーを編集", "Benutzer bearbeiten")</h1>
+            <p class="section-subtitle">@AdminText.T("Cập nhật trạng thái, role và mật khẩu nếu cần.", "必要に応じて状態、ロール、パスワードを更新します。", "Status, Rollen und Passwort bei Bedarf aktualisieren.")</p>
         </div>
         <div class="section-actions">
-            <span class="soft-badge">User • Edit</span>
+            <span class="soft-badge">@AdminText.T("User • Edit", "ユーザー • 編集", "Benutzer • Bearbeiten")</span>
         </div>
     </div>
 
@@ -21,8 +21,8 @@
             <div class="admin-card p-4">
                 <div class="section-header mb-3">
                     <div>
-                        <h2 class="section-title">Thông tin tài khoản</h2>
-                        <p class="section-subtitle">Username, email, mật khẩu và trạng thái.</p>
+                        <h2 class="section-title">@AdminText.T("Thông tin tài khoản", "アカウント情報", "Kontoinformationen")</h2>
+                        <p class="section-subtitle">@AdminText.T("Username, email, mật khẩu và trạng thái.", "ユーザー名、メール、パスワード、状態。", "Benutzername, E-Mail, Passwort und Status.")</p>
                     </div>
                 </div>
                 <div class="row g-3">
@@ -35,14 +35,14 @@
                         <input asp-for="Email" class="form-control" />
                     </div>
                     <div class="col-md-6">
-                        <label asp-for="Password" class="form-label">Password</label>
+                        <label asp-for="Password" class="form-label">@AdminText.T("Password", "パスワード", "Passwort")</label>
                         <input asp-for="Password" class="form-control" type="password" />
-                        <div class="form-hint">Để trống nếu không đổi mật khẩu.</div>
+                        <div class="form-hint">@AdminText.T("Để trống nếu không đổi mật khẩu.", "パスワードを変更しない場合は空欄のままにしてください。", "Leer lassen, wenn das Passwort nicht geändert werden soll.")</div>
                     </div>
                     <div class="col-md-6 d-flex align-items-end">
                         <div class="form-check">
                             <input asp-for="IsActive" class="form-check-input" />
-                            <label asp-for="IsActive" class="form-check-label">Active</label>
+                            <label asp-for="IsActive" class="form-check-label">@AdminText.T("Active", "有効", "Aktiv")</label>
                         </div>
                     </div>
                 </div>
@@ -51,8 +51,8 @@
             <div class="admin-card p-4">
                 <div class="section-header mb-3">
                     <div>
-                        <h2 class="section-title">Roles</h2>
-                        <p class="section-subtitle">Chọn một hoặc nhiều role cho tài khoản.</p>
+                        <h2 class="section-title">@AdminText.T("Roles", "ロール", "Rollen")</h2>
+                        <p class="section-subtitle">@AdminText.T("Chọn một hoặc nhiều role cho tài khoản.", "アカウントに 1 つ以上のロールを選択します。", "Wählen Sie eine oder mehrere Rollen für das Konto aus.")</p>
                     </div>
                 </div>
                 <select asp-for="SelectedRoleIds" asp-items="Model.AvailableRoles" class="form-select" multiple size="6"></select>
@@ -64,44 +64,44 @@
                 <div class="user-preview-shell">
                     <div class="user-avatar">@((string.IsNullOrWhiteSpace(Model.UserName) ? "U" : Model.UserName.Substring(0, 1)).ToUpperInvariant())</div>
                     <div>
-                        <div class="preview-title">@(string.IsNullOrWhiteSpace(Model.UserName) ? "User Preview" : Model.UserName)</div>
-                        <div class="preview-subtitle">@(string.IsNullOrWhiteSpace(Model.Email) ? "Nhập thông tin để xem preview" : Model.Email)</div>
+                        <div class="preview-title">@(string.IsNullOrWhiteSpace(Model.UserName) ? AdminText.T("User Preview", "ユーザープレビュー", "Benutzer-Vorschau") : Model.UserName)</div>
+                        <div class="preview-subtitle">@(string.IsNullOrWhiteSpace(Model.Email) ? AdminText.T("Nhập thông tin để xem preview", "情報を入力するとプレビューを表示します", "Daten eingeben, um die Vorschau anzuzeigen") : Model.Email)</div>
                     </div>
                 </div>
                 <div class="preview-overlay"></div>
                 <div class="preview-meta">
                     <div>
-                        <div class="preview-title">@(Model.IsActive ? "Active" : "Inactive")</div>
-                        <div class="preview-subtitle">Preview</div>
+                        <div class="preview-title">@(Model.IsActive ? AdminText.T("Active", "有効", "Aktiv") : AdminText.T("Inactive", "無効", "Inaktiv"))</div>
+                        <div class="preview-subtitle">@AdminText.T("Preview", "プレビュー", "Vorschau")</div>
                     </div>
-                    <span class="soft-badge">Saved</span>
+                    <span class="soft-badge">@AdminText.T("Saved", "保存済み", "Gespeichert")</span>
                 </div>
             </div>
             <div class="preview-body">
                 <div class="preview-stats">
                     <div class="preview-stat">
-                        <div class="label">Roles</div>
+                        <div class="label">@AdminText.T("Roles", "ロール", "Rollen")</div>
                         <div class="value">@Model.SelectedRoleIds.Count</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Status</div>
-                        <div class="value">@(Model.IsActive ? "Active" : "Inactive")</div>
+                        <div class="label">@AdminText.T("Status", "状態", "Status")</div>
+                        <div class="value">@(Model.IsActive ? AdminText.T("Active", "有効", "Aktiv") : AdminText.T("Inactive", "無効", "Inaktiv"))</div>
                     </div>
                     <div class="preview-stat">
-                        <div class="label">Password</div>
-                        <div class="value">Optional</div>
+                        <div class="label">@AdminText.T("Password", "パスワード", "Passwort")</div>
+                        <div class="value">@AdminText.T("Optional", "任意", "Optional")</div>
                     </div>
                 </div>
 
                 <ul class="preview-list mt-3">
-                    <li><span>Username</span><strong>@(string.IsNullOrWhiteSpace(Model.UserName) ? "—" : Model.UserName)</strong></li>
-                    <li><span>Email</span><strong>@(string.IsNullOrWhiteSpace(Model.Email) ? "—" : Model.Email)</strong></li>
-                    <li><span>Roles</span><strong>@(Model.SelectedRoleIds.Count == 0 ? "—" : string.Join(", ", Model.AvailableRoles.Where(x => x.Selected).Select(x => x.Text)))</strong></li>
+                    <li><span>@AdminText.T("Username", "ユーザー名", "Benutzername")</span><strong>@(string.IsNullOrWhiteSpace(Model.UserName) ? "—" : Model.UserName)</strong></li>
+                    <li><span>@AdminText.T("Email", "メール", "E-Mail")</span><strong>@(string.IsNullOrWhiteSpace(Model.Email) ? "—" : Model.Email)</strong></li>
+                    <li><span>@AdminText.T("Roles", "ロール", "Rollen")</span><strong>@(Model.SelectedRoleIds.Count == 0 ? "—" : string.Join(", ", Model.AvailableRoles.Where(x => x.Selected).Select(x => x.Text)))</strong></li>
                 </ul>
 
                 <div class="d-grid gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary w-100">Cập nhật user</button>
-                    <a asp-action="Index" class="btn btn-outline-light w-100">Hủy</a>
+                    <button type="submit" class="btn btn-primary w-100">@AdminText.T("Cập nhật user", "ユーザーを更新", "Benutzer aktualisieren")</button>
+                    <a asp-action="Index" class="btn btn-outline-light w-100">@AdminText.T("Hủy", "キャンセル", "Abbrechen")</a>
                 </div>
             </div>
         </div>

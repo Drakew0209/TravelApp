@@ -20,20 +20,6 @@ namespace TravelApp
             return !string.IsNullOrWhiteSpace(bingMapsKey);
         }
 
-        private static string ResolveApiBaseUrl()
-        {
-#if DEBUG
-            if (DeviceInfo.Platform == DevicePlatform.Android)
-            {
-                return "http://10.0.2.2:5293/";
-            }
-
-            return "http://localhost:5293/";
-#else
-            return "https://api.your-domain.com/";
-#endif
-        }
-
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
@@ -62,10 +48,11 @@ namespace TravelApp
     		builder.Logging.AddDebug();
 #endif
 
-            builder.Services.AddSingleton(new ApiClientOptions
-            {
-                BaseUrl = ResolveApiBaseUrl()
-            });
+            var apiClientOptions = new ApiClientOptions();
+            var publicWebOptions = new PublicWebOptions();
+            builder.Services.AddSingleton(apiClientOptions);
+            builder.Services.AddSingleton(publicWebOptions);
+            builder.Services.AddSingleton<IEndpointSettingsService>(new EndpointSettingsService(apiClientOptions, publicWebOptions));
             builder.Services.AddSingleton(new CachePolicyOptions
             {
                 Mode = CacheMode.OfflineFirst
@@ -79,6 +66,7 @@ namespace TravelApp
             builder.Services.AddTransient<IAuthApiClient, AuthApiClient>();
             builder.Services.AddTransient<IProfileApiClient, ProfileApiClient>();
             builder.Services.AddTransient<IPoiApiClient, PoiApiClient>();
+            builder.Services.AddTransient<IBookmarkHistoryApiClient, BookmarkHistoryApiClient>();
             builder.Services.AddTransient<ITourApiClient, TourApiClient>();
             builder.Services.AddTransient<ITourRouteCatalogService, TourRouteCatalogService>();
             builder.Services.AddSingleton<ITourRouteGeometryService, AzureMapsRouteGeometryService>();
@@ -92,9 +80,12 @@ namespace TravelApp
             builder.Services.AddSingleton<ILocationTrackerService, LocationTrackerService>();
             builder.Services.AddSingleton<IGeofenceService, GeofenceService>();
             builder.Services.AddSingleton<IPoiGeofenceService, PoiGeofenceService>();
+            builder.Services.AddSingleton<ILanEndpointDiscoveryService, LanEndpointDiscoveryService>();
             builder.Services.AddSingleton<IAudioPlayerService, AudioPlayerService>();
             builder.Services.AddSingleton<IAudioLibraryService, AudioLibraryService>();
             builder.Services.AddSingleton<IBookmarkHistoryService, BookmarkHistoryService>();
+            builder.Services.AddSingleton<IAnalyticsTrackingService, AnalyticsTrackingService>();
+            builder.Services.AddSingleton<IPoiQrCodeService, PoiQrCodeService>();
             builder.Services.AddSingleton<ITourMapRouteService, TourMapRouteService>();
             builder.Services.AddSingleton<IAutoAudioTriggerService, AutoAudioTriggerService>();
             builder.Services.AddSingleton<ITourRoutePlaybackService, TourRoutePlaybackService>();
@@ -103,6 +94,7 @@ namespace TravelApp
             builder.Services.AddSingleton<ITravelBootstrapService, TravelBootstrapService>();
 
             builder.Services.AddTransient<LoginViewModel>();
+            builder.Services.AddTransient<RegisterViewModel>();
             builder.Services.AddTransient<ExploreViewModel>();
             builder.Services.AddTransient<SearchViewModel>();
             builder.Services.AddTransient<TourDetailViewModel>();
@@ -114,7 +106,9 @@ namespace TravelApp
             builder.Services.AddTransient<BookmarksHistoryViewModel>();
             builder.Services.AddTransient<TourMapRouteViewModel>();
             builder.Services.AddTransient<MapViewModel>();
+            builder.Services.AddTransient<NetworkSettingsViewModel>();
             builder.Services.AddTransient<QrScannerPage>();
+            builder.Services.AddTransient<NetworkSettingsPage>();
 
             builder.Services.AddSingleton<AppShell>();
 
